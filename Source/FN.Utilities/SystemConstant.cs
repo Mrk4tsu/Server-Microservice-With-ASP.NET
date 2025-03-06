@@ -22,7 +22,9 @@
         public const string TEMPLATE_RESET_PASSWORD_ID = "6718673";
 
         public const string CACHE_PRODUCT = "all_product";
+        public const string CACHE_CATEGORY = "all-category";
 
         public const string AVATAR_DEFAULT = "https://res.cloudinary.com/dje3seaqj/image/upload/v1736989161/gatapchoi_biglrl.jpg";
+
     }
 }
