@@ -5,6 +5,7 @@
 
 ## 📖 Overview  
 This project is designed using a **microservices architecture** to provide a scalable and maintainable system. It is developed as part of the **graduation thesis at Nha Trang University**. 
+> This is a new repository. Due to a really stupid mistake, I messed up the old repository. It might be recoverable, but since my skills aren't sufficient, I had to create a new one. All commits and pull requests can be found here: [Old Repository](https://github.com/Mrk4tsu/FinalProject-Microservice-With-NET-and-Angular).
 
 DEMO: [mrkatsu.io.vn](https://mrkatsu.io.vn)
 ## 🚀 Features 
