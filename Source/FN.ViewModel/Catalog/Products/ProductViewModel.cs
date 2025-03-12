@@ -1,4 +1,5 @@
-﻿using System.Text.Json.Serialization;
+﻿using FN.DataAccess.Enums;
+using System.Text.Json.Serialization;
 
 namespace FN.ViewModel.Catalog.Products
 {
@@ -8,7 +9,7 @@ namespace FN.ViewModel.Catalog.Products
         public int UserId { get; set; }
         public string Title { get; set; }
         public string NormalizeTitle { get; set; }
-        public decimal Price { get; set; }
+        //public decimal Price { get; set; }
         public string Thumbnail { get; set; }
         public string SeoAlias { get; set; }
         public string Username { get; set; }
@@ -18,6 +19,15 @@ namespace FN.ViewModel.Catalog.Products
         public string CategorySeoAlias { get; set; }
         public DateTime TimeCreates { get; set; }
         public DateTime TimeUpdates { get; set; }
+        public List<PriceViewModel> Prices { get; set; }
+    }
+    public class PriceViewModel
+    {
+        public int Id { get; set; }
+        public decimal Price { get; set; }
+        public PriceType PriceType { get; set; } // Thêm using FN.DataAccess.Enums;
+        public DateTime StartDate { get; set; }
+        public DateTime EndDate { get; set; }
     }
     public class ProductDetailViewModel : ProductViewModel
     {

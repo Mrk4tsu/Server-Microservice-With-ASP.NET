@@ -1,5 +1,6 @@
 using FN.Application.Catalog.Categories;
 using FN.Application.Catalog.Product;
+using FN.Application.Catalog.Product.Prices;
 using FN.Extensions;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -17,6 +18,8 @@ builder.Services.AddSwaggerExplorer()
 builder.Services.AddScoped<IProductPublicService, ProductPublicService>();
 builder.Services.AddScoped<IProductManageService, ProductManageService>();
 builder.Services.AddScoped<ICategoryService, CategoryService>();
+builder.Services.AddScoped<IPriceProductService, PriceProductService>();
+
 var app = builder.Build();
 
 app.ConfigureSwaggerExplorer()

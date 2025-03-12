@@ -23,6 +23,7 @@
 
         public const string CACHE_PRODUCT = "all_product";
         public const string CACHE_CATEGORY = "all-category";
+        public static readonly string CACHE_USER_BY_USERNAME = "user-cache:";
 
         public const string AVATAR_DEFAULT = "https://res.cloudinary.com/dje3seaqj/image/upload/v1736989161/gatapchoi_biglrl.jpg";
 

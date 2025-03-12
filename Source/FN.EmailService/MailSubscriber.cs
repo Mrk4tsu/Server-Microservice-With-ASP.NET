@@ -1,5 +1,6 @@
 ﻿using FN.Application.Helper.Mail;
 using FN.Application.Systems.Redis;
+using FN.Application.Systems.User;
 using FN.Utilities;
 using FN.ViewModel.Systems.User;
 using Newtonsoft.Json.Linq;
@@ -14,7 +15,10 @@ namespace FN.EmailService
         private readonly IServiceProvider _serviceProvider;
         private readonly IRedisService _redisService;
         private readonly IConfiguration _configuration;
-        public MailSubscriber(IMailService mailService, IServiceProvider serviceProvider, IRedisService redisService, IConfiguration configuration)
+        public MailSubscriber(IMailService mailService,
+            IServiceProvider serviceProvider,
+            IRedisService redisService,
+            IConfiguration configuration)
         {
             _mailService = mailService;
             _serviceProvider = serviceProvider;
@@ -33,22 +37,22 @@ namespace FN.EmailService
                     case SystemConstant.MESSAGE_REGISTER_EVENT:
                         var user = JsonSerializer.Deserialize<RegisterResponse>(message!);
                         var vars = new Dictionary<string, object>()
-                {
-                    {"pusername", user?.FullName!}
-                };
+                        {
+                            {"pusername", user?.FullName!}
+                        };
                         if (user!.Status)
                             await _mailService.SendMail(user!.Email, $"Chào mừng {user.FullName} đến MrKatsu Shop!", SystemConstant.TEMPLATE_WELCOME_ID, vars);
                         break;
                     case SystemConstant.MESSAGE_LOGIN_EVENT:
                         var userLogin = JsonSerializer.Deserialize<LoginResponse>(message!);
                         var variables = new JObject
-                {
-                    {"pbrowser", userLogin!.DeviceInfo.Browser},
-                    {"pos", userLogin.DeviceInfo.OS},
-                    {"ptime", userLogin.DeviceInfo.LastLogin.ToString("hh:mm dd/MM/yyyy")},
-                    {"puser", userLogin.Username},
-                    {"pip", userLogin.DeviceInfo.IPAddress}
-                };
+                        {
+                            {"pbrowser", userLogin!.DeviceInfo.Browser},
+                            {"pos", userLogin.DeviceInfo.OS},
+                            {"ptime", userLogin.DeviceInfo.LastLogin.ToString("hh:mm dd/MM/yyyy")},
+                            {"puser", userLogin.Username},
+                            {"pip", userLogin.DeviceInfo.IPAddress}
+                        };
                         await _mailService.SendMail(userLogin!.Email, $"Cảnh báo bảo mật cho {userLogin.Username}", SystemConstant.TEMPLATE_WARNING_ID, variables);
                         break;
                     case SystemConstant.MESSAGE_UPDATE_EMAIL_EVENT:

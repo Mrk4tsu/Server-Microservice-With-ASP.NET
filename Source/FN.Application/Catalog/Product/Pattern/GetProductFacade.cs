@@ -46,41 +46,36 @@ namespace FN.Application.Catalog.Product.Pattern
         }
         private IQueryable<ProductViewModel> BuildBaseQuery(bool isDeleted)
         {
-            return _db.Items
+            return _db.ProductDetails
                 .AsNoTracking()
-                .Where(i => i.IsDeleted == isDeleted)
-                .Join(_db.ProductDetails,
-                    item => item.Id,
-                    detail => detail.ItemId,
-                    (item, detail) => new { item, detail })
-                .Join(_db.Categories,
-                    combined => combined.detail.CategoryId,
-                    category => category.Id,
-                    (combined, category) => new { combined.item, combined.detail, category })
-                .Join(_db.ProductPrices,
-                    combined => combined.detail.Id,
-                    price => price.ProductDetailId,
-                    (combined, price) => new { combined.item, combined.detail, combined.category, price })
-                .Join(_db.Users,
-                    combined => combined.item.UserId,
-                    user => user.Id,
-                    (combined, user) => new ProductViewModel
-                    {
-                        Id = combined.item.Id,
-                        Title = combined.item.Title,
-                        NormalizeTitle = combined.item.NormalizedTitle,
-                        CategorySeoAlias = combined.category.SeoAlias,
-                        SeoAlias = combined.item.SeoAlias,
-                        CategoryIcon = combined.category.SeoImage,
-                        DownloadCount = combined.detail.DownloadCount,
-                        TimeCreates = combined.item.CreatedDate,
-                        TimeUpdates = combined.item.ModifiedDate,
-                        Thumbnail = combined.item.Thumbnail,
-                        Username = user.FullName,
-                        UserId = combined.item.UserId,
-                        Version = combined.detail.Version,
-                        Price = combined.price.Price
-                    });
+                .Where(pd => pd.Item.IsDeleted == isDeleted && !pd.IsDeleted)
+                .Select(pd => new ProductViewModel
+                {
+                    Id = pd.Item.Id,
+                    UserId = pd.Item.UserId,
+                    Title = pd.Item.Title,
+                    NormalizeTitle = pd.Item.NormalizedTitle,
+                    CategorySeoAlias = pd.Category.SeoAlias,
+                    SeoAlias = pd.Item.SeoAlias,
+                    CategoryIcon = pd.Category.SeoImage,
+                    DownloadCount = pd.DownloadCount,
+                    TimeCreates = pd.Item.CreatedDate,
+                    TimeUpdates = pd.Item.ModifiedDate,
+                    Thumbnail = pd.Item.Thumbnail,
+                    Username = pd.Item.User.FullName,
+                    Version = pd.Version,
+                    Prices = pd.ProductPrices
+                        .Where(pp => !pp.ProductDetail.IsDeleted) // Lọc nếu cần
+                        .Select(pp => new PriceViewModel
+                        {
+                            Id = pp.Id,
+                            Price = pp.Price,
+                            PriceType = pp.PriceType,
+                            StartDate = pp.StartDate,
+                            EndDate = pp.EndDate
+                        })
+                        .ToList()
+                });
         }
         private List<ProductViewModel> ApplyMemoryFilters(List<ProductViewModel> data, ProductPagingRequest request, bool isMe, int? currentUserId)
         {

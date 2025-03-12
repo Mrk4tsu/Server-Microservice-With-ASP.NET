@@ -1,6 +1,8 @@
 ﻿using FN.Application.Catalog.Product;
+using FN.Application.Catalog.Product.Prices;
 using FN.Application.Helper.Images;
 using FN.ViewModel.Catalog.Products;
+using FN.ViewModel.Catalog.Products.Prices;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Ocelot.Values;
@@ -13,10 +15,14 @@ namespace FN.ProductService.Controllers
     {
         private readonly IProductManageService _service;
         private readonly IImageService _imageService;
-        public ManagesController(IProductManageService service, IImageService imageService)
+        private readonly IPriceProductService _priceService;
+        public ManagesController(IProductManageService service,
+            IPriceProductService priceService,
+            IImageService imageService)
         {
             this._service = service;
             this._imageService = imageService;
+            _priceService = priceService;
         }
         [HttpGet("paging")]
         public async Task<IActionResult> GetProducts([FromQuery] ProductPagingRequest request)
@@ -56,6 +62,32 @@ namespace FN.ProductService.Controllers
                 return Error("Upload image failed");
             }
             return Success(result);
+        }
+        [HttpPost("add-price")]
+        public async Task<IActionResult> AddPrice([FromForm] PriceRequest request)
+        {
+            var userId = GetUserIdFromClaims();
+            if (userId == null) return Unauthorized();
+            var result = await _priceService.Create(request);
+            return Ok(result);
+        }
+        [HttpPut("update-price")]
+        public async Task<IActionResult> UpdatePrice(PriceRequest request)
+        {
+            var userId = GetUserIdFromClaims();
+            if (userId == null) return Unauthorized();
+            var result = await _priceService.Update(request);
+            if (result.Success) return Ok(result);
+            return BadRequest(result.Message);
+        }
+        [HttpDelete("remove-price{id}")]
+        public async Task<IActionResult> RemovePrice(int id)
+        {
+            var userId = GetUserIdFromClaims();
+            if (userId == null) return Unauthorized();
+            var result = await _priceService.Delete(id);
+            if (result.Success) return Ok(result);
+            return BadRequest(result.Message);
         }
     }
 }

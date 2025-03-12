@@ -4,6 +4,7 @@ using FN.Application.Helper.Images;
 using FN.Application.Systems.Redis;
 using FN.DataAccess;
 using FN.DataAccess.Entities;
+using FN.Utilities;
 using FN.ViewModel.Catalog.Products;
 using FN.ViewModel.Helper.API;
 using FN.ViewModel.Helper.Paging;
@@ -50,9 +51,9 @@ namespace FN.Application.Catalog.Product
             return await facade.GetProducts(request, true, true, userId);
         }
 
-        public Task<ApiResult<bool>> UpdatePrice(int productId, decimal newPrice)
+        public async Task RemoveCacheData()
         {
-            throw new NotImplementedException();
+            await _dbRedis.RemoveValue(SystemConstant.CACHE_PRODUCT);
         }
     }
 }

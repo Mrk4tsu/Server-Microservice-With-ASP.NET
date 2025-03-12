@@ -5,7 +5,6 @@ using FN.Application.Systems.Token;
 using FN.DataAccess.Entities;
 using FN.Utilities;
 using FN.ViewModel.Helper.API;
-using FN.ViewModel.Systems.Token;
 using FN.ViewModel.Systems.User;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
@@ -48,9 +47,18 @@ namespace FN.Application.Systems.User
         }
         public async Task<ApiResult<UserViewModel>> GetByUsername(string username)
         {
+            var keyCache = SystemConstant.CACHE_USER_BY_USERNAME + username;
+            UserViewModel? userVM = null;
+            if(await _redisService.KeyExist(keyCache))
+            {
+                userVM = await _redisService.GetValue<UserViewModel>(keyCache);
+                if (userVM != null)
+                    return new ApiSuccessResult<UserViewModel>(userVM!);
+            }
             var user = await _userManager.FindByNameAsync(username);
             if (user == null) return new ApiErrorResult<UserViewModel>("Tài khoản không tồn tại");
             var userVm = _mapper.Map<UserViewModel>(user);
+            await _redisService.SetValue(keyCache, userVm, TimeSpan.FromMinutes(5));
             return new ApiSuccessResult<UserViewModel>(userVm);
         }
         public async Task<ApiResult<string>> RequestUpdateMail(int userId, string newEmail)
@@ -138,11 +146,6 @@ namespace FN.Application.Systems.User
             var result = await _userManager.UpdateAsync(user);
             if (result.Succeeded) return new ApiSuccessResult<bool>();
             return new ApiErrorResult<bool>("Thay đổi tên không thành công");
-        }
-        public async Task<ApiResult<List<string>>> GetListUsername()
-        {
-            var users = await _userManager.Users.Select(u => u.UserName).ToListAsync();
-            return new ApiSuccessResult<List<string>>(users);
         }
     }
 }

@@ -107,6 +107,8 @@ namespace FN.Application.Systems.User
                 {
                     Email = user.Email!,
                     Username = user.UserName!,
+                    IpAddress = ipAddress,
+                    Token = tokenReq,
                     DeviceInfo = device
                 };
                 await _redisService.Publish(SystemConstant.MESSAGE_LOGIN_EVENT, publish);
@@ -194,7 +196,6 @@ namespace FN.Application.Systems.User
 
                 // 2. Xóa tất cả Refresh Tokens của user
                 await _tokenService.RemoveAllTokensForUser(userId);
-
                 return new ApiSuccessResult<bool>(true);
             }
             catch (Exception ex)
@@ -249,9 +250,26 @@ namespace FN.Application.Systems.User
                 Builders<DeviceInfoDetail>.Filter.Eq(d => d.ClientId, request.ClientId)));
             return await _userDevicesCollection.Find(filter).AnyAsync();
         }
-        public Task<ApiResult<TokenResponse>> RefreshToken(RefreshTokenRequest request)
+        public async Task<ApiResult<TokenResponse>> RefreshToken(RefreshTokenRequest request)
         {
-            throw new NotImplementedException();
+            var currentToken = await _tokenService.GetRefreshToken(request);
+            if (currentToken == null || currentToken != request.RefreshToken)
+                return new ApiErrorResult<TokenResponse>("Refresh token không hợp lệ");
+            var user = await _userManager.FindByIdAsync(request.UserId.ToString());
+            if (user == null) return new ApiErrorResult<TokenResponse>("Tài khoản không tồn tại");
+
+            var token = await _tokenService.GenerateAccessToken(user);
+            var newRefreshToken = _tokenService.GenerateRefreshToken();
+
+            var response = new TokenResponse
+            {
+                AccessToken = token,
+                RefreshToken = newRefreshToken,
+                RefreshTokenExpiry = DateTime.Now.AddDays(3),
+                ClientId = request.ClientId
+            };
+            await _tokenService.SaveRefreshToken(newRefreshToken, request, response.RefreshTokenExpiry - DateTime.Now);
+            return new ApiSuccessResult<TokenResponse>(response);
         }
     }
 }

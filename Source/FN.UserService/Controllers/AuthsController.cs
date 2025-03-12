@@ -67,6 +67,21 @@ namespace FN.UserService.Controllers
                 return Ok(result);
             return BadRequest(result);
         }
+        [HttpPost("revoke-all-devices")]
+        public async Task<IActionResult> RevokeAllDevice()
+        {
+            var userId = GetUserIdFromClaims();
+            if (userId == null) return Unauthorized();
+            var request = new TokenRequest
+            {
+                UserId = userId.Value
+            };
+            var result  = await _authService.RemoveAllDevice(userId.Value);
+
+            if (result.Success)
+                return Ok(result);
+            return BadRequest(result);
+        }
         [HttpPost("refresh-token"), AllowAnonymous]
         public async Task<IActionResult> RefreshToken(RefreshTokenRequest request)
         {
