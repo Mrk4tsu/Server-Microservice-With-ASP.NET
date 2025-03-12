@@ -48,7 +48,7 @@ namespace FN.Application.Catalog.Product.Pattern
         {
             return _db.ProductDetails
                 .AsNoTracking()
-                .Where(pd => pd.Item.IsDeleted == isDeleted && !pd.IsDeleted)
+                .Where(pd => pd.Item.IsDeleted == isDeleted && pd.IsDeleted == isDeleted)
                 .Select(pd => new ProductViewModel
                 {
                     Id = pd.Item.Id,

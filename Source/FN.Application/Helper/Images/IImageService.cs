@@ -9,5 +9,6 @@ namespace FN.Application.Helper.Images
         Task<List<string>> UploadImages(List<IFormFile> files, string folderName);
         Task<bool> DeleteImage(string publicId);
         Task<bool> DeleteFolderImage(string folderName);
+        Task DeleteImageInFolder(string publicId, string folderName);
     }
 }

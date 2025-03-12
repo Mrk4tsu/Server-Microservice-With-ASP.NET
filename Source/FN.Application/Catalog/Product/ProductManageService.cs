@@ -8,6 +8,7 @@ using FN.Utilities;
 using FN.ViewModel.Catalog.Products;
 using FN.ViewModel.Helper.API;
 using FN.ViewModel.Helper.Paging;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 
 namespace FN.Application.Catalog.Product
@@ -54,6 +55,79 @@ namespace FN.Application.Catalog.Product
         public async Task RemoveCacheData()
         {
             await _dbRedis.RemoveValue(SystemConstant.CACHE_PRODUCT);
+        }
+
+        public async Task<ApiResult<bool>> DeletePermanently(int itemId, int userId)
+        {
+            var product = await _db.Items
+               .Where(x => x.Id == itemId)
+               .Select(x => new
+               {
+                   x.Id,
+                   x.Code,
+                   ProductDetails = x.ProductDetails!.Select(pd => new
+                   {
+                       pd.Id,
+                       ProductImages = pd.ProductImages.Select(pi => pi.PublicId).ToList()
+                   }).ToList()
+               })
+               .FirstOrDefaultAsync();
+
+            if (product == null)
+                return new ApiErrorResult<bool>("Không tìm thấy sản phẩm");
+
+            var folder = (product.Id.ToString());
+
+            using var transaction = await _db.Database.BeginTransactionAsync();
+            try
+            {
+                var deleteImageTasks = new List<Task>();
+
+                deleteImageTasks.Add(_image.DeleteImageInFolder(product.Code, folder)); // Xóa thumbnail
+
+                foreach (var productDetail in product.ProductDetails)
+                {
+                    foreach (var imageId in productDetail.ProductImages)
+                    {
+                        deleteImageTasks.Add(_image.DeleteImageInFolder(imageId, folder));
+                    }
+                }
+                await Task.WhenAll(deleteImageTasks);
+                await _image.DeleteFolderImage(folder);
+                var productDetails = await _db.ProductDetails
+                    .Where(pd => pd.ItemId == product.Id)
+                    .ToListAsync();
+
+                _db.ProductDetails.RemoveRange(productDetails);
+
+                var item = await _db.Items
+                    .Where(x => x.Id == product.Id)
+                    .FirstOrDefaultAsync();
+
+                _db.Items.Remove(item);
+
+                await _db.SaveChangesAsync();
+
+                await transaction.CommitAsync();
+                return new ApiSuccessResult<bool>();
+            }
+            catch (Exception ex)
+            {
+                await transaction.RollbackAsync();
+                throw new Exception("Xóa sản phẩm thất bại", ex);
+            }
+        }
+
+        public async Task<ApiResult<bool>> Delete(int itemId, int userId)
+        {
+            var item = await _db.Items.FirstOrDefaultAsync(x => x.Id == itemId && x.UserId == userId);
+            if (item == null) return new ApiErrorResult<bool>("Không tìm thấy sản phẩm");
+
+            item.IsDeleted = true;
+
+            _db.Items.Update(item);
+            await _db.SaveChangesAsync();
+            return new ApiSuccessResult<bool>();
         }
     }
 }

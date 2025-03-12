@@ -26,6 +26,15 @@ namespace FN.Application.Helper.Images
             if (result.StatusCode == HttpStatusCode.OK) return true;
             return false;
         }
+        public async Task DeleteImageInFolder(string publicId, string folderName)
+        {
+            var deleteParams = new DeletionParams($"{Root}/{folderName}/{publicId}")
+            {
+                ResourceType = ResourceType.Image,
+                Type = "upload",
+            };
+            var result = await _cloudinary.DestroyAsync(deleteParams);
+        }
         public async Task<bool> DeleteFolderImage(string folderName)
         {
             var result = await _cloudinary.DeleteFolderAsync($"{Root}/{folderName}");
