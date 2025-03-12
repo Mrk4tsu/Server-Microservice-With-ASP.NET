@@ -39,9 +39,9 @@ namespace FN.Application.Catalog.Product.Pattern
         private async Task<Item> CreateItem(CreateProductRequest request, int userId)
         {
             var code = StringHelper.GenerateProductCode(request.Title);
-            var folder = Folder(code);
+            //var folder = Folder(code);
             
-            var thumbnail = await _image.UploadImage(request.Thumbnail, code, folder);
+            //var thumbnail = await _image.UploadImage(request.Thumbnail, code, folder);
             var newItem = new Item()
             {
                 Title = request.Title,
@@ -54,12 +54,15 @@ namespace FN.Application.Catalog.Product.Pattern
                 NormalizedTitle = StringHelper.NormalizeString(request.Title),
                 SeoAlias = StringHelper.GenerateSeoAlias(request.Title),
                 Code = code,
-                Thumbnail = thumbnail ?? "",
+                Thumbnail = "",
             };
 
             await _db.Items.AddAsync(newItem);
             await _db.SaveChangesAsync();
 
+            newItem.Thumbnail = await _image.UploadImage(request.Thumbnail, newItem.Code, Folder(newItem.Id.ToString()))?? "";
+            _db.Items.Update(newItem);
+            await _db.SaveChangesAsync();
             return newItem;
         }
         private async Task<ProductDetail> CreateProductDetail(CreateProductRequest request, int itemId)
@@ -106,7 +109,7 @@ namespace FN.Application.Catalog.Product.Pattern
                 foreach (var imageFile in request.Images)
                 {
                     var publicId = _image.GenerateId();
-                    var resultUpload = await _image.UploadImage(imageFile, publicId, Folder(item.Code));
+                    var resultUpload = await _image.UploadImage(imageFile, publicId, Folder(item.Id.ToString()));
                     if (resultUpload == null) throw new Exception("Upload ảnh sản phẩm không thành công");
 
                     product.ProductImages.Add(new ProductImage

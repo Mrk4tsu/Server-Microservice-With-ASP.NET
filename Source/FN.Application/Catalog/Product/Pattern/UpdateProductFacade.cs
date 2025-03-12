@@ -56,8 +56,7 @@ namespace FN.Application.Catalog.Product.Pattern
                 item.Keywords = request.Keywords;
             if (request.Thumbnail != null)
             {
-                var newImageName = string.IsNullOrEmpty(request.Title) ? item.Code : code;
-                var newThumnail = await _image.UploadImage(request.Thumbnail, newImageName, Folder(newImageName));
+                var newThumnail = await _image.UploadImage(request.Thumbnail, item.Code, Folder(itemId.ToString()));
                 if (!string.IsNullOrEmpty(newThumnail)) item.Thumbnail = newThumnail;
             }
 
