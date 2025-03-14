@@ -5,7 +5,6 @@ using FN.DataAccess.Entities;
 using FN.Utilities;
 using FN.ViewModel.Catalog.Products;
 using FN.ViewModel.Helper.API;
-using Ganss.Xss;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 
@@ -40,12 +39,14 @@ namespace FN.Application.Catalog.Product.Pattern
                         Version = request.Version,
                         Note = request.Note,
                         CategoryId = request.CategoryId,
-                        Status = request.Status
+                        Status = request.Status,
+                        NewImages = request.NewImages // Truyền danh sách ảnh mới
                     };
                     var productResult = await UpdateProductDetailInternal(productDetailUpdateRequest, itemId, productId);
                     if (!productResult.Success) return productResult;
 
                     await transaction.CommitAsync();
+                    await RemoveOldCache();
                     return new ApiSuccessResult<bool>(true);
                 }
                 catch (Exception ex)
@@ -76,7 +77,7 @@ namespace FN.Application.Catalog.Product.Pattern
                 item.Keywords = request.Keywords;
             if (request.Thumbnail != null)
             {
-                string? newThumbnail = await UploadThumbnail(request.Thumbnail, item.Code, item.Id.ToString());
+                string? newThumbnail = await UploadThumbnail(request.Thumbnail, item.Code, Folder(item.Id.ToString()));
                 if (!string.IsNullOrEmpty(newThumbnail)) item.Thumbnail = newThumbnail;
             }
             item.ModifiedDate = DateTime.Now;
@@ -88,27 +89,57 @@ namespace FN.Application.Catalog.Product.Pattern
 
         private async Task<ApiResult<bool>> UpdateProductDetailInternal(ProductDeatilUpdateRequest request, int itemId, int productId)
         {
-            var product = await _db.ProductDetails.FirstOrDefaultAsync(x => x.ItemId == itemId && x.Id == productId);
-            if (product == null) return new ApiErrorResult<bool>("Không tìm thấy chi tiết sản phẩm");
+            var productDetail = await _db.ProductDetails
+                                        .Include(pd => pd.Item) // Đảm bảo load thông tin Item liên quan
+                                        .FirstOrDefaultAsync(x => x.ItemId == itemId && x.Id == productId);
+            if (productDetail == null) return new ApiErrorResult<bool>("Không tìm thấy chi tiết sản phẩm");
 
-            product.Status = request.Status;
+            // Cập nhật thông tin cơ bản của ProductDetail
+            productDetail.Status = request.Status;
             if (!string.IsNullOrEmpty(request.Detail))
-                product.Detail = request.Detail;
+                productDetail.Detail = request.Detail;
             if (!string.IsNullOrEmpty(request.Note))
-                product.Note = request.Note;
+                productDetail.Note = request.Note;
             if (!string.IsNullOrEmpty(request.Version))
-                product.Version = request.Version;
-            product.CategoryId = request.CategoryId;
+                productDetail.Version = request.Version;
+            productDetail.CategoryId = request.CategoryId;
 
-            _db.ProductDetails.Update(product);
+            // Xử lý thêm ảnh mới
+            if (request.NewImages != null && request.NewImages.Any())
+            {
+                await AddProductImagesAsync(request.NewImages, productDetail);
+            }
+
+            _db.ProductDetails.Update(productDetail);
             await _db.SaveChangesAsync();
 
             return new ApiSuccessResult<bool>(true);
         }
 
+        private async Task AddProductImagesAsync(List<IFormFile> newImages, ProductDetail productDetail)
+        {
+            foreach (var file in newImages)
+            {
+                var publicId = _image.GenerateId();
+                var resultUpload = await _image.UploadImage(file, publicId, Folder(productDetail.ItemId.ToString()));
+                if (!string.IsNullOrEmpty(resultUpload))
+                {
+                    var newImage = new ProductImage
+                    {
+                        Caption = file.FileName,
+                        ImageUrl = resultUpload,
+                        PublicId = publicId,
+                        ProductDetailId = productDetail.Id
+                    };
+                    _db.ProductImages.Add(newImage);
+                }
+            }
+            await _db.SaveChangesAsync();
+        }
+
         private async Task<string?> UploadThumbnail(IFormFile thumbnail, string code, string itemId)
         {
-            return await _image.UploadImage(thumbnail, code, itemId);
+            return await _image.UploadImage(thumbnail, code, Folder(itemId.ToString()));
         }
     }
 }

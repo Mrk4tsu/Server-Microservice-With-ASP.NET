@@ -18,6 +18,7 @@ namespace FN.ViewModel.Catalog.Products
         public string? Note { get; set; } = string.Empty;
         public byte CategoryId { get; set; }
         public ProductType Status { get; set; }
+        public List<IFormFile>? NewImages { get; set; }
     }
     public class ItemUpdateDTO
     {

@@ -37,10 +37,10 @@ namespace FN.Application.Catalog.Product
             var facade = new CreateProductFacade(_db, _dbRedis, _image);
             return await facade.Create(request, userId);
         }
-        public async Task<ApiResult<bool>> Update(ItemUpdateRequest request, int itemId, int userId)
+        public async Task<ApiResult<bool>> Update(CombinedUpdateRequest request, int itemId, int productId, int userId)
         {
             var facade = new UpdateProductFacade(_db, _dbRedis, _image);
-            return await facade.Update(request, itemId, userId);
+            return await facade.UpdateCombined(request, itemId, productId, userId);
         }
         public async Task<ApiResult<PagedResult<ProductViewModel>>> GetProducts(ProductPagingRequest request, int userId)
         {
@@ -146,7 +146,7 @@ namespace FN.Application.Catalog.Product
 
                 foreach (var image in imagesToDelete)
                 {
-                    await _image.DeleteImageInFolder(image.PublicId, Folder(image.ProductDetail.Item.Id));
+                    await _image.DeleteImageInFolder(image.PublicId, Folder(image.ProductDetail.ItemId.ToString()));
                     _db.ProductImages.Remove(image);
                 }
 

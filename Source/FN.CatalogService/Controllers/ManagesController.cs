@@ -44,6 +44,16 @@ namespace FN.ProductService.Controllers
             var result = await _service.Create(request, userId.Value);
             return Ok(result);
         }
+        [HttpPut("update/{itemId}/{productId}")]
+        public async Task<IActionResult> Update(int itemId, int productId, [FromForm] CombinedUpdateRequest request)
+        {
+            var userId = GetUserIdFromClaims();
+            if (userId == null) return Unauthorized();
+
+            var result = await _service.Update(request, itemId, productId, userId.Value);
+            if (result.Success) return Ok(result);
+            return BadRequest(result.Message);
+        }
         [HttpPut("update-combined/{itemId}/{productId}")]
         public async Task<IActionResult> UpdateCombined(int itemId, int productId, [FromForm] CombinedUpdateRequest request)
         {
