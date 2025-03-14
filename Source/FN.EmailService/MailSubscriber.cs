@@ -1,4 +1,5 @@
-﻿using FN.Application.Helper.Mail;
+﻿using FN.Application.Helper.Devices;
+using FN.Application.Helper.Mail;
 using FN.Application.Systems.Redis;
 using FN.Application.Systems.User;
 using FN.Utilities;
@@ -31,6 +32,8 @@ namespace FN.EmailService
             {
                 using var scope = _serviceProvider.CreateScope();
                 var emailService = scope.ServiceProvider.GetRequiredService<IMailService>();
+                var deviceService = scope.ServiceProvider.GetRequiredService<IDeviceService>();
+
                 var baseDomain = _configuration["BaseDomain"];
                 switch ((string)channel!)
                 {
@@ -53,7 +56,10 @@ namespace FN.EmailService
                             {"puser", userLogin.Username},
                             {"pip", userLogin.DeviceInfo.IPAddress}
                         };
+                        if (userLogin.IsNewDevice)
+                            await deviceService.SaveDeviceInfo(userLogin.Token, userLogin.DeviceInfo, userLogin.DeviceInfo.IPAddress);
                         await _mailService.SendMail(userLogin!.Email, $"Cảnh báo bảo mật cho {userLogin.Username}", SystemConstant.TEMPLATE_WARNING_ID, variables);
+                        await _redisService.SetValue($"auth:{userLogin.Token.UserId}:just_send_mail", userLogin.Username, TimeSpan.FromMinutes(30));
                         break;
                     case SystemConstant.MESSAGE_UPDATE_EMAIL_EVENT:
                         var req = JsonSerializer.Deserialize<UpdateEmailResponse>(message!);

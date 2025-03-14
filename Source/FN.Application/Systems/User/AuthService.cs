@@ -22,20 +22,21 @@ namespace FN.Application.Systems.User
         private readonly UserManager<AppUser> _userManager;
         private readonly SignInManager<AppUser> _signInManager;
         private readonly ITokenService _tokenService;
-        private readonly IMongoCollection<UserDevice> _userDevicesCollection;
+        private readonly IDeviceService _deviceSevice;
         public AuthService(IRedisService redisService,
                         IMongoDatabase database,
                         ITokenService tokenService,
                         IMapper mapper,
                         IImageService imageService,
+                        IDeviceService deviceService,
                         UserManager<AppUser> userManager,
             SignInManager<AppUser> signInManager)
         {
             _signInManager = signInManager;
             _redisService = redisService;
             _userManager = userManager;
+            _deviceSevice = deviceService;
             _tokenService = tokenService;
-            _userDevicesCollection = database.GetCollection<UserDevice>("UserDevices");
         }
         private string GetClientIP(HttpContext context)
         {
@@ -54,7 +55,7 @@ namespace FN.Application.Systems.User
             if (remoteIp != null)
             {
                 if (remoteIp.Equals(IPAddress.IPv6Loopback))
-                    return "127.0.0.1";
+                    return "localhost";
 
                 if (remoteIp.IsIPv4MappedToIPv6)
                     return remoteIp.MapToIPv4().ToString();
@@ -77,20 +78,15 @@ namespace FN.Application.Systems.User
             var result = await _signInManager.PasswordSignInAsync(user, request.Password, request.RememberMe, true);
             if (!result.Succeeded) return new ApiErrorResult<TokenResponse>("Tài khoản mật khẩu không chính xác");
 
-            string clientId = request.ClientId;
+            string clientId = request.ClientId ?? Guid.NewGuid().ToString();
             var ipAddress = GetClientIP(context);
-            bool isNewDevice = false;
-            if (string.IsNullOrEmpty(clientId)) clientId = Guid.NewGuid().ToString();
+
             var tokenReq = new TokenRequest
             {
                 UserId = user.Id,
                 ClientId = clientId
             };
-            if (!await IsDeviceRegistered(tokenReq))
-            {
-                isNewDevice = true;
-                await SaveDeviceInfo(tokenReq, request.UserAgent, ipAddress);
-            }
+
             var deviceInfo = Commons.ParseUserAgent(request.UserAgent);
             var device = new DeviceInfoDetail
             {
@@ -101,7 +97,16 @@ namespace FN.Application.Systems.User
                 LastLogin = DateTime.Now,
                 OS = deviceInfo.OS
             };
-            if (isNewDevice)
+
+            var isDeviceRegisteredTask = _deviceSevice.IsDeviceRegistered(tokenReq);
+            var justSendMailTask = IsJustSendMail(user.Id);
+
+            await Task.WhenAll(isDeviceRegisteredTask, justSendMailTask);
+
+            var isNewDevice = !isDeviceRegisteredTask.Result;
+            var justSendMail = justSendMailTask.Result;
+
+            if (isNewDevice && !justSendMail)
             {
                 var publish = new LoginResponse
                 {
@@ -109,20 +114,28 @@ namespace FN.Application.Systems.User
                     Username = user.UserName!,
                     IpAddress = ipAddress,
                     Token = tokenReq,
-                    DeviceInfo = device
+                    DeviceInfo = device,
+                    IsNewDevice = isNewDevice
                 };
                 await _redisService.Publish(SystemConstant.MESSAGE_LOGIN_EVENT, publish);
             }
+
             var expires = request.RememberMe ? DateTime.Now.AddDays(14) : DateTime.Now.AddDays(3);
-            var token = await _tokenService.GenerateAccessToken(user);
+            var tokenTask = _tokenService.GenerateAccessToken(user);
+            var refreshToken = _tokenService.GenerateRefreshToken();
+
+            await Task.WhenAll(tokenTask);
+
             var response = new TokenResponse
             {
-                AccessToken = token,
-                RefreshToken = _tokenService.GenerateRefreshToken(),
+                AccessToken = tokenTask.Result,
+                RefreshToken = refreshToken,
                 RefreshTokenExpiry = expires,
                 ClientId = clientId
             };
+
             await _tokenService.SaveRefreshToken(response.RefreshToken, tokenReq, expires - DateTime.Now);
+
             return new ApiSuccessResult<TokenResponse>(response);
         }
         public async Task<ApiResult<bool>> Register(RegisterDTO request)
@@ -166,89 +179,12 @@ namespace FN.Application.Systems.User
             {
                 return new ApiErrorResult<bool>(ex.Message);
             }
-        }
-        public async Task<ApiResult<bool>> RevokeDevice(TokenRequest request)
-        {
-            try
-            {
-                //1. Xóa Client khỏi danh sách thiết bị đã đăng ký
-                var filter = Builders<UserDevice>.Filter.Eq(u => u.UserId, request.UserId);
-                var update = Builders<UserDevice>.Update.PullFilter(u => u.Devices, d => d.ClientId == request.ClientId);
+        }       
 
-                await _userDevicesCollection.UpdateOneAsync(filter, update);
-                //2. Xóa Refresh Token
-                await _tokenService.RemoveRefreshToken(request);
-                return new ApiSuccessResult<bool>();
-            }
-            catch (Exception ex)
-            {
-                return new ApiErrorResult<bool>(ex.Message);
-            }
-        }
-        public async Task<ApiResult<bool>> RemoveAllDevice(int userId)
+        public async Task<bool> IsJustSendMail(int userId)
         {
-            try
-            {
-                // 1. Xóa tất cả thiết bị đã đăng ký trong MongoDB
-                var filter = Builders<UserDevice>.Filter.Eq(u => u.UserId, userId);
-                var update = Builders<UserDevice>.Update.Set(u => u.Devices, new List<DeviceInfoDetail>());
-                await _userDevicesCollection.UpdateOneAsync(filter, update);
-
-                // 2. Xóa tất cả Refresh Tokens của user
-                await _tokenService.RemoveAllTokensForUser(userId);
-                return new ApiSuccessResult<bool>(true);
-            }
-            catch (Exception ex)
-            {
-                return new ApiErrorResult<bool>(ex.Message);
-            }
-        }
-        public async Task SaveDeviceInfo(TokenRequest request, string userAgent, string ipAddress)
-        {
-            var device = Commons.ParseUserAgent(userAgent);
-            var deviceInfo = new DeviceInfoDetail
-            {
-                ClientId = request.ClientId,
-                Browser = device.Browser,
-                DeviceType = device.DeviceType,
-                IPAddress = ipAddress,
-                LastLogin = DateTime.Now,
-                OS = device.OS,
-            };
-            // Lấy danh sách thiết bị hiện tại từ cơ sở dữ liệu
-            var filter = Builders<UserDevice>.Filter.Eq(u => u.UserId, request.UserId);
-            var userDevice = await _userDevicesCollection.Find(filter).FirstOrDefaultAsync();
-
-            var deviceList = new DeviceLinkedList(10, request.UserId, _tokenService);
-
-            if (userDevice != null)
-            {
-                // Thêm các thiết bị hiện tại vào Linked List
-                foreach (var deviceItem in userDevice.Devices)
-                {
-                    await deviceList.Add(deviceItem);
-                }
-            }
-            await deviceList.Add(deviceInfo);
-            var update = Builders<UserDevice>.Update.Set(u => u.Devices, deviceList.ToList());
-            await _userDevicesCollection.UpdateOneAsync(filter, update, new UpdateOptions { IsUpsert = true });
-        }
-        public async Task<ApiResult<List<DeviceInfoDetail>>> GetRegisteredDevices(int userId)
-        {
-            var userDevice = await _userDevicesCollection.Find(u => u.UserId == userId).FirstOrDefaultAsync();
-            if (userDevice == null)
-            {
-                return new ApiErrorResult<List<DeviceInfoDetail>>("Không có CLJ hết");
-            }
-            return new ApiSuccessResult<List<DeviceInfoDetail>>(userDevice.Devices);
-        }
-        public async Task<bool> IsDeviceRegistered(TokenRequest request)
-        {
-            var filter = Builders<UserDevice>.Filter.And(
-            Builders<UserDevice>.Filter.Eq(u => u.UserId, request.UserId),
-            Builders<UserDevice>.Filter.ElemMatch(u => u.Devices,
-                Builders<DeviceInfoDetail>.Filter.Eq(d => d.ClientId, request.ClientId)));
-            return await _userDevicesCollection.Find(filter).AnyAsync();
+            var key = $"auth:{userId}:just_send_mail";
+            return await _redisService.KeyExist(key);
         }
         public async Task<ApiResult<TokenResponse>> RefreshToken(RefreshTokenRequest request)
         {

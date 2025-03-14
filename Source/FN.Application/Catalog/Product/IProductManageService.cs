@@ -10,8 +10,10 @@ namespace FN.Application.Catalog.Product
         Task<ApiResult<PagedResult<ProductViewModel>>> TrashProducts(ProductPagingRequest request, int userId);
         Task<ApiResult<int>> Create(CreateProductRequest request, int userId);
         Task<ApiResult<bool>> Update(ItemUpdateRequest request, int itemId, int userId);
+        Task<ApiResult<bool>> UpdateCombined(CombinedUpdateRequest request, int itemId, int productId, int userId);
         Task<ApiResult<bool>> DeletePermanently(int itemId, int userId);
         Task<ApiResult<bool>> Delete(int itemId, int userId);
+        Task<ApiResult<bool>> DeleteImage(DeleteProductImagesRequest request);
         Task RemoveCacheData();
     }
 }

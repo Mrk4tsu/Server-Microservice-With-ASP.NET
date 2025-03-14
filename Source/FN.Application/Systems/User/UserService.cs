@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using FN.Application.Helper.Devices;
 using FN.Application.Helper.Images;
 using FN.Application.Systems.Redis;
 using FN.Application.Systems.Token;
@@ -21,10 +22,12 @@ namespace FN.Application.Systems.User
         private readonly UserManager<AppUser> _userManager;
         private readonly ITokenService _tokenService;
         private readonly IMapper _mapper;
+        private readonly IDeviceService _deviceService;
         private readonly IImageService _imageService;
         public UserService(IRedisService redisService,
                         IMongoDatabase database,
                         ITokenService tokenService,
+                        IDeviceService deviceService,
                         IMapper mapper,
                         IAuthService authService,
                         IImageService imageService,
@@ -37,6 +40,7 @@ namespace FN.Application.Systems.User
             _mapper = mapper;
             _imageService = imageService;
             _authService = authService;
+            _deviceService = deviceService;
         }
         public async Task<ApiResult<UserViewModel>> GetById(int id)
         {
@@ -119,7 +123,7 @@ namespace FN.Application.Systems.User
             var result = await _userManager.ResetPasswordAsync(user, decodedToken, request.NewPassword);
             if (result.Succeeded)
             {
-                await _authService.RemoveAllDevice(user.Id);
+                await _deviceService.RemoveAllDevice(user.Id);
                 return new ApiSuccessResult<bool>();
             }
             return new ApiErrorResult<bool>(result.Errors.First().Description);
@@ -133,7 +137,7 @@ namespace FN.Application.Systems.User
             if (result.Succeeded)
             {
                 if (request.LogoutEverywhere)
-                    await _authService.RemoveAllDevice(request.UserId);
+                    await _deviceService.RemoveAllDevice(request.UserId);
                 return new ApiSuccessResult<bool>();
             }
             return new ApiErrorResult<bool>(result.Errors.First().Description);
