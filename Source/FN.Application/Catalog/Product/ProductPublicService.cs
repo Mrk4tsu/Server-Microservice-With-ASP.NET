@@ -48,7 +48,7 @@ namespace FN.Application.Catalog.Product
                 TimeUpdates = product.Item.ModifiedDate,
                 CategorySeoAlias = product.Category.SeoAlias,
                 Description = product.Item.Description,
-                Price = product.ProductPrices.Count > 0 ? product.ProductPrices[0].Price : 0,
+                //Price = product.ProductPrices.Count > 0 ? product.ProductPrices[0].Price : 0,
                 Thumbnail = product.Item.Thumbnail,
                 Username = product.Item.User.UserName!,
                 ViewCount = product.Item.ViewCount,

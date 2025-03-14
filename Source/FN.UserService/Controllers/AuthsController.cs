@@ -1,4 +1,5 @@
-﻿using FN.Application.Systems.User;
+﻿using FN.Application.Helper.Devices;
+using FN.Application.Systems.User;
 using FN.ViewModel.Systems.Token;
 using FN.ViewModel.Systems.User;
 using Microsoft.AspNetCore.Authorization;
@@ -12,10 +13,12 @@ namespace FN.UserService.Controllers
     {
         private readonly IUserService _userService;
         private readonly IAuthService _authService;
-        public AuthsController(IUserService userService, IAuthService authService)
+        private readonly IDeviceService _deviceService;
+        public AuthsController(IUserService userService, IAuthService authService, IDeviceService deviceService)
         {
             _authService = authService;
             _userService = userService;
+            _deviceService = deviceService;
         }
         [HttpPost("register"), AllowAnonymous]
         public async Task<IActionResult> Register(RegisterDTO register)
@@ -36,7 +39,7 @@ namespace FN.UserService.Controllers
         [HttpPost("logout"), AllowAnonymous]
         public async Task<IActionResult> Logout(TokenRequest request)
         {
-            var result = await _authService.RevokeDevice(request);
+            var result = await _deviceService.RevokeDevice(request);
             if (result.Success)
                 return Ok(result);
             return BadRequest(result);
@@ -46,7 +49,7 @@ namespace FN.UserService.Controllers
         {
             var userId = GetUserIdFromClaims();
             if (userId == null) return Unauthorized();
-            var result = await _authService.GetRegisteredDevices(userId.Value);
+            var result = await _deviceService.GetRegisteredDevices(userId.Value);
             if (result.Success)
                 return Ok(result);
             return BadRequest(result);
@@ -62,7 +65,22 @@ namespace FN.UserService.Controllers
                 UserId = userId.Value,
                 ClientId = clientId
             };
-            var result = await _authService.RevokeDevice(request);
+            var result = await _deviceService.RevokeDevice(request);
+            if (result.Success)
+                return Ok(result);
+            return BadRequest(result);
+        }
+        [HttpPost("revoke-all-devices")]
+        public async Task<IActionResult> RevokeAllDevice()
+        {
+            var userId = GetUserIdFromClaims();
+            if (userId == null) return Unauthorized();
+            var request = new TokenRequest
+            {
+                UserId = userId.Value
+            };
+            var result  = await _deviceService.RemoveAllDevice(userId.Value);
+
             if (result.Success)
                 return Ok(result);
             return BadRequest(result);

@@ -4,6 +4,7 @@ using FN.DataAccess;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace FN.DataAccess.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250312130232_Seed-Data")]
+    partial class SeedData
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -129,7 +132,7 @@ namespace FN.DataAccess.Migrations
                     b.Property<DateTime>("TimeCreated")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime(6)")
-                        .HasDefaultValue(new DateTime(2025, 3, 12, 23, 57, 38, 381, DateTimeKind.Local).AddTicks(4155));
+                        .HasDefaultValue(new DateTime(2025, 3, 12, 20, 2, 32, 290, DateTimeKind.Local).AddTicks(8617));
 
                     b.Property<bool>("TwoFactorEnabled")
                         .HasColumnType("tinyint(1)");
@@ -249,7 +252,7 @@ namespace FN.DataAccess.Migrations
                     b.Property<DateTime>("CreatedDate")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime(6)")
-                        .HasDefaultValue(new DateTime(2025, 3, 12, 23, 57, 38, 382, DateTimeKind.Local).AddTicks(4623));
+                        .HasDefaultValue(new DateTime(2025, 3, 12, 20, 2, 32, 291, DateTimeKind.Local).AddTicks(8007));
 
                     b.Property<string>("Description")
                         .IsRequired()
@@ -269,7 +272,7 @@ namespace FN.DataAccess.Migrations
                     b.Property<DateTime>("ModifiedDate")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime(6)")
-                        .HasDefaultValue(new DateTime(2025, 3, 12, 23, 57, 38, 382, DateTimeKind.Local).AddTicks(5118));
+                        .HasDefaultValue(new DateTime(2025, 3, 12, 20, 2, 32, 291, DateTimeKind.Local).AddTicks(8424));
 
                     b.Property<string>("NormalizedTitle")
                         .IsRequired()
@@ -408,21 +411,6 @@ namespace FN.DataAccess.Migrations
                     b.ToTable("product_image", (string)null);
                 });
 
-            modelBuilder.Entity("FN.DataAccess.Entities.ProductOwner", b =>
-                {
-                    b.Property<int>("UserId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("ProductId")
-                        .HasColumnType("int");
-
-                    b.HasKey("UserId", "ProductId");
-
-                    b.HasIndex("ProductId");
-
-                    b.ToTable("product_owners", (string)null);
-                });
-
             modelBuilder.Entity("FN.DataAccess.Entities.ProductPrice", b =>
                 {
                     b.Property<int>("Id")
@@ -434,7 +422,7 @@ namespace FN.DataAccess.Migrations
                     b.Property<DateTime>("CreatedDate")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime(6)")
-                        .HasDefaultValue(new DateTime(2025, 3, 12, 16, 57, 38, 384, DateTimeKind.Utc).AddTicks(7691));
+                        .HasDefaultValue(new DateTime(2025, 3, 12, 13, 2, 32, 293, DateTimeKind.Utc).AddTicks(1905));
 
                     b.Property<DateTime>("EndDate")
                         .HasColumnType("datetime(6)");
@@ -618,25 +606,6 @@ namespace FN.DataAccess.Migrations
                     b.Navigation("ProductDetail");
                 });
 
-            modelBuilder.Entity("FN.DataAccess.Entities.ProductOwner", b =>
-                {
-                    b.HasOne("FN.DataAccess.Entities.Item", "Item")
-                        .WithMany("ProductOwners")
-                        .HasForeignKey("ProductId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("FN.DataAccess.Entities.AppUser", "User")
-                        .WithMany("ProductOwners")
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Item");
-
-                    b.Navigation("User");
-                });
-
             modelBuilder.Entity("FN.DataAccess.Entities.ProductPrice", b =>
                 {
                     b.HasOne("FN.DataAccess.Entities.ProductDetail", "ProductDetail")
@@ -651,8 +620,6 @@ namespace FN.DataAccess.Migrations
             modelBuilder.Entity("FN.DataAccess.Entities.AppUser", b =>
                 {
                     b.Navigation("Items");
-
-                    b.Navigation("ProductOwners");
                 });
 
             modelBuilder.Entity("FN.DataAccess.Entities.Category", b =>
@@ -665,8 +632,6 @@ namespace FN.DataAccess.Migrations
                     b.Navigation("Blogs");
 
                     b.Navigation("ProductDetails");
-
-                    b.Navigation("ProductOwners");
                 });
 
             modelBuilder.Entity("FN.DataAccess.Entities.ProductDetail", b =>

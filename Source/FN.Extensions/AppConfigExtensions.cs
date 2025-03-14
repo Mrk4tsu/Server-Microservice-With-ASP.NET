@@ -17,7 +17,11 @@ namespace FN.Extensions
         public static IApplicationBuilder ConfigureCORS(this IApplicationBuilder app, IConfiguration config)
         {
             app.UseCors(options =>
-            options.WithOrigins("http://localhost:4200","https://mrkatsu.io.vn")
+            options.WithOrigins(
+                "http://localhost:4200",
+                "https://mrkatsu.io.vn",
+                "https://katsudev.vercel.app",
+                "https://katsudev.netlify.app")
             .AllowAnyMethod()
             .AllowAnyHeader());
             return app;
