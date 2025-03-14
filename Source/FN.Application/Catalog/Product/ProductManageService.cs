@@ -6,6 +6,7 @@ using FN.DataAccess;
 using FN.DataAccess.Entities;
 using FN.Utilities;
 using FN.ViewModel.Catalog.Products;
+using FN.ViewModel.Catalog.Products.Manage;
 using FN.ViewModel.Helper.API;
 using FN.ViewModel.Helper.Paging;
 using Microsoft.EntityFrameworkCore;

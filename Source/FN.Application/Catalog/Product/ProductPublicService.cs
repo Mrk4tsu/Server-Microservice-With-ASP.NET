@@ -3,6 +3,7 @@ using FN.Application.Catalog.Product.Pattern;
 using FN.Application.Systems.Redis;
 using FN.DataAccess;
 using FN.ViewModel.Catalog.Products;
+using FN.ViewModel.Catalog.Products.Manage;
 using FN.ViewModel.Helper.API;
 using FN.ViewModel.Helper.Paging;
 using Microsoft.EntityFrameworkCore;

@@ -3,7 +3,7 @@ using FN.DataAccess.Enums;
 using FN.ViewModel.Helper.Paging;
 using Microsoft.AspNetCore.Http;
 
-namespace FN.ViewModel.Catalog.Products
+namespace FN.ViewModel.Catalog.Products.Manage
 {
     public class ProductPagingRequest : PagedList
     {

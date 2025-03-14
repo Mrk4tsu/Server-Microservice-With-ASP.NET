@@ -5,7 +5,7 @@ using FN.DataAccess.Entities;
 using FN.DataAccess.Enums;
 using FN.Utilities;
 using FN.ViewModel.Catalog;
-using FN.ViewModel.Catalog.Products;
+using FN.ViewModel.Catalog.Products.Manage;
 using FN.ViewModel.Helper.API;
 using Ganss.Xss;
 
