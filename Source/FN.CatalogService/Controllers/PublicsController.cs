@@ -1,5 +1,5 @@
 ﻿using FN.Application.Catalog.Product;
-using FN.ViewModel.Catalog.Products;
+using FN.ViewModel.Catalog.Products.Manage;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 

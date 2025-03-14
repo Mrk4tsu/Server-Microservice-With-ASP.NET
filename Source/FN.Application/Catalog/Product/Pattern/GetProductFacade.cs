@@ -3,6 +3,7 @@ using FN.Application.Systems.Redis;
 using FN.DataAccess;
 using FN.Utilities;
 using FN.ViewModel.Catalog.Products;
+using FN.ViewModel.Catalog.Products.Manage;
 using FN.ViewModel.Helper.API;
 using FN.ViewModel.Helper.Paging;
 using Microsoft.EntityFrameworkCore;
@@ -28,7 +29,7 @@ namespace FN.Application.Catalog.Product.Pattern
 
             PagedResult<ProductViewModel> result;
 
-            if (useCache && cachedData != null)
+            if (useCache && cachedData != null && cachedData.Count > 0)
             {
                 var filteredData = ApplyMemoryFilters(cachedData, request, isMe, currentUserId);
                 result = CreatePagedResult(filteredData, request);

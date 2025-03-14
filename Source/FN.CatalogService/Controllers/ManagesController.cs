@@ -1,7 +1,7 @@
 ﻿using FN.Application.Catalog.Product;
 using FN.Application.Catalog.Product.Prices;
 using FN.Application.Helper.Images;
-using FN.ViewModel.Catalog.Products;
+using FN.ViewModel.Catalog.Products.Manage;
 using FN.ViewModel.Catalog.Products.Prices;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;

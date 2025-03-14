@@ -50,7 +50,7 @@ namespace FN.Application.Helper.Images
                 await using var stream = file.OpenReadStream();
                 var uploadParams = new ImageUploadParams
                 {
-                    Transformation = new Transformation().Quality(50).Chain(),
+                    Transformation = new Transformation().Quality(35).Chain(),
                     Format = "webp",
                     File = new FileDescription(file.FileName, stream),
                     PublicId = publicId,

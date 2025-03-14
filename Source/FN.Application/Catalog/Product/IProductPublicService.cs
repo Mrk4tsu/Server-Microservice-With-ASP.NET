@@ -1,4 +1,5 @@
 ﻿using FN.ViewModel.Catalog.Products;
+using FN.ViewModel.Catalog.Products.Manage;
 using FN.ViewModel.Helper.API;
 using FN.ViewModel.Helper.Paging;
 
