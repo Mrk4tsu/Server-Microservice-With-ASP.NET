@@ -54,16 +54,6 @@ namespace FN.ProductService.Controllers
             if (result.Success) return Ok(result);
             return BadRequest(result.Message);
         }
-        [HttpPut("update-combined/{itemId}/{productId}")]
-        public async Task<IActionResult> UpdateCombined(int itemId, int productId, [FromForm] CombinedUpdateRequest request)
-        {
-            var userId = GetUserIdFromClaims();
-            if (userId == null) return Unauthorized();
-
-            var result = await _service.UpdateCombined(request, itemId, productId, userId.Value);
-            if (result.Success) return Ok(result);
-            return BadRequest(result.Message);
-        }
         [HttpPost("up-img"), AllowAnonymous]
         public async Task<IActionResult> UploadImage([FromForm] List<IFormFile> file, string folder)
         {

@@ -77,7 +77,7 @@ namespace FN.Application.Catalog.Product.Pattern
                 item.Keywords = request.Keywords;
             if (request.Thumbnail != null)
             {
-                string? newThumbnail = await UploadThumbnail(request.Thumbnail, item.Code, Folder(item.Id.ToString()));
+                string? newThumbnail = await UploadImage(request.Thumbnail, item.Code, item.Id.ToString());
                 if (!string.IsNullOrEmpty(newThumbnail)) item.Thumbnail = newThumbnail;
             }
             item.ModifiedDate = DateTime.Now;

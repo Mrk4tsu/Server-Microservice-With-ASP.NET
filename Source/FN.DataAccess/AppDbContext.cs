@@ -29,6 +29,7 @@ namespace FN.DataAccess
         public DbSet<ProductPrice> ProductPrices { get; set; }
         public DbSet<ProductImage> ProductImages { get; set; }
         public DbSet<Blog> Blogs { get; set; }
-
+        public DbSet<ProductOwner> ProductOwners { get; set; }
+        public DbSet<BlogImage> BlogsImages { get; set; }
     }
 }

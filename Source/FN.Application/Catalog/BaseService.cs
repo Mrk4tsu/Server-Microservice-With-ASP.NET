@@ -19,13 +19,26 @@ namespace FN.Application.Catalog
             _image = image;
             ROOT = root;
         }
-        protected async Task<string?> UploadThumbnail(IFormFile thumbnail, string code, string itemId)
+        protected async Task<string?> UploadImage(IFormFile thumbnail, string code, string itemId)
         {
             return await _image.UploadImage(thumbnail, code, Folder(itemId.ToString()));
         }
         protected async Task RemoveOldCache()
         {
-            await _dbRedis.RemoveValue(SystemConstant.CACHE_PRODUCT);
+            switch (ROOT)
+            {
+                case "product":
+                    await _dbRedis.RemoveValue(SystemConstant.CACHE_PRODUCT);
+                    break;
+                case "category":
+                    await _dbRedis.RemoveValue(SystemConstant.CACHE_CATEGORY);
+                    break;
+                case "blog":
+                    await _dbRedis.RemoveValue(SystemConstant.CACHE_BLOG);
+                    break;
+                default:
+                    break;
+            }
         }
         protected DateTime Now()
         {

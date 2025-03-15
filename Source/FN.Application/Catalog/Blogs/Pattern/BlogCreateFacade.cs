@@ -7,6 +7,7 @@ using FN.ViewModel.Catalog;
 using FN.ViewModel.Catalog.Blogs;
 using FN.ViewModel.Helper.API;
 using Ganss.Xss;
+using Microsoft.EntityFrameworkCore;
 
 namespace FN.Application.Catalog.Blogs.Pattern
 {
@@ -39,6 +40,13 @@ namespace FN.Application.Catalog.Blogs.Pattern
                     var newBlogResult = await CreateBlogInternal(newBlog, newItemResult.Data);
                     if (!newBlogResult.Success) return newBlogResult;
 
+                    var newBlogImage = new BlogImageCreateRequest
+                    {
+                        ImageDetails = request.ImageDetails
+                    };
+                    var newBlogImageResult = await CreateBlogImageDetail(newBlogImage, newBlogResult.Data);
+                    if (!newBlogImageResult.Success) return newBlogImageResult;
+
                     await transaction.CommitAsync();
                     await RemoveOldCache();
                     return new ApiSuccessResult<int>(newBlogResult.Data);
@@ -69,14 +77,14 @@ namespace FN.Application.Catalog.Blogs.Pattern
             await _db.Items.AddAsync(newItem);
             await _db.SaveChangesAsync();
 
-            string? newThumbnail = await UploadThumbnail(request.Thumbnail, newItem.Code, Folder(newItem.Id.ToString()));
+            string? newThumbnail = await UploadImage(request.Thumbnail, newItem.Code, newItem.Id.ToString());
             if (!string.IsNullOrEmpty(newThumbnail)) newItem.Thumbnail = newThumbnail;
 
             _db.Items.Update(newItem);
             await _db.SaveChangesAsync();
 
             return new ApiSuccessResult<int>(newItem.Id);
-        } 
+        }
         private async Task<ApiResult<int>> CreateBlogInternal(BlogCreateRequest request, int itemId)
         {
             var item = await _db.Items.FindAsync(itemId);
@@ -97,6 +105,32 @@ namespace FN.Application.Catalog.Blogs.Pattern
             _db.Blogs.Add(newBlog);
             await _db.SaveChangesAsync();
             return new ApiSuccessResult<int>(newBlog.Id);
+        }
+        private async Task<ApiResult<int>> CreateBlogImageDetail(BlogImageCreateRequest request, int blogId)
+        {
+            var blog = await _db.Blogs.Include(x => x.Item).FirstOrDefaultAsync(x => x.Id == blogId);
+            if (blog == null) return new ApiErrorResult<int>("Blog not found");
+            if (blog.BlogImages == null) blog.BlogImages = new List<BlogImage>();
+
+            //Nếu không có ảnh thì bỏ qua việc upload ảnh
+            if (request.ImageDetails == null || !request.ImageDetails.Any()) return new ApiSuccessResult<int>(blogId); ;
+
+            foreach (var imageFile in request.ImageDetails)
+            {
+                var publicId = _image.GenerateId();
+                var newImage = await UploadImage(imageFile, publicId, $"{blog.ItemId.ToString()}/assets");
+                if (newImage == null) return new ApiErrorResult<int>("Upload image failed");
+                var newBlogImage = new BlogImage()
+                {
+                    BlogId = blogId,
+                    ImageUrl = newImage,
+                    Caption = blog.Item.Title,
+                    PublicId = publicId
+                };
+                _db.BlogsImages.Add(newBlogImage);
+            }
+            var result = await _db.SaveChangesAsync();
+            return new ApiSuccessResult<int>(result);
         }
     }
 }

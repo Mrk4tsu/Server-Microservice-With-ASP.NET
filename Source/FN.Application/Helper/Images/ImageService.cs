@@ -69,11 +69,32 @@ namespace FN.Application.Helper.Images
             var uploadResults = new List<string>();
             foreach (var image in files)
             {
+                var publicId = GenerateId();
                 var uploadParam = new ImageUploadParams
                 {
                     Transformation = new Transformation().Quality(50).Chain(),
                     File = new FileDescription(image.FileName, image.OpenReadStream()),
                     Folder = $"{Root}/{folderName}",
+                    PublicId = publicId,
+                    Overwrite = true
+                };
+                var uploadResult = await _cloudinary.UploadAsync(uploadParam);
+                uploadResults.Add(uploadResult.SecureUrl.AbsoluteUri);
+            }
+            return uploadResults;
+        }
+
+        public async Task<List<string>> UploadImages(List<IFormFile> files, string folderName, string publicId)
+        {
+            var uploadResults = new List<string>();
+            foreach (var image in files)
+            {
+                var uploadParam = new ImageUploadParams
+                {
+                    Transformation = new Transformation().Quality(35).Chain(),
+                    File = new FileDescription(image.FileName, image.OpenReadStream()),
+                    Folder = $"{Root}/{folderName}",
+                    PublicId = publicId,
                     Overwrite = true
                 };
                 var uploadResult = await _cloudinary.UploadAsync(uploadParam);

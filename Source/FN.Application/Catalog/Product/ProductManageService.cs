@@ -53,12 +53,10 @@ namespace FN.Application.Catalog.Product
             var facade = new GetProductFacade(_db, _dbRedis, _image);
             return await facade.GetProducts(request, true, true, userId);
         }
-
         public async Task RemoveCacheData()
         {
             await _dbRedis.RemoveValue(SystemConstant.CACHE_PRODUCT);
         }
-
         public async Task<ApiResult<bool>> DeletePermanently(int itemId, int userId)
         {
             var product = await _db.Items
@@ -122,8 +120,6 @@ namespace FN.Application.Catalog.Product
                 throw new Exception("Xóa sản phẩm thất bại", ex);
             }
         }
-
-
         public async Task<ApiResult<bool>> Delete(int itemId, int userId)
         {
             var item = await _db.Items.FirstOrDefaultAsync(x => x.Id == itemId && x.UserId == userId);
@@ -160,70 +156,6 @@ namespace FN.Application.Catalog.Product
                 await transaction.RollbackAsync();
                 return new ApiErrorResult<bool>("Xóa ảnh thất bại: " + ex.Message);
             }
-        }
-        public async Task<ApiResult<bool>> UpdateCombined(CombinedUpdateRequest request, int itemId, int productId, int userId)
-        {
-            // Cập nhật Item
-            var item = await _db.Items.FirstOrDefaultAsync(x => x.Id == itemId && x.UserId == userId);
-            if (item == null) return new ApiErrorResult<bool>("Không tìm thấy sản phẩm");
-            if (!string.IsNullOrEmpty(request.Title))
-            {
-                string code = StringHelper.GenerateProductCode(request.Title);
-                item.Title = request.Title;
-                item.Code = code;
-                item.SeoAlias = StringHelper.GenerateSeoAlias(request.Title);
-                item.SeoTitle = request.Title;
-                item.NormalizedTitle = StringHelper.NormalizeString(request.Title);
-            }
-            if (!string.IsNullOrEmpty(request.Description))
-                item.Description = request.Description;
-            if (!string.IsNullOrEmpty(request.Keywords))
-                item.Keywords = request.Keywords;
-            if (request.Thumbnail != null)
-            {
-                string? newThumbnail = await _image.UploadImage(request.Thumbnail, item.Code, Folder(item.Id.ToString()));
-                if (!string.IsNullOrEmpty(newThumbnail)) item.Thumbnail = newThumbnail;
-            }
-            item.ModifiedDate = DateTime.Now;
-            _db.Items.Update(item);
-
-            // Cập nhật ProductDetail
-            var product = await _db.ProductDetails.FirstOrDefaultAsync(x => x.ItemId == itemId && x.Id == productId);
-            if (product == null) return new ApiErrorResult<bool>("Không tìm thấy chi tiết sản phẩm");
-            product.Status = request.Status;
-            if (!string.IsNullOrEmpty(request.Detail))
-                product.Detail = request.Detail;
-            if (!string.IsNullOrEmpty(request.Note))
-                product.Note = request.Note;
-            if (!string.IsNullOrEmpty(request.Version))
-                product.Version = request.Version;
-            product.CategoryId = request.CategoryId;
-            _db.ProductDetails.Update(product);
-
-            if (request.NewImages != null)
-            {
-                foreach (var file in request.NewImages)
-                {
-                    var publicId = _image.GenerateId();
-                    var resultUpload = await _image.UploadImage(file, publicId, Folder(item.Id.ToString()));
-                    if (!string.IsNullOrEmpty(resultUpload))
-                    {
-                        var newImage = new ProductImage
-                        {
-                            Caption = file.FileName,
-                            ImageUrl = resultUpload,
-                            PublicId = publicId,
-                            ProductDetailId = product.Id
-                        };
-                        _db.ProductImages.Add(newImage);
-                    }
-
-                }
-            }
-            // Lưu thay đổi vào cơ sở dữ liệu
-            await _db.SaveChangesAsync();
-
-            return new ApiSuccessResult<bool>(true);
         }
         string Folder(string code)
         {
