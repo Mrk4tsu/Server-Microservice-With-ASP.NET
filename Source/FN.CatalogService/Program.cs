@@ -1,3 +1,4 @@
+using FN.Application.Catalog.Blogs;
 using FN.Application.Catalog.Categories;
 using FN.Application.Catalog.Product;
 using FN.Application.Catalog.Product.Prices;
@@ -19,6 +20,7 @@ builder.Services.AddScoped<IProductPublicService, ProductPublicService>();
 builder.Services.AddScoped<IProductManageService, ProductManageService>();
 builder.Services.AddScoped<ICategoryService, CategoryService>();
 builder.Services.AddScoped<IPriceProductService, PriceProductService>();
+builder.Services.AddScoped<IBlogService, BlogService>();
 
 var app = builder.Build();
 

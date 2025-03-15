@@ -4,9 +4,9 @@ namespace FN.ViewModel.Catalog
 {
     public class BaseCreateRequest
     {
-        public string Title { get; set; }
-        public string Description { get; set; }
-        public string Keywords { get; set; }
+        public string Title { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
+        public string Keywords { get; set; } = string.Empty;
         public IFormFile Thumbnail { get; set; }
     }
 }

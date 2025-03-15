@@ -12,7 +12,7 @@ namespace FN.Application.Catalog.Product.Pattern
 {
     public class UpdateProductFacade : BaseService
     {
-        public UpdateProductFacade(AppDbContext db, IRedisService dbRedis, IImageService image) : base(db, dbRedis, image)
+        public UpdateProductFacade(AppDbContext db, IRedisService dbRedis, IImageService image) : base(db, dbRedis, image, "product")
         {
         }
         public async Task<ApiResult<bool>> UpdateCombined(CombinedUpdateRequest request, int itemId, int productId, int userId)
@@ -137,9 +137,6 @@ namespace FN.Application.Catalog.Product.Pattern
             await _db.SaveChangesAsync();
         }
 
-        private async Task<string?> UploadThumbnail(IFormFile thumbnail, string code, string itemId)
-        {
-            return await _image.UploadImage(thumbnail, code, Folder(itemId.ToString()));
-        }
+
     }
 }

@@ -13,7 +13,7 @@ namespace FN.Application.Catalog.Product.Pattern
 {
     public class CreateProductFacade : BaseService
     {
-        public CreateProductFacade(AppDbContext db, IRedisService dbRedis, IImageService image) : base(db, dbRedis, image)
+        public CreateProductFacade(AppDbContext db, IRedisService dbRedis, IImageService image) : base(db, dbRedis, image, "product")
         {
         }
 

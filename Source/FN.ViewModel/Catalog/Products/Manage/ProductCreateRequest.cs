@@ -1,6 +1,4 @@
-﻿using FN.DataAccess.Entities;
-using FN.DataAccess.Enums;
-using FN.ViewModel.Helper.Paging;
+﻿using FN.ViewModel.Helper.Paging;
 using Microsoft.AspNetCore.Http;
 
 namespace FN.ViewModel.Catalog.Products.Manage
