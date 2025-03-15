@@ -17,24 +17,6 @@ namespace FN.CatalogService.Controllers
             _blogService = blogService;
         }
         [HttpPost("create")]
-        public async Task<IActionResult> Create([FromForm] BaseCreateRequest request)
-        {
-            var userId = GetUserIdFromClaims();
-            if (userId == null) return Unauthorized();
-            var result = await _blogService.CreateItem(request, userId.Value);
-            if (result.Success)
-                return Ok(result);
-            return BadRequest(result);
-        }
-        [HttpPost("create-blog/{itemId}")]
-        public async Task<IActionResult> CreateBlog(int itemId ,[FromForm] BlogCreateRequest request)
-        {
-            var result = await _blogService.CreateBlog(request, itemId);
-            if (result.Success)
-                return Ok(result);
-            return BadRequest(result);
-        }
-        [HttpPost("create-combine")]
         public async Task<IActionResult> Create([FromForm] BlogCombineCreateRequest request)
         {
             var userId = GetUserIdFromClaims();

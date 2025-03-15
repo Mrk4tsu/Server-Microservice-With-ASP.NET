@@ -6,8 +6,6 @@ namespace FN.Application.Catalog.Blogs
 {
     public interface IBlogService
     {
-        Task<ApiResult<int>> CreateItem(BaseCreateRequest request, int userId);
-        Task<ApiResult<int>> CreateBlog(BlogCreateRequest request, int itemId);
         Task<ApiResult<int>> CreateCombine(BlogCombineCreateRequest request, int userId);
     }
 }

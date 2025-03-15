@@ -28,52 +28,6 @@ namespace FN.Application.Catalog.Blogs
         {
             return $"{ROOT}/{code}";
         }
-
-        public async Task<ApiResult<int>> CreateItem(BaseCreateRequest request, int uid)
-        {
-            var code = StringHelper.GenerateProductCode(request.Title!);
-            var newItem = new Item()
-            {
-                Title = request.Title!,
-                Description = request.Description!,
-                Keywords = request.Keywords!,
-                SeoTitle = request.Title!,
-                UserId = uid,
-                CreatedDate = DateTime.Now,
-                ModifiedDate = DateTime.Now,
-                NormalizedTitle = StringHelper.NormalizeString(request.Title!),
-                SeoAlias = StringHelper.GenerateSeoAlias(request.Title!),
-                Code = code,
-                Thumbnail = "",
-            };
-            await _db.Items.AddAsync(newItem);
-            await _db.SaveChangesAsync();
-
-            newItem.Thumbnail = await _image.UploadImage(request.Thumbnail, newItem.Code, Folder(newItem.Id.ToString())) ?? "";
-            _db.Items.Update(newItem);
-            await _db.SaveChangesAsync();
-
-            return new ApiSuccessResult<int>(newItem.Id);
-        }
-
-        public async Task<ApiResult<int>> CreateBlog(BlogCreateRequest request, int itemId)
-        {
-            var item = await _db.Items.FindAsync(itemId);
-            if (item == null) return new ApiErrorResult<int>("Item not found");
-
-            var newBlog = new Blog()
-            {
-                Detail = request.Detail,
-                ItemId = itemId,
-                DislikeCount = 0,
-                LikeCount = 0,
-            };
-
-            _db.Blogs.Add(newBlog);
-            await _db.SaveChangesAsync();
-            return new ApiSuccessResult<int>(newBlog.Id);
-        }
-
         public async Task<ApiResult<int>> CreateCombine(BlogCombineCreateRequest request, int userId)
         {
             var facade = new BlogCreateFacade(_db, _redis, _image);
