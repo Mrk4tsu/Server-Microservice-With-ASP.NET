@@ -1,6 +1,9 @@
 ﻿namespace FN.DataAccess.Enums
 {
-    internal class InteractionType
+    public enum InteractionType
     {
+        None,
+        Like,
+        Dislike
     }
 }

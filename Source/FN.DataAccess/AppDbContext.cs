@@ -31,5 +31,6 @@ namespace FN.DataAccess
         public DbSet<Blog> Blogs { get; set; }
         public DbSet<ProductOwner> ProductOwners { get; set; }
         public DbSet<BlogImage> BlogsImages { get; set; }
+        public DbSet<UserBlogInteraction> UserBlogInteractions { get; set; }
     }
 }
