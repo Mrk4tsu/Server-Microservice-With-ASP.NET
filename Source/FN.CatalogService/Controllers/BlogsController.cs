@@ -34,5 +34,15 @@ namespace FN.CatalogService.Controllers
                 return Ok(result);
             return BadRequest(result);
         }
+        [HttpPost("create-combine")]
+        public async Task<IActionResult> Create([FromForm] BlogCombineCreateRequest request)
+        {
+            var userId = GetUserIdFromClaims();
+            if (userId == null) return Unauthorized();
+            var result = await _blogService.CreateCombine(request, userId.Value);
+            if (result.Success)
+                return Ok(result);
+            return BadRequest(result);
+        }
     }
 }

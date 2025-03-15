@@ -1,4 +1,6 @@
-﻿using FN.Application.Helper.Images;
+﻿using FN.Application.Catalog.Blogs.Pattern;
+using FN.Application.Helper.Images;
+using FN.Application.Systems.Redis;
 using FN.DataAccess;
 using FN.DataAccess.Entities;
 using FN.Utilities;
@@ -13,10 +15,14 @@ namespace FN.Application.Catalog.Blogs
         private string ROOT = "blog";
         private readonly AppDbContext _db;
         private readonly IImageService _image;
-        public BlogService(AppDbContext db, IImageService image)
+        private readonly IRedisService _redis;
+        public BlogService(AppDbContext db,
+            IImageService image,
+            IRedisService redis)
         {
             _db = db;
             _image = image;
+            _redis = redis;
         }
         string Folder(string code)
         {
@@ -66,6 +72,12 @@ namespace FN.Application.Catalog.Blogs
             _db.Blogs.Add(newBlog);
             await _db.SaveChangesAsync();
             return new ApiSuccessResult<int>(newBlog.Id);
+        }
+
+        public async Task<ApiResult<int>> CreateCombine(BlogCombineCreateRequest request, int userId)
+        {
+            var facade = new BlogCreateFacade(_db, _redis, _image);
+            return await facade.CreateCombine(request, userId);
         }
     }
 }
