@@ -78,7 +78,7 @@ namespace FN.Application.Systems.User
             var result = await _signInManager.PasswordSignInAsync(user, request.Password, request.RememberMe, true);
             if (!result.Succeeded) return new ApiErrorResult<TokenResponse>("Tài khoản mật khẩu không chính xác");
 
-            string clientId = request.ClientId ?? Guid.NewGuid().ToString();
+            string clientId = Guid.NewGuid().ToString();
             var ipAddress = GetClientIP(context);
 
             var tokenReq = new TokenRequest
@@ -98,27 +98,16 @@ namespace FN.Application.Systems.User
                 OS = deviceInfo.OS
             };
 
-            var isDeviceRegisteredTask = _deviceSevice.IsDeviceRegistered(tokenReq);
-            var justSendMailTask = IsJustSendMail(user.Id);
-
-            await Task.WhenAll(isDeviceRegisteredTask, justSendMailTask);
-
-            var isNewDevice = !isDeviceRegisteredTask.Result;
-            var justSendMail = justSendMailTask.Result;
-
-            if (isNewDevice && !justSendMail)
+            var publish = new LoginResponse
             {
-                var publish = new LoginResponse
-                {
-                    Email = user.Email!,
-                    Username = user.UserName!,
-                    IpAddress = ipAddress,
-                    Token = tokenReq,
-                    DeviceInfo = device,
-                    IsNewDevice = isNewDevice
-                };
-                await _redisService.Publish(SystemConstant.MESSAGE_LOGIN_EVENT, publish);
-            }
+                UserId = user.Id,
+                Email = user.Email!,
+                Username = user.UserName!,
+                IpAddress = ipAddress,
+                Token = tokenReq,
+                DeviceInfo = device,
+            };
+            await _redisService.Publish(SystemConstant.MESSAGE_LOGIN_EVENT, publish);
 
             var expires = request.RememberMe ? DateTime.Now.AddDays(14) : DateTime.Now.AddDays(3);
             var tokenTask = _tokenService.GenerateAccessToken(user);
@@ -144,7 +133,7 @@ namespace FN.Application.Systems.User
             {
                 var cacheKey = $"user:{request.UserName}";
                 var existed = await _redisService.KeyExist(cacheKey);
-                if(existed) return new ApiErrorResult<bool>("Tài khoản đã tồn tại");
+                if (existed) return new ApiErrorResult<bool>("Tài khoản đã tồn tại");
                 if (await _userManager.FindByNameAsync(request.UserName) != null)
                     return new ApiErrorResult<bool>("Tài khoản đã tồn tại");
 
@@ -179,12 +168,6 @@ namespace FN.Application.Systems.User
             {
                 return new ApiErrorResult<bool>(ex.Message);
             }
-        }       
-
-        public async Task<bool> IsJustSendMail(int userId)
-        {
-            var key = $"auth:{userId}:just_send_mail";
-            return await _redisService.KeyExist(key);
         }
         public async Task<ApiResult<TokenResponse>> RefreshToken(RefreshTokenRequest request)
         {

@@ -15,6 +15,7 @@ builder.Services.AddSwaggerExplorer()
     .AddIdentityHandlersAndStores()
     .AddIdentityAuth(builder.Configuration)
     .ConfigureIdentityOptions()
+    .ConfigureServicePayload()
     .AddImageConfig(builder.Configuration);
 
 builder.Services.AddScoped<IProductPublicService, ProductPublicService>();
@@ -39,6 +40,7 @@ var app = builder.Build();
 app.ConfigureSwaggerExplorer()
     .ConfigureCORS(builder.Configuration)
     .ConfigureAppExplorer()
+    .ConfigureAppPayLoad()
     .AddIdentityAuthMiddlewares();
 
 app.MapControllers();

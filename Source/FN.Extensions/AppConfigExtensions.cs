@@ -5,10 +5,13 @@ using FN.Utilities;
 using FN.ViewModel.Helper;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Ocelot.Middleware;
+using Ocelot.Values;
+using System.IO.Compression;
 
 namespace FN.Extensions
 {
@@ -24,8 +27,21 @@ namespace FN.Extensions
                 "https://katsudev.netlify.app")
             .AllowAnyMethod()
             .AllowAnyHeader());
+            app.UseForwardedHeaders(new ForwardedHeadersOptions
+            {
+                ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
+            });
             return app;
         }
+        public static IApplicationBuilder ConfigureAppExplorer(this IApplicationBuilder app)
+        {
+            app.UseForwardedHeaders(new ForwardedHeadersOptions
+            {
+                ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
+            });
+            return app;
+        }
+        
         public static IServiceCollection AddSmtpConfig(this IServiceCollection services, IConfiguration config)
         {
             services.Configure<MailSetting>(config.GetSection(SystemConstant.SMTP_SETTINGS));
@@ -44,33 +60,37 @@ namespace FN.Extensions
             services.AddSingleton<IImageService, ImageService>();
             return services;
         }
-        public static IApplicationBuilder ConfigureAppExplorer(this IApplicationBuilder app)
+        public static IServiceCollection ConfigureServicePayload(this IServiceCollection services)
         {
-            app.UseForwardedHeaders(new ForwardedHeadersOptions
+            services.AddResponseCompression(options =>
             {
-                ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
+                options.EnableForHttps = true; // Cho phép nén trên HTTPS
+                options.Providers.Add<GzipCompressionProvider>();
+                options.Providers.Add<BrotliCompressionProvider>();
             });
-            return app;
-        }
-        public static IApplicationBuilder ConfigureOcelot(this IApplicationBuilder app, IConfiguration config)
-        {
-            var env = app.ApplicationServices.GetRequiredService<IHostEnvironment>();
-            Console.WriteLine(env.EnvironmentName);
-            var ocelotConfigFile = $"ocelot.{env.EnvironmentName}.json";
-
-            if (!File.Exists(ocelotConfigFile))
+            services.Configure<BrotliCompressionProviderOptions>(options =>
             {
-                throw new FileNotFoundException($"Ocelot configuration file '{ocelotConfigFile}' not found.");
-            }
-            var ocelotConfig = new ConfigurationBuilder()
-                .SetBasePath(Directory.GetCurrentDirectory())
-                .AddJsonFile(ocelotConfigFile, optional: false, reloadOnChange: true)
-                .Build();
+                options.Level = CompressionLevel.Fastest; // Có thể là Optimal, Fastest, NoCompression
+            });
+            services.Configure<GzipCompressionProviderOptions>(options =>
+            {
+                options.Level = CompressionLevel.Optimal;
+            });
+            return services;
+        }
+        public static IApplicationBuilder ConfigureAppPayLoad(this IApplicationBuilder app)
+        {
+            app.Use(async (context, next) =>
+            {
+                if (context.Request.Headers["Content-Encoding"] == "gzip")
+                {
+                    context.Request.Body = new GZipStream(context.Request.Body, CompressionMode.Decompress);
+                }
+                await next();
+            });
 
-            app.UseOcelot().Wait();
-
+            app.UseResponseCompression();
             return app;
         }
-
     }
 }

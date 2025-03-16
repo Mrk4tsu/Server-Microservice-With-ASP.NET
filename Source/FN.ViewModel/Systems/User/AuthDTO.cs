@@ -21,17 +21,16 @@ namespace FN.ViewModel.Systems.User
     {
         public string UserName { get; set; } = string.Empty;
         public string Password { get; set; } = string.Empty;
-        public string ClientId { get; set; } = string.Empty;
         public string UserAgent { get; set; } = string.Empty;
         public bool RememberMe { get; set; }
     }
     public class LoginResponse
     {
+        public int UserId { get; set; }
         public string Username { get; set; } = string.Empty;
         public string Email { get; set; } = string.Empty;
         public string IpAddress { get; set; } = string.Empty;
         public TokenRequest Token { get; set; }
-        public bool IsNewDevice { get; set; }
         public DeviceInfoDetail DeviceInfo { get; set; } = new DeviceInfoDetail();
     }
     public class UpdateEmailDTO
