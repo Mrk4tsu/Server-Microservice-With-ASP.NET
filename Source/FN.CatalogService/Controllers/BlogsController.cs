@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace FN.CatalogService.Controllers
 {
-    [Route("api/[controller]")]
+    [Route("api/blog")]
     [ApiController, AllowAnonymous]
     public class BlogsController : BasesController
     {
@@ -18,7 +18,7 @@ namespace FN.CatalogService.Controllers
             _blogService = blogService;
             _blogInteraction = interaction;
         }
-        [HttpGet("blog/{id}")]
+        [HttpGet("detail/{id}")]
         public async Task<IActionResult> GetDetail(int id)
         {
             var blog = await _blogService.GetDetail(id);

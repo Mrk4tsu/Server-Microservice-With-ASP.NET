@@ -22,9 +22,6 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FN.Application", "FN.Application\FN.Application.csproj", "{5EC43176-83E2-4EF2-81F2-9C87DDE869FA}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "1.SolutionItem", "1.SolutionItem", "{DE896136-49DD-4B6E-985F-C1761A1F3A73}"
-	ProjectSection(SolutionItems) = preProject
-		README.md = README.md
-	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Uml", "Uml", "{6AA0B328-4096-4C29-9FAA-B82C4B871B3F}"
 EndProject

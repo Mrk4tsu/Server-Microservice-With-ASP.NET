@@ -8,7 +8,7 @@ using Microsoft.AspNetCore.Authorization;
 
 namespace FN.CatalogService.Controllers
 {
-    [Route("api/[controller]")]
+    [Route("api/manage-blog")]
     [ApiController, Authorize]
     public class ManageBlogsController : BasesController
     {
