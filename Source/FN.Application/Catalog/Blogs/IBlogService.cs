@@ -11,5 +11,7 @@ namespace FN.Application.Catalog.Blogs
         Task<ApiResult<int>> UpdateCombine(BlogCombineCreateOrUpdateRequest request, int itemId, int blogId, int userId); 
         Task<ApiResult<PagedResult<BlogViewModel>>> GetBlogs(BlogPagingReques request);
         Task<ApiResult<BlogDetailViewModel>> GetDetail(int id);
+        Task<ApiResult<bool>> Delete(int itemId, int userId);
+        Task<ApiResult<bool>> DeletePermanently(int itemId, int userId);
     }
 }

@@ -49,5 +49,6 @@ namespace FN.CatalogService.Controllers
             await _blogInteraction.PressDislike(blogId, userId.Value);
             return Ok();
         }
+       
     }
 }

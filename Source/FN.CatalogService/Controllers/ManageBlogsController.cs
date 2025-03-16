@@ -37,5 +37,25 @@ namespace FN.CatalogService.Controllers
                 return Ok(result);
             return BadRequest(result);
         }
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> Delete(int id)
+        {
+            var userId = GetUserIdFromClaims();
+            if (userId == null) return Unauthorized();
+            var result = await _blogService.Delete(id, userId.Value);
+            if (result.Success)
+                return Ok(result);
+            return Error(result.Message);
+        }
+        [HttpDelete("remove/{id}")]
+        public async Task<IActionResult> Remove(int id)
+        {
+            var userId = GetUserIdFromClaims();
+            if (userId == null) return Unauthorized();
+            var result = await _blogService.DeletePermanently(id, userId.Value);
+            if (result.Success)
+                return Ok(result);
+            return Error(result.Message);
+        }
     }
 }

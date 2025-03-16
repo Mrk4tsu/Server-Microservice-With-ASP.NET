@@ -110,7 +110,7 @@ namespace FN.Application.Catalog.Product
                 }
 
                 await _db.SaveChangesAsync();
-
+                await RemoveCacheData();
                 await transaction.CommitAsync();
                 return new ApiSuccessResult<bool>();
             }
@@ -129,6 +129,7 @@ namespace FN.Application.Catalog.Product
 
             _db.Items.Update(item);
             await _db.SaveChangesAsync();
+            await RemoveCacheData();
             return new ApiSuccessResult<bool>();
         }
         public async Task<ApiResult<bool>> DeleteImage(DeleteProductImagesRequest request)
@@ -149,6 +150,7 @@ namespace FN.Application.Catalog.Product
 
                 await _db.SaveChangesAsync();
                 await transaction.CommitAsync();
+                await RemoveCacheData();
                 return new ApiSuccessResult<bool>(true);
             }
             catch (Exception ex)

@@ -113,5 +113,85 @@ namespace FN.Application.Catalog.Blogs
             };
             return new ApiSuccessResult<BlogDetailViewModel>(data);
         }
+
+        public async Task<ApiResult<bool>> Delete(int itemId, int userId)
+        {
+            var item = await _db.Items.FirstOrDefaultAsync(x => x.Id == itemId && x.UserId == userId);
+            if (item == null) return new ApiErrorResult<bool>("Không tìm thấy sản phẩm");
+
+            item.IsDeleted = true;
+
+            _db.Items.Update(item);
+            await _db.SaveChangesAsync();
+            await RemoveCacheData();
+            return new ApiSuccessResult<bool>();
+        }
+        public async Task<ApiResult<bool>> DeletePermanently(int itemId, int userId)
+        {
+            var itemToDel = await _db.Items
+               .Where(x => x.Id == itemId)
+               .Select(x => new
+               {
+                   x.Id,
+                   x.Code,
+                   Blogs = x.Blogs!.Select(pd => new
+                   {
+                       pd.Id,
+                       BlogImages = pd.BlogImages.Select(pi => pi.PublicId).ToList()
+                   }).ToList()
+               })
+               .FirstOrDefaultAsync();
+
+            if (itemToDel == null)
+                return new ApiErrorResult<bool>("Không tìm thấy Blog");
+
+            var folder = Folder(itemToDel.Id.ToString());
+
+            using var transaction = await _db.Database.BeginTransactionAsync();
+            try
+            {
+                var deleteImageTasks = new List<Task>();
+
+                deleteImageTasks.Add(_image.DeleteImageInFolder(itemToDel.Id.ToString(), folder)); // Xóa thumbnail
+
+                foreach (var blogToDel in itemToDel.Blogs)
+                {
+                    foreach (var imageId in blogToDel.BlogImages)
+                    {
+                        deleteImageTasks.Add(_image.DeleteImageInFolder(imageId, $"{folder}/assets"));
+                    }
+                }
+                await Task.WhenAll(deleteImageTasks);
+                await _image.DeleteFolderImage(folder);
+                var productDetails = await _db.Blogs
+                    .Where(pd => pd.ItemId == itemToDel.Id)
+                    .ToListAsync();
+
+                _db.Blogs.RemoveRange(productDetails);
+
+                var item = await _db.Items
+                    .Where(x => x.Id == itemToDel.Id)
+                    .FirstOrDefaultAsync();
+
+                if (item != null)
+                {
+                    _db.Items.Remove(item);
+                }
+
+                await _db.SaveChangesAsync();
+                await transaction.CommitAsync();
+                await RemoveCacheData();
+                return new ApiSuccessResult<bool>();
+            }
+            catch (Exception ex)
+            {
+                await transaction.RollbackAsync();
+                throw new Exception("Xóa sản phẩm thất bại", ex);
+            }
+        }
+        private async Task RemoveCacheData()
+        {
+            await _redis.RemoveValue(SystemConstant.CACHE_BLOG);
+        }
     }
 }
