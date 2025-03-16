@@ -17,30 +17,30 @@ namespace FN.Application.Catalog.Blogs.Pattern
             : base(db, dbRedis, image, "blog")
         {
         }
-        public async Task<ApiResult<int>> CreateCombine(BlogCombineCreateRequest request, int userId)
+        public async Task<ApiResult<int>> CreateCombine(BlogCombineCreateOrUpdateRequest request, int userId)
         {
             using (var transaction = await _db.Database.BeginTransactionAsync())
             {
                 try
                 {
                     //Tạo mới Item
-                    var newItem = new BaseCreateRequest
+                    var newItem = new BaseRequest
                     {
-                        Title = request.Title,
-                        Description = request.Description,
-                        Keywords = request.Keywords,
-                        Thumbnail = request.Thumbnail
+                        Title = request.Title!,
+                        Description = request.Description!,
+                        Keywords = request.Keywords!,
+                        Thumbnail = request.Thumbnail!
                     };
                     var newItemResult = await CreateItemInternal(newItem, userId);
                     if (!newItemResult.Success) return newItemResult;
-                    var newBlog = new BlogCreateRequest
+                    var newBlog = new BlogCreateOrUpdateRequest
                     {
-                        Detail = request.Detail
+                        Detail = request.Detail!
                     };
                     var newBlogResult = await CreateBlogInternal(newBlog, newItemResult.Data);
                     if (!newBlogResult.Success) return newBlogResult;
 
-                    var newBlogImage = new BlogImageCreateRequest
+                    var newBlogImage = new BlogImageCreateOrUpdateRequest
                     {
                         ImageDetails = request.ImageDetails
                     };
@@ -57,7 +57,7 @@ namespace FN.Application.Catalog.Blogs.Pattern
                 }
             }
         }
-        private async Task<ApiResult<int>> CreateItemInternal(BaseCreateRequest request, int userId)
+        private async Task<ApiResult<int>> CreateItemInternal(BaseRequest request, int userId)
         {
             var code = StringHelper.GenerateProductCode(request.Title!);
             var newItem = new Item()
@@ -67,8 +67,8 @@ namespace FN.Application.Catalog.Blogs.Pattern
                 Keywords = request.Keywords!,
                 SeoTitle = request.Title!,
                 UserId = userId,
-                CreatedDate = DateTime.Now,
-                ModifiedDate = DateTime.Now,
+                CreatedDate = Now(),
+                ModifiedDate = Now(),
                 NormalizedTitle = StringHelper.NormalizeString(request.Title!),
                 SeoAlias = StringHelper.GenerateSeoAlias(request.Title!),
                 Code = code,
@@ -77,7 +77,7 @@ namespace FN.Application.Catalog.Blogs.Pattern
             await _db.Items.AddAsync(newItem);
             await _db.SaveChangesAsync();
 
-            string? newThumbnail = await UploadImage(request.Thumbnail, newItem.Code, newItem.Id.ToString());
+            string? newThumbnail = await UploadImage(request.Thumbnail!, newItem.Id.ToString(), newItem.Id.ToString());
             if (!string.IsNullOrEmpty(newThumbnail)) newItem.Thumbnail = newThumbnail;
 
             _db.Items.Update(newItem);
@@ -85,7 +85,7 @@ namespace FN.Application.Catalog.Blogs.Pattern
 
             return new ApiSuccessResult<int>(newItem.Id);
         }
-        private async Task<ApiResult<int>> CreateBlogInternal(BlogCreateRequest request, int itemId)
+        private async Task<ApiResult<int>> CreateBlogInternal(BlogCreateOrUpdateRequest request, int itemId)
         {
             var item = await _db.Items.FindAsync(itemId);
             if (item == null) return new ApiErrorResult<int>("Item not found");
@@ -96,7 +96,7 @@ namespace FN.Application.Catalog.Blogs.Pattern
 
             var newBlog = new Blog()
             {
-                Detail = sanitizer.Sanitize(request.Detail),
+                Detail = sanitizer.Sanitize(request.Detail!),
                 ItemId = itemId,
                 DislikeCount = 0,
                 LikeCount = 0,
@@ -106,7 +106,7 @@ namespace FN.Application.Catalog.Blogs.Pattern
             await _db.SaveChangesAsync();
             return new ApiSuccessResult<int>(newBlog.Id);
         }
-        private async Task<ApiResult<int>> CreateBlogImageDetail(BlogImageCreateRequest request, int blogId)
+        private async Task<ApiResult<int>> CreateBlogImageDetail(BlogImageCreateOrUpdateRequest request, int blogId)
         {
             var blog = await _db.Blogs.Include(x => x.Item).FirstOrDefaultAsync(x => x.Id == blogId);
             if (blog == null) return new ApiErrorResult<int>("Blog not found");

@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Http;
 
 namespace FN.ViewModel.Catalog.Products.Manage
 {
-    public class ProductDeatilUpdateRequest
+    public class ProductDetailUpdateRequest
     {
         public string? Detail { get; set; } = string.Empty;
         public string? Version { get; set; } = string.Empty;

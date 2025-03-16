@@ -28,10 +28,15 @@ namespace FN.Application.Catalog.Blogs
         {
             return $"{ROOT}/{code}";
         }
-        public async Task<ApiResult<int>> CreateCombine(BlogCombineCreateRequest request, int userId)
+        public async Task<ApiResult<int>> CreateCombine(BlogCombineCreateOrUpdateRequest request, int userId)
         {
             var facade = new BlogCreateFacade(_db, _redis, _image);
             return await facade.CreateCombine(request, userId);
+        }
+        public async Task<ApiResult<int>> UpdateCombine(BlogCombineCreateOrUpdateRequest request, int itemId, int blogId, int userId)
+        {
+            var facade = new BlogUpdateFacade(_db, _redis, _image, "blog");
+            return await facade.Update(request, itemId, blogId, userId);
         }
 
         public async Task<ApiResult<PagedResult<BlogViewModel>>> GetBlogs(BlogPagingReques request)
@@ -55,6 +60,7 @@ namespace FN.Application.Catalog.Blogs
                 .Select(x => new BlogViewModel
                 {
                     Id = x.Item.Id,
+                    BlogId = x.Id,
                     Author = x.Item.User.FullName,
                     Description = x.Item.Description,
                     SeoAlias = x.Item.SeoAlias,
@@ -90,6 +96,7 @@ namespace FN.Application.Catalog.Blogs
             var data = new BlogDetailViewModel
             {
                 Id = blog.Item.Id,
+                BlogId = blog.Id,
                 Author = blog.Item.User.FullName,
                 Description = blog.Item.Description,
                 SeoAlias = blog.Item.SeoAlias,
@@ -102,6 +109,7 @@ namespace FN.Application.Catalog.Blogs
                 DislikeCount = blog.DislikeCount,
                 Detail = blog.Detail,
                 TimeUpdate = blog.Item.ModifiedDate,
+                Username = blog.Item.User.UserName ?? "Unknow",
             };
             return new ApiSuccessResult<BlogDetailViewModel>(data);
         }

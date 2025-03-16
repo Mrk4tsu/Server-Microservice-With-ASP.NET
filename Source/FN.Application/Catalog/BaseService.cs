@@ -19,9 +19,9 @@ namespace FN.Application.Catalog
             _image = image;
             ROOT = root;
         }
-        protected async Task<string?> UploadImage(IFormFile thumbnail, string code, string itemId)
+        protected async Task<string?> UploadImage(IFormFile thumbnail, string publicId, string itemId)
         {
-            return await _image.UploadImage(thumbnail, code, Folder(itemId.ToString()));
+            return await _image.UploadImage(thumbnail, publicId, Folder(itemId.ToString()));
         }
         protected async Task RemoveOldCache()
         {

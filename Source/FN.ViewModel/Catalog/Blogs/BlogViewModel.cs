@@ -9,6 +9,7 @@ namespace FN.ViewModel.Catalog.Blogs
     public class BlogViewModel
     {
         public int Id { get; set; }
+        public int BlogId { get; set; }
         public string Title { get; set; }
         public string Description { get; set; }
         public DateTime TimeCreate { get; set; }
@@ -23,6 +24,7 @@ namespace FN.ViewModel.Catalog.Blogs
         public int LikeCount { get; set; }
         public int DislikeCount { get; set; }
         public string Detail { get; set; }
+        public string Username { get; set; }
         public DateTime TimeUpdate { get; set; }
     }
 }

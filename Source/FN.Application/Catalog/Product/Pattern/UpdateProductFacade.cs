@@ -33,7 +33,7 @@ namespace FN.Application.Catalog.Product.Pattern
                     if (!itemResult.Success) return itemResult;
 
                     // Cập nhật ProductDetail
-                    var productDetailUpdateRequest = new ProductDeatilUpdateRequest
+                    var productDetailUpdateRequest = new ProductDetailUpdateRequest
                     {
                         Detail = request.Detail,
                         Version = request.Version,
@@ -77,17 +77,17 @@ namespace FN.Application.Catalog.Product.Pattern
                 item.Keywords = request.Keywords;
             if (request.Thumbnail != null)
             {
-                string? newThumbnail = await UploadImage(request.Thumbnail, item.Code, item.Id.ToString());
+                string? newThumbnail = await UploadImage(request.Thumbnail, item.Id.ToString(), item.Id.ToString());
                 if (!string.IsNullOrEmpty(newThumbnail)) item.Thumbnail = newThumbnail;
             }
-            item.ModifiedDate = DateTime.Now;
+            item.ModifiedDate = Now();
             _db.Items.Update(item);
             await _db.SaveChangesAsync();
 
             return new ApiSuccessResult<bool>();
         }
 
-        private async Task<ApiResult<bool>> UpdateProductDetailInternal(ProductDeatilUpdateRequest request, int itemId, int productId)
+        private async Task<ApiResult<bool>> UpdateProductDetailInternal(ProductDetailUpdateRequest request, int itemId, int productId)
         {
             var productDetail = await _db.ProductDetails
                                         .Include(pd => pd.Item) // Đảm bảo load thông tin Item liên quan
@@ -121,7 +121,7 @@ namespace FN.Application.Catalog.Product.Pattern
             foreach (var file in newImages)
             {
                 var publicId = _image.GenerateId();
-                var resultUpload = await _image.UploadImage(file, publicId, Folder(productDetail.ItemId.ToString()));
+                var resultUpload = await UploadImage(file, publicId, productDetail.ItemId.ToString());
                 if (!string.IsNullOrEmpty(resultUpload))
                 {
                     var newImage = new ProductImage

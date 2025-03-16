@@ -18,11 +18,21 @@ namespace FN.CatalogService.Controllers
             _blogService = blogService;
         }
         [HttpPost("create")]
-        public async Task<IActionResult> Create([FromForm] BlogCombineCreateRequest request)
+        public async Task<IActionResult> Create([FromForm] BlogCombineCreateOrUpdateRequest request)
         {
             var userId = GetUserIdFromClaims();
             if (userId == null) return Unauthorized();
             var result = await _blogService.CreateCombine(request, userId.Value);
+            if (result.Success)
+                return Ok(result);
+            return BadRequest(result);
+        }
+        [HttpPut("update/{itemId}/{blogId}")]
+        public async Task<IActionResult> Update([FromForm] BlogCombineCreateOrUpdateRequest request, int itemId, int blogId)
+        {
+            var userId = GetUserIdFromClaims();
+            if (userId == null) return Unauthorized();
+            var result = await _blogService.UpdateCombine(request, itemId, blogId, userId.Value);
             if (result.Success)
                 return Ok(result);
             return BadRequest(result);

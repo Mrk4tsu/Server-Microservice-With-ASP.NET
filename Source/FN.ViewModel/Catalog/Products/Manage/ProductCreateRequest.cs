@@ -21,7 +21,7 @@ namespace FN.ViewModel.Catalog.Products.Manage
     {
         public IFormFileCollection Images { get; set; }
     }
-    public class CreatePricesRequest : BaseCreateRequest
+    public class CreatePricesRequest : BaseRequest
     {
         public decimal Price { get; set; }
     }
