@@ -49,7 +49,7 @@ namespace FN.Application.Catalog.Blogs.Pattern
 
                     await transaction.CommitAsync();
                     await RemoveOldCache();
-                    return new ApiSuccessResult<int>(newBlogResult.Data);
+                    return new ApiSuccessResult<int>(newItemResult.Data);
                 }
                 catch (Exception ex)
                 {
