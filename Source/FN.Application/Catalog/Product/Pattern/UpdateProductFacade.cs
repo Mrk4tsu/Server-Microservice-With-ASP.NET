@@ -12,7 +12,7 @@ namespace FN.Application.Catalog.Product.Pattern
 {
     public class UpdateProductFacade : BaseService
     {
-        public UpdateProductFacade(AppDbContext db, IRedisService dbRedis, IImageService image) : base(db, dbRedis, image, "product")
+        public UpdateProductFacade(AppDbContext db, IRedisService dbRedis, IImageService image) : base(db, dbRedis, image, SystemConstant.PRODUCT_KEY)
         {
         }
         public async Task<ApiResult<bool>> UpdateCombined(CombinedUpdateRequest request, int itemId, int productId, int userId)

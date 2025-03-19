@@ -13,7 +13,8 @@ namespace FN.Application.Catalog.Blogs.Pattern
 {
     public class BlogUpdateFacade : BaseService
     {
-        public BlogUpdateFacade(AppDbContext db, IRedisService dbRedis, IImageService image, string root) : base(db, dbRedis, image, root)
+        public BlogUpdateFacade(AppDbContext db, IRedisService dbRedis, IImageService image, string root) 
+            : base(db, dbRedis, image, root)
         {
         }
         public async Task<ApiResult<int>> Update(BlogCombineCreateOrUpdateRequest request, int itemId, int blogId, int userId)

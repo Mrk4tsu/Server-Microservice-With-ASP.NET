@@ -17,6 +17,12 @@ namespace FN.CatalogService.Controllers
         {
             _blogService = blogService;
         }
+        [HttpGet("get/{id}")]
+        public async Task<IActionResult> Get(int id)
+        {
+            var blog = await _blogService.GetDetailManage(id);
+            return Ok(blog);
+        }
         [HttpPost("create")]
         public async Task<IActionResult> Create([FromForm] BlogCombineCreateOrUpdateRequest request)
         {

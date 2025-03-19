@@ -1,4 +1,5 @@
-﻿using FN.Application.Catalog.Blogs.Pattern;
+﻿using AutoMapper;
+using FN.Application.Catalog.Blogs.Pattern;
 using FN.Application.Helper.Images;
 using FN.Application.Systems.Redis;
 using FN.DataAccess;
@@ -12,21 +13,23 @@ namespace FN.Application.Catalog.Blogs
 {
     public class BlogService : IBlogService
     {
-        private string ROOT = "blog";
         private readonly AppDbContext _db;
         private readonly IImageService _image;
         private readonly IRedisService _redis;
+        private readonly IMapper _mapper;
         public BlogService(AppDbContext db,
             IImageService image,
+            IMapper mapper,
             IRedisService redis)
         {
             _db = db;
             _image = image;
             _redis = redis;
+            _mapper = mapper;
         }
         string Folder(string code)
         {
-            return $"{ROOT}/{code}";
+            return $"{SystemConstant.BLOG_KEY}/{code}";
         }
         public async Task<ApiResult<int>> CreateCombine(BlogCombineCreateOrUpdateRequest request, int userId)
         {
@@ -35,82 +38,73 @@ namespace FN.Application.Catalog.Blogs
         }
         public async Task<ApiResult<int>> UpdateCombine(BlogCombineCreateOrUpdateRequest request, int itemId, int blogId, int userId)
         {
-            var facade = new BlogUpdateFacade(_db, _redis, _image, "blog");
+            var facade = new BlogUpdateFacade(_db, _redis, _image, SystemConstant.BLOG_KEY);
             return await facade.Update(request, itemId, blogId, userId);
         }
-
-        public async Task<ApiResult<PagedResult<BlogViewModel>>> GetBlogs(BlogPagingReques request)
+        public async Task<ApiResult<PagedResult<BlogViewModel>>> GetBlogs(BlogPagingRequest request)
         {
-            var cacheKey = SystemConstant.CACHE_BLOG;
-            List<BlogViewModel> data = new List<BlogViewModel>();
-            if (await _redis.KeyExist(cacheKey))
+            var cachePageKey = SystemConstant.BLOG_KEY;
+
+            // Kiểm tra cache
+            if (await _redis.KeyExist(cachePageKey))
             {
-                data = await _redis.GetValue<List<BlogViewModel>>(cacheKey);
-                if (data != null && data.Any() && data.Count > 0)
-                    return new ApiSuccessResult<PagedResult<BlogViewModel>>(new PagedResult<BlogViewModel>
-                    {
-                        Items = data,
-                        PageIndex = request.PageIndex,
-                        PageSize = request.PageSize,
-                        TotalRecords = data.Count
-                    });
+                var cachedData = await _redis.GetValue<PagedResult<BlogViewModel>>(cachePageKey);
+                if (cachedData != null) return new ApiSuccessResult<PagedResult<BlogViewModel>>(cachedData);
             }
-            var blog = _db.Blogs.AsNoTracking()
-                .Where(x => x.Item.IsDeleted == false)
-                .Select(x => new BlogViewModel
-                {
-                    Id = x.Item.Id,
-                    BlogId = x.Id,
-                    Author = x.Item.User.FullName,
-                    Description = x.Item.Description,
-                    SeoAlias = x.Item.SeoAlias,
-                    Thumbnail = x.Item.Thumbnail,
-                    TimeCreate = x.Item.CreatedDate,
-                    Title = x.Item.Title,
-                    ViewCount = x.Item.ViewCount,
-                });
-            var total = await blog.CountAsync();
-            data = await blog
-                .OrderByDescending(x => x.TimeCreate)
+
+            // Truy vấn tổng số blog trước khi phân trang
+            var query = _db.Blogs.AsNoTracking()
+                .Where(x => !x.Item.IsDeleted)
+                .Include(x => x.Item)
+                .ThenInclude(x => x.User);
+
+            var totalRecords = await query.Select(x => x.Id).CountAsync();
+
+            // Truy vấn danh sách blog đã phân trang
+            var blogs = await query
+                .OrderByDescending(x => x.Item.CreatedDate)
                 .Skip((request.PageIndex - 1) * request.PageSize)
                 .Take(request.PageSize)
                 .ToListAsync();
-            await _redis.SetValue(cacheKey, await blog.ToListAsync());
+
+            // Ánh xạ dữ liệu bằng AutoMapper
+            var data = _mapper.Map<List<BlogViewModel>>(blogs);
+
             var result = new PagedResult<BlogViewModel>
             {
-                TotalRecords = total,
+                TotalRecords = totalRecords,
                 PageIndex = request.PageIndex,
                 PageSize = request.PageSize,
                 Items = data
             };
+
+            // Lưu cache
+            await _redis.SetValue(cachePageKey, result);
+
             return new ApiSuccessResult<PagedResult<BlogViewModel>>(result);
         }
-
         public async Task<ApiResult<BlogDetailViewModel>> GetDetail(int id)
         {
+            var cacheKey = $"{SystemConstant.BLOG_DETAIL_KEY}:{id}";
+
+            // Kiểm tra cache
+            if (await _redis.KeyExist(cacheKey))
+            {
+                var cachedData = await _redis.GetValue<BlogDetailViewModel>(cacheKey);
+                if (cachedData != null) return new ApiSuccessResult<BlogDetailViewModel>(cachedData);
+            }
+
             var blog = await _db.Blogs
                 .Include(x => x.Item)
                 .ThenInclude(x => x.User)
                 .FirstOrDefaultAsync(x => x.ItemId == id);
-            if (blog == null) return new ApiErrorResult<BlogDetailViewModel>("Blog not found");
-            var data = new BlogDetailViewModel
-            {
-                Id = blog.Item.Id,
-                BlogId = blog.Id,
-                Author = blog.Item.User.FullName,
-                Description = blog.Item.Description,
-                SeoAlias = blog.Item.SeoAlias,
-                Thumbnail = blog.Item.Thumbnail,
-                TimeCreate = blog.Item.CreatedDate,
-                Title = blog.Item.Title,
-                ViewCount = blog.Item.ViewCount,
-                SeoTitle = blog.Item.SeoTitle,
-                LikeCount = blog.LikeCount,
-                DislikeCount = blog.DislikeCount,
-                Detail = blog.Detail,
-                TimeUpdate = blog.Item.ModifiedDate,
-                Username = blog.Item.User.UserName ?? "Unknow",
-            };
+
+            if (blog == null || blog.Item == null || blog.Item.User == null)
+                return new ApiErrorResult<BlogDetailViewModel>("Blog not found");
+
+            var data = _mapper.Map<BlogDetailViewModel>(blog);
+            await _redis.SetValue(cacheKey, data, TimeSpan.FromMinutes(15));
+
             return new ApiSuccessResult<BlogDetailViewModel>(data);
         }
 
@@ -123,7 +117,7 @@ namespace FN.Application.Catalog.Blogs
 
             _db.Items.Update(item);
             await _db.SaveChangesAsync();
-            await RemoveCacheData();
+            await RemoveCacheData(null);
             return new ApiSuccessResult<bool>();
         }
         public async Task<ApiResult<bool>> DeletePermanently(int itemId, int userId)
@@ -180,7 +174,7 @@ namespace FN.Application.Catalog.Blogs
 
                 await _db.SaveChangesAsync();
                 await transaction.CommitAsync();
-                await RemoveCacheData();
+                await RemoveCacheData(null);
                 return new ApiSuccessResult<bool>();
             }
             catch (Exception ex)
@@ -189,9 +183,36 @@ namespace FN.Application.Catalog.Blogs
                 throw new Exception("Xóa sản phẩm thất bại", ex);
             }
         }
-        private async Task RemoveCacheData()
+        private async Task RemoveCacheData(BlogPagingRequest? request)
         {
-            await _redis.RemoveValue(SystemConstant.CACHE_BLOG);
+            await _redis.RemoveValue(SystemConstant.BLOG_KEY);
+        }
+
+        public async Task<ApiResult<bool>> UpdateView(int blogId)
+        {
+            var item = await _db.Items.FindAsync(blogId);
+            if (item == null) return new ApiErrorResult<bool>("Không tìm thấy sản phẩm");
+            item.ViewCount++;
+            _db.Items.Update(item);
+            await _db.SaveChangesAsync();
+            return new ApiSuccessResult<bool>();
+        }
+
+        public async Task<ApiResult<BlogCombineCreateOrUpdateViewModel>> GetDetailManage(int id)
+        {
+            var blog = await _db.Blogs
+                .Include(x => x.Item)
+                .FirstOrDefaultAsync(x => x.ItemId == id);
+            if (blog == null) return new ApiErrorResult<BlogCombineCreateOrUpdateViewModel>("Blog not found");
+            var data = new BlogCombineCreateOrUpdateViewModel
+            {
+                Description = blog.Item.Description,
+                Detail = blog.Detail,
+                Keywords = blog.Item.Keywords,
+                Title = blog.Item.Title,
+                Thumbnail = blog.Item.Thumbnail,
+            };
+            return new ApiSuccessResult<BlogCombineCreateOrUpdateViewModel>(data);
         }
     }
 }

@@ -31,7 +31,7 @@ namespace FN.UserService.Controllers
         [HttpPost("login"), AllowAnonymous]
         public async Task<IActionResult> Login(LoginDTO login)
         {
-            var result = await _authService.Authenticate(login, HttpContext);
+            var result = await _authService.Authenticate(login);
             if (result.Success)
                 return Ok(result);
             return BadRequest(result);

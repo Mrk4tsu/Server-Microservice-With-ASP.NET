@@ -13,7 +13,7 @@ namespace FN.Application.Catalog.Product.Pattern
 {
     public class CreateProductFacade : BaseService
     {
-        public CreateProductFacade(AppDbContext db, IRedisService dbRedis, IImageService image) : base(db, dbRedis, image, "product")
+        public CreateProductFacade(AppDbContext db, IRedisService dbRedis, IImageService image) : base(db, dbRedis, image, SystemConstant.PRODUCT_KEY)
         {
         }
 
@@ -60,7 +60,7 @@ namespace FN.Application.Catalog.Product.Pattern
             await _db.Items.AddAsync(newItem);
             await _db.SaveChangesAsync();
 
-            newItem.Thumbnail = await UploadImage(request.Thumbnail!, newItem.Id.ToString(), Folder(newItem.Id.ToString()))?? "";
+            newItem.Thumbnail = await UploadImage(request.Thumbnail!, newItem.Id.ToString(), newItem.Id.ToString())?? "";
             _db.Items.Update(newItem);
             await _db.SaveChangesAsync();
             return newItem;

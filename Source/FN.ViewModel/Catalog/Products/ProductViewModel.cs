@@ -38,8 +38,7 @@ namespace FN.ViewModel.Catalog.Products
         public int DisLikeCount { get; set; }
         public string Description { get; set; }
         public string CategoryName { get; set; }
-        [JsonIgnore]
-        public string? ImagesJson { get; set; }
+        public string Author { get; set; }
         public List<ImageProductViewModel> Images { get; set; }
     }
     public class ImageProductViewModel

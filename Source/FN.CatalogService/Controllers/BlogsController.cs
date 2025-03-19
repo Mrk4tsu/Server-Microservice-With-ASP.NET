@@ -25,7 +25,7 @@ namespace FN.CatalogService.Controllers
             return Ok(blog);
         }
         [HttpGet("list")]
-        public async Task<IActionResult> GetBlogs([FromQuery] BlogPagingReques request)
+        public async Task<IActionResult> GetBlogs([FromQuery] BlogPagingRequest request)
         {
             var blogs = await _blogService.GetBlogs(request);
             return Ok(blogs);
@@ -49,6 +49,11 @@ namespace FN.CatalogService.Controllers
             await _blogInteraction.PressDislike(blogId, userId.Value);
             return Ok();
         }
-       
+        [HttpPut("update-view/{id}")]
+        public async Task<IActionResult> UpdateView(int id)
+        {
+            var result = await _blogService.UpdateView(id);
+            return Ok(result);
+        }
     }
 }

@@ -16,7 +16,6 @@ namespace FN.Application.Catalog.Product
 {
     public class ProductManageService : IProductManageService
     {
-        private const string ROOT = "product";
         private readonly AppDbContext _db;
         private readonly IMapper _mapper;
         private readonly IImageService _image;
@@ -45,17 +44,17 @@ namespace FN.Application.Catalog.Product
         }
         public async Task<ApiResult<PagedResult<ProductViewModel>>> GetProducts(ProductPagingRequest request, int userId)
         {
-            var facade = new GetProductFacade(_db, _dbRedis, _image);
+            var facade = new GetProductFacade(_db, _dbRedis, _image, _mapper);
             return await facade.GetProducts(request, true, false, userId);
         }
         public async Task<ApiResult<PagedResult<ProductViewModel>>> TrashProducts(ProductPagingRequest request, int userId)
         {
-            var facade = new GetProductFacade(_db, _dbRedis, _image);
+            var facade = new GetProductFacade(_db, _dbRedis, _image, _mapper);
             return await facade.GetProducts(request, true, true, userId);
         }
         public async Task RemoveCacheData()
         {
-            await _dbRedis.RemoveValue(SystemConstant.CACHE_PRODUCT);
+            await _dbRedis.RemoveValue(SystemConstant.PRODUCT_KEY);
         }
         public async Task<ApiResult<bool>> DeletePermanently(int itemId, int userId)
         {
@@ -161,7 +160,7 @@ namespace FN.Application.Catalog.Product
         }
         string Folder(string code)
         {
-            return $"{ROOT}/{code}";
+            return $"{SystemConstant.PRODUCT_KEY}/{code}";
         }
 
     }

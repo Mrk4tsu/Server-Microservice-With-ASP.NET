@@ -43,8 +43,11 @@ namespace FN.Application.Helper.Images
                 return false;
             return true;
         }
-        public async Task<string?> UploadImage(IFormFile file, string publicId, string folderName)
+        public async Task<string?> UploadImage(IFormFile file, string publicId, string folderName, string? root = null)
         {
+            var folder = $"{Root}/{folderName}";
+            if(!string.IsNullOrEmpty(root))
+                folder = $"{Root}/{root}/{folderName}";
             if (file != null && file.Length > 0)
             {
                 await using var stream = file.OpenReadStream();
@@ -54,7 +57,7 @@ namespace FN.Application.Helper.Images
                     Format = "webp",
                     File = new FileDescription(file.FileName, stream),
                     PublicId = publicId,
-                    Folder = $"{Root}/{folderName}",
+                    Folder = folder,
                     Overwrite = true
                 };
                 var uploadResult = await _cloudinary.UploadAsync(uploadParams);

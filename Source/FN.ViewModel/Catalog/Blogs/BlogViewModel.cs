@@ -1,8 +1,9 @@
 ﻿using FN.ViewModel.Helper.Paging;
+using Microsoft.AspNetCore.Http;
 
 namespace FN.ViewModel.Catalog.Blogs
 {
-    public class BlogPagingReques : PagedList
+    public class BlogPagingRequest : PagedList
     {
         public string? KeyWord { get; set; }
     }
@@ -16,7 +17,7 @@ namespace FN.ViewModel.Catalog.Blogs
         public string Author { get; set; }
         public int ViewCount { get; set; }
         public string Thumbnail { get; set; }
-        public string SeoAlias { get; set; }
+        public string SeoAlias { get; set; }    
     }
     public class BlogDetailViewModel : BlogViewModel
     {
@@ -26,5 +27,16 @@ namespace FN.ViewModel.Catalog.Blogs
         public string Detail { get; set; }
         public string Username { get; set; }
         public DateTime TimeUpdate { get; set; }
+    }
+    public class BlogCombineCreateOrUpdateViewModel
+    {
+        //Item
+        public string Title { get; set; }
+        public string Description { get; set; }
+        public string Keywords { get; set; }
+        public string Thumbnail { get; set; }
+
+        //Blog
+        public string Detail { get; set; }
     }
 }

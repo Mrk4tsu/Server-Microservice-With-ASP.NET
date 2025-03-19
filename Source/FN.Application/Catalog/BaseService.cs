@@ -21,20 +21,20 @@ namespace FN.Application.Catalog
         }
         protected async Task<string?> UploadImage(IFormFile thumbnail, string publicId, string itemId)
         {
-            return await _image.UploadImage(thumbnail, publicId, Folder(itemId.ToString()));
+            return await _image.UploadImage(thumbnail, publicId, Folder(itemId.ToString()), null);
         }
         protected async Task RemoveOldCache()
         {
             switch (ROOT)
             {
                 case "product":
-                    await _dbRedis.RemoveValue(SystemConstant.CACHE_PRODUCT);
+                    await _dbRedis.RemoveValue(SystemConstant.PRODUCT_KEY);
                     break;
                 case "category":
-                    await _dbRedis.RemoveValue(SystemConstant.CACHE_CATEGORY);
+                    await _dbRedis.RemoveValue(SystemConstant.CATEGORY_KEY);
                     break;
                 case "blog":
-                    await _dbRedis.RemoveValue(SystemConstant.CACHE_BLOG);
+                    await _dbRedis.RemoveValue(SystemConstant.BLOG_KEY);
                     break;
                 default:
                     break;

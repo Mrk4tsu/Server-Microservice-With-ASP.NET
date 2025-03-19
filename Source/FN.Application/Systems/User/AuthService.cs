@@ -38,39 +38,7 @@ namespace FN.Application.Systems.User
             _deviceSevice = deviceService;
             _tokenService = tokenService;
         }
-        private string GetClientIP(HttpContext context)
-        {
-            var ipHeaders = new[] { "X-Forwarded-For", "Forwarded", "X-Real-IP" };
-            foreach (var header in ipHeaders)
-            {
-                if (context.Request.Headers.TryGetValue(header, out var headerValue))
-                {
-                    var ip = headerValue.ToString().Split(',')[0].Trim();
-                    if (!string.IsNullOrEmpty(ip) && IsIPv4(ip))
-                        return ip;
-                }
-            }
-
-            var remoteIp = context.Connection.RemoteIpAddress;
-            if (remoteIp != null)
-            {
-                if (remoteIp.Equals(IPAddress.IPv6Loopback))
-                    return "localhost";
-
-                if (remoteIp.IsIPv4MappedToIPv6)
-                    return remoteIp.MapToIPv4().ToString();
-
-                return remoteIp.ToString();
-            }
-
-            return "Unknown";
-        }
-        private bool IsIPv4(string ip)
-        {
-            return IPAddress.TryParse(ip, out var address) &&
-                   address.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork;
-        }
-        public async Task<ApiResult<TokenResponse>> Authenticate(LoginDTO request, HttpContext context)
+        public async Task<ApiResult<TokenResponse>> Authenticate(LoginDTO request)
         {
             var user = await _userManager.FindByNameAsync(request.UserName);
             if (user == null) return new ApiErrorResult<TokenResponse>("Tài khoản không chính xác");
@@ -79,7 +47,6 @@ namespace FN.Application.Systems.User
             if (!result.Succeeded) return new ApiErrorResult<TokenResponse>("Tài khoản mật khẩu không chính xác");
 
             string clientId = Guid.NewGuid().ToString();
-            var ipAddress = GetClientIP(context);
 
             var tokenReq = new TokenRequest
             {
@@ -93,7 +60,7 @@ namespace FN.Application.Systems.User
                 ClientId = clientId,
                 Browser = deviceInfo.Browser,
                 DeviceType = deviceInfo.DeviceType,
-                IPAddress = ipAddress,
+                IPAddress = request.IPAddress,
                 LastLogin = DateTime.Now,
                 OS = deviceInfo.OS
             };
@@ -103,7 +70,6 @@ namespace FN.Application.Systems.User
                 UserId = user.Id,
                 Email = user.Email!,
                 Username = user.UserName!,
-                IpAddress = ipAddress,
                 Token = tokenReq,
                 DeviceInfo = device,
             };

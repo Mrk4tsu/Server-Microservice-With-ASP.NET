@@ -1,4 +1,6 @@
-﻿using FN.Application.Helper.Images;
+﻿using AutoMapper;
+using AutoMapper.QueryableExtensions;
+using FN.Application.Helper.Images;
 using FN.Application.Systems.Redis;
 using FN.DataAccess;
 using FN.Utilities;
@@ -7,18 +9,22 @@ using FN.ViewModel.Catalog.Products.Manage;
 using FN.ViewModel.Helper.API;
 using FN.ViewModel.Helper.Paging;
 using Microsoft.EntityFrameworkCore;
+using System.Diagnostics;
 
 namespace FN.Application.Catalog.Product.Pattern
 {
     public class GetProductFacade : BaseService
     {
-        public GetProductFacade(AppDbContext db, IRedisService dbRedis, IImageService image) : base(db, dbRedis, image, "product")
+        private readonly IMapper _mapper;
+        public GetProductFacade(AppDbContext db, IRedisService dbRedis, IImageService image, IMapper mapper) 
+            : base(db, dbRedis, image, SystemConstant.PRODUCT_KEY)
         {
+            _mapper = mapper;
         }
 
         public async Task<ApiResult<PagedResult<ProductViewModel>>> GetProducts(ProductPagingRequest request, bool isMe, bool isDeleted, int? currentUserId)
         {
-            const string cacheKey = SystemConstant.CACHE_PRODUCT;
+            const string cacheKey = SystemConstant.PRODUCT_KEY;
             List<ProductViewModel>? cachedData = null;
             bool useCache = await _dbRedis.KeyExist(cacheKey);
 
@@ -50,33 +56,7 @@ namespace FN.Application.Catalog.Product.Pattern
             return _db.ProductDetails
                 .AsNoTracking()
                 .Where(pd => pd.Item.IsDeleted == isDeleted && pd.IsDeleted == isDeleted)
-                .Select(pd => new ProductViewModel
-                {
-                    Id = pd.Item.Id,
-                    UserId = pd.Item.UserId,
-                    Title = pd.Item.Title,
-                    NormalizeTitle = pd.Item.NormalizedTitle,
-                    CategorySeoAlias = pd.Category.SeoAlias,
-                    SeoAlias = pd.Item.SeoAlias,
-                    CategoryIcon = pd.Category.SeoImage,
-                    DownloadCount = pd.DownloadCount,
-                    TimeCreates = pd.Item.CreatedDate,
-                    TimeUpdates = pd.Item.ModifiedDate,
-                    Thumbnail = pd.Item.Thumbnail,
-                    Username = pd.Item.User.FullName,
-                    Version = pd.Version,
-                    Prices = pd.ProductPrices
-                        .Where(pp => !pp.ProductDetail.IsDeleted) // Lọc nếu cần
-                        .Select(pp => new PriceViewModel
-                        {
-                            Id = pp.Id,
-                            Price = pp.Price,
-                            PriceType = pp.PriceType,
-                            StartDate = pp.StartDate,
-                            EndDate = pp.EndDate
-                        })
-                        .ToList()
-                });
+                .ProjectTo<ProductViewModel>(_mapper.ConfigurationProvider);
         }
         private List<ProductViewModel> ApplyMemoryFilters(List<ProductViewModel> data, ProductPagingRequest request, bool isMe, int? currentUserId)
         {
