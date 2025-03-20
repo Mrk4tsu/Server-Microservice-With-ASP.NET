@@ -9,7 +9,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
 builder.Services.AddSwaggerExplorer()
-    .InjectDbContext(builder.Configuration)
+    .InjectDbContextPool(builder.Configuration)
     .InjectRedis(builder.Configuration)
     .InjectMongoDb(builder.Configuration)
     .AddIdentityHandlersAndStores()

@@ -1,18 +1,15 @@
 ﻿using AutoMapper;
-using FN.Application.Helper.Devices;
 using FN.Application.Helper.Images;
 using FN.Application.Systems.Redis;
 using FN.Application.Systems.Token;
 using FN.DataAccess.Entities;
 using FN.Utilities;
-using FN.Utilities.Device;
 using FN.ViewModel.Helper.API;
 using FN.ViewModel.Systems.Token;
 using FN.ViewModel.Systems.User;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using MongoDB.Driver;
-using System.Net;
+using RestSharp;
 
 namespace FN.Application.Systems.User
 {
@@ -22,56 +19,49 @@ namespace FN.Application.Systems.User
         private readonly UserManager<AppUser> _userManager;
         private readonly SignInManager<AppUser> _signInManager;
         private readonly ITokenService _tokenService;
-        private readonly IDeviceService _deviceSevice;
         public AuthService(IRedisService redisService,
                         IMongoDatabase database,
                         ITokenService tokenService,
                         IMapper mapper,
                         IImageService imageService,
-                        IDeviceService deviceService,
                         UserManager<AppUser> userManager,
             SignInManager<AppUser> signInManager)
         {
             _signInManager = signInManager;
             _redisService = redisService;
             _userManager = userManager;
-            _deviceSevice = deviceService;
             _tokenService = tokenService;
         }
         public async Task<ApiResult<TokenResponse>> Authenticate(LoginDTO request)
         {
+            var ipAddress = GetPublicIPAddress();
+            if (string.IsNullOrEmpty(ipAddress))
+            {
+                return new ApiErrorResult<TokenResponse>("Đăng nhập bất thường");
+            }
             var user = await _userManager.FindByNameAsync(request.UserName);
             if (user == null) return new ApiErrorResult<TokenResponse>("Tài khoản không chính xác");
 
             var result = await _signInManager.PasswordSignInAsync(user, request.Password, request.RememberMe, true);
             if (!result.Succeeded) return new ApiErrorResult<TokenResponse>("Tài khoản mật khẩu không chính xác");
 
-            string clientId = Guid.NewGuid().ToString();
+            string clientId = "";
+            if (string.IsNullOrEmpty(request.ClientId))
+                clientId = Guid.NewGuid().ToString();
+            else clientId = request.ClientId;
 
             var tokenReq = new TokenRequest
             {
                 UserId = user.Id,
                 ClientId = clientId
             };
-
-            var deviceInfo = Commons.ParseUserAgent(request.UserAgent);
-            var device = new DeviceInfoDetail
-            {
-                ClientId = clientId,
-                Browser = deviceInfo.Browser,
-                DeviceType = deviceInfo.DeviceType,
-                IPAddress = request.IPAddress,
-                LastLogin = DateTime.Now,
-                OS = deviceInfo.OS
-            };
-
             var publish = new LoginResponse
             {
-                UserId = user.Id,
                 Email = user.Email!,
                 Username = user.UserName!,
                 Token = tokenReq,
-                DeviceInfo = device,
+                IpAddress = ipAddress,
+                UserAgent = request.UserAgent,
             };
             await _redisService.Publish(SystemConstant.MESSAGE_LOGIN_EVENT, publish);
 
@@ -155,6 +145,24 @@ namespace FN.Application.Systems.User
             };
             await _tokenService.SaveRefreshToken(newRefreshToken, request, response.RefreshTokenExpiry - DateTime.Now);
             return new ApiSuccessResult<TokenResponse>(response);
+        }
+        private string GetPublicIPAddress()
+        {
+            try
+            {
+                // Tạo client và yêu cầu
+                var client = new RestClient("https://api.ipify.org");
+                var request = new RestRequest("", Method.Get);
+
+                // Thực hiện yêu cầu và lấy kết quả
+                var response = client.Execute(request);
+                return response.Content ?? string.Empty;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Lỗi khi lấy địa chỉ IP public: " + ex.Message);
+                return string.Empty;
+            }
         }
     }
 }
