@@ -129,7 +129,7 @@ namespace FN.DataAccess.Migrations
                     b.Property<DateTime>("TimeCreated")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime(6)")
-                        .HasDefaultValue(new DateTime(2025, 3, 12, 23, 57, 38, 381, DateTimeKind.Local).AddTicks(4155));
+                        .HasDefaultValue(new DateTime(2025, 3, 15, 15, 24, 25, 550, DateTimeKind.Local).AddTicks(5097));
 
                     b.Property<bool>("TwoFactorEnabled")
                         .HasColumnType("tinyint(1)");
@@ -176,6 +176,39 @@ namespace FN.DataAccess.Migrations
                     b.HasIndex("ItemId");
 
                     b.ToTable("blogs", (string)null);
+                });
+
+            modelBuilder.Entity("FN.DataAccess.Entities.BlogImage", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("BlogId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Caption")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("varchar(150)");
+
+                    b.Property<string>("ImageUrl")
+                        .IsRequired()
+                        .HasMaxLength(250)
+                        .HasColumnType("varchar(250)");
+
+                    b.Property<string>("PublicId")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("varchar(150)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BlogId");
+
+                    b.ToTable("blog_images", (string)null);
                 });
 
             modelBuilder.Entity("FN.DataAccess.Entities.Category", b =>
@@ -249,7 +282,7 @@ namespace FN.DataAccess.Migrations
                     b.Property<DateTime>("CreatedDate")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime(6)")
-                        .HasDefaultValue(new DateTime(2025, 3, 12, 23, 57, 38, 382, DateTimeKind.Local).AddTicks(4623));
+                        .HasDefaultValue(new DateTime(2025, 3, 15, 15, 24, 25, 551, DateTimeKind.Local).AddTicks(9893));
 
                     b.Property<string>("Description")
                         .IsRequired()
@@ -269,7 +302,7 @@ namespace FN.DataAccess.Migrations
                     b.Property<DateTime>("ModifiedDate")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime(6)")
-                        .HasDefaultValue(new DateTime(2025, 3, 12, 23, 57, 38, 382, DateTimeKind.Local).AddTicks(5118));
+                        .HasDefaultValue(new DateTime(2025, 3, 15, 15, 24, 25, 552, DateTimeKind.Local).AddTicks(874));
 
                     b.Property<string>("NormalizedTitle")
                         .IsRequired()
@@ -363,8 +396,8 @@ namespace FN.DataAccess.Migrations
 
                     b.Property<string>("Version")
                         .IsRequired()
-                        .HasMaxLength(10)
-                        .HasColumnType("varchar(10)");
+                        .HasMaxLength(15)
+                        .HasColumnType("varchar(15)");
 
                     b.HasKey("Id");
 
@@ -434,7 +467,7 @@ namespace FN.DataAccess.Migrations
                     b.Property<DateTime>("CreatedDate")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime(6)")
-                        .HasDefaultValue(new DateTime(2025, 3, 12, 16, 57, 38, 384, DateTimeKind.Utc).AddTicks(7691));
+                        .HasDefaultValue(new DateTime(2025, 3, 15, 8, 24, 25, 554, DateTimeKind.Utc).AddTicks(8444));
 
                     b.Property<DateTime>("EndDate")
                         .HasColumnType("datetime(6)");
@@ -459,6 +492,29 @@ namespace FN.DataAccess.Migrations
                     b.HasIndex("ProductDetailId");
 
                     b.ToTable("product_prices", (string)null);
+                });
+
+            modelBuilder.Entity("FN.DataAccess.Entities.UserBlogInteraction", b =>
+                {
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("BlogId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("InteractionDate")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime(6)")
+                        .HasDefaultValue(new DateTime(2025, 3, 15, 15, 24, 25, 555, DateTimeKind.Local).AddTicks(2621));
+
+                    b.Property<int>("Type")
+                        .HasColumnType("int");
+
+                    b.HasKey("UserId", "BlogId");
+
+                    b.HasIndex("BlogId");
+
+                    b.ToTable("user_blog_interactions", (string)null);
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<int>", b =>
@@ -577,6 +633,17 @@ namespace FN.DataAccess.Migrations
                     b.Navigation("Item");
                 });
 
+            modelBuilder.Entity("FN.DataAccess.Entities.BlogImage", b =>
+                {
+                    b.HasOne("FN.DataAccess.Entities.Blog", "Blog")
+                        .WithMany("BlogImages")
+                        .HasForeignKey("BlogId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Blog");
+                });
+
             modelBuilder.Entity("FN.DataAccess.Entities.Item", b =>
                 {
                     b.HasOne("FN.DataAccess.Entities.AppUser", "User")
@@ -648,11 +715,39 @@ namespace FN.DataAccess.Migrations
                     b.Navigation("ProductDetail");
                 });
 
+            modelBuilder.Entity("FN.DataAccess.Entities.UserBlogInteraction", b =>
+                {
+                    b.HasOne("FN.DataAccess.Entities.Blog", "Blog")
+                        .WithMany("Interactions")
+                        .HasForeignKey("BlogId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("FN.DataAccess.Entities.AppUser", "User")
+                        .WithMany("Interactions")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Blog");
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("FN.DataAccess.Entities.AppUser", b =>
                 {
+                    b.Navigation("Interactions");
+
                     b.Navigation("Items");
 
                     b.Navigation("ProductOwners");
+                });
+
+            modelBuilder.Entity("FN.DataAccess.Entities.Blog", b =>
+                {
+                    b.Navigation("BlogImages");
+
+                    b.Navigation("Interactions");
                 });
 
             modelBuilder.Entity("FN.DataAccess.Entities.Category", b =>

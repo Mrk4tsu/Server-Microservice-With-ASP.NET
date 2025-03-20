@@ -17,29 +17,24 @@ namespace FN.Application.Systems.User
 {
     public class UserService : IUserService
     {
-        private readonly IAuthService _authService;
+        private const string ROOT = "user";
         private readonly IRedisService _redisService;
         private readonly UserManager<AppUser> _userManager;
-        private readonly ITokenService _tokenService;
         private readonly IMapper _mapper;
         private readonly IDeviceService _deviceService;
         private readonly IImageService _imageService;
         public UserService(IRedisService redisService,
                         IMongoDatabase database,
-                        ITokenService tokenService,
                         IDeviceService deviceService,
                         IMapper mapper,
-                        IAuthService authService,
                         IImageService imageService,
                         UserManager<AppUser> userManager,
             SignInManager<AppUser> signInManager)
         {
             _redisService = redisService;
             _userManager = userManager;
-            _tokenService = tokenService;
             _mapper = mapper;
             _imageService = imageService;
-            _authService = authService;
             _deviceService = deviceService;
         }
         public async Task<ApiResult<UserViewModel>> GetById(int id)
@@ -53,7 +48,7 @@ namespace FN.Application.Systems.User
         {
             var keyCache = SystemConstant.CACHE_USER_BY_USERNAME + username;
             UserViewModel? userVM = null;
-            if(await _redisService.KeyExist(keyCache))
+            if (await _redisService.KeyExist(keyCache))
             {
                 userVM = await _redisService.GetValue<UserViewModel>(keyCache);
                 if (userVM != null)
@@ -94,7 +89,7 @@ namespace FN.Application.Systems.User
         {
             var user = await _userManager.Users.FirstOrDefaultAsync(u => u.Id == userId);
             if (user == null) return new ApiErrorResult<bool>("Tài khoản không tồn tại");
-            var newAvatar = await _imageService.UploadImage(file, user.UserName!, user.UserName!);
+            var newAvatar = await _imageService.UploadImage(file, user.UserName!, user.UserName!, ROOT);
             if (string.IsNullOrEmpty(newAvatar)) return new ApiErrorResult<bool>("Không thể lấy dữ liệu ảnh tải lên");
             user.Avatar = newAvatar;
             var result = await _userManager.UpdateAsync(user);
@@ -105,7 +100,7 @@ namespace FN.Application.Systems.User
         {
             var user = await _userManager.FindByNameAsync(request.Username);
             if (user == null) return new ApiErrorResult<string>("User không tồn tại");
-            if(request.Email != user.Email) return new ApiErrorResult<string>("Email yêu cầu khôi phục không chính xác");
+            if (request.Email != user.Email) return new ApiErrorResult<string>("Email yêu cầu khôi phục không chính xác");
             var token = await _userManager.GeneratePasswordResetTokenAsync(user);
             await _redisService.Publish(SystemConstant.MESSAGE_FORGOT_PASSWORD_EVENT, new ForgotPasswordResponse
             {
@@ -132,7 +127,7 @@ namespace FN.Application.Systems.User
         {
             var user = await _userManager.FindByIdAsync(request.UserId.ToString());
             if (user == null) return new ApiErrorResult<bool>("User không tồn tại");
-           
+
             var result = await _userManager.ChangePasswordAsync(user, request.CurrentPassword, request.NewPassword);
             if (result.Succeeded)
             {
@@ -145,7 +140,7 @@ namespace FN.Application.Systems.User
         public async Task<ApiResult<bool>> ChangeName(int userId, string newName)
         {
             var user = await _userManager.FindByIdAsync(userId.ToString());
-            if(user == null) return new ApiErrorResult<bool>("User không tồn tại");
+            if (user == null) return new ApiErrorResult<bool>("User không tồn tại");
             user.FullName = newName;
             var result = await _userManager.UpdateAsync(user);
             if (result.Succeeded) return new ApiSuccessResult<bool>();

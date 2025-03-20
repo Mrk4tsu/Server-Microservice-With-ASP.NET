@@ -8,5 +8,7 @@
         public int LikeCount { get; set; }
         public int DislikeCount { get; set; }
         public Item Item { get; set; }
+        public List<BlogImage> BlogImages { get; set; } = new();
+        public List<UserBlogInteraction> Interactions { get; set; } = new();
     }
 }

@@ -13,7 +13,7 @@ namespace FN.Application.Catalog.Product.Pattern
 {
     public class CreateProductFacade : BaseService
     {
-        public CreateProductFacade(AppDbContext db, IRedisService dbRedis, IImageService image) : base(db, dbRedis, image)
+        public CreateProductFacade(AppDbContext db, IRedisService dbRedis, IImageService image) : base(db, dbRedis, image, SystemConstant.PRODUCT_KEY)
         {
         }
 
@@ -45,8 +45,8 @@ namespace FN.Application.Catalog.Product.Pattern
             var newItem = new Item()
             {
                 Title = request.Title,
-                Description = request.Description,
-                Keywords = request.Keywords,
+                Description = request.Description!,
+                Keywords = request.Keywords!,
                 SeoTitle = request.Title,
                 UserId = userId,
                 CreatedDate = Now(),
@@ -60,7 +60,7 @@ namespace FN.Application.Catalog.Product.Pattern
             await _db.Items.AddAsync(newItem);
             await _db.SaveChangesAsync();
 
-            newItem.Thumbnail = await _image.UploadImage(request.Thumbnail, newItem.Code, Folder(newItem.Id.ToString()))?? "";
+            newItem.Thumbnail = await UploadImage(request.Thumbnail!, newItem.Id.ToString(), newItem.Id.ToString())?? "";
             _db.Items.Update(newItem);
             await _db.SaveChangesAsync();
             return newItem;
@@ -109,7 +109,7 @@ namespace FN.Application.Catalog.Product.Pattern
                 foreach (var imageFile in request.Images)
                 {
                     var publicId = _image.GenerateId();
-                    var resultUpload = await _image.UploadImage(imageFile, publicId, Folder(item.Id.ToString()));
+                    var resultUpload = await UploadImage(imageFile, publicId, item.Id.ToString());
                     if (resultUpload == null) throw new Exception("Upload ảnh sản phẩm không thành công");
 
                     product.ProductImages.Add(new ProductImage

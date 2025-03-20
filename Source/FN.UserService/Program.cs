@@ -8,12 +8,13 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
 builder.Services.AddSwaggerExplorer()
-    .InjectDbContext(builder.Configuration)
+    .InjectDbContextPool(builder.Configuration)
     .InjectRedis(builder.Configuration)
     .InjectMongoDb(builder.Configuration)
     .AddIdentityHandlersAndStores()
     .AddIdentityAuth(builder.Configuration)
     .ConfigureIdentityOptions()
+    .ConfigureServicePayload()
     .AddImageConfig(builder.Configuration);
 
 builder.Services.AddScoped<IAuthService, AuthService>();
@@ -23,19 +24,11 @@ builder.Services.AddScoped<IDeviceService, DeviceService>();
 
 var app = builder.Build();
 
-// Thêm middleware để log số kết nối
-app.Use(async (context, next) =>
-{
-    var connection = context.RequestServices.GetService<IDbConnection>();
-    Console.WriteLine($"Connection State: {connection!.State}");
-
-    await next();
-});
-
 app.ConfigureSwaggerExplorer()
     .ConfigureCORS(builder.Configuration)
     .ConfigureAppExplorer()
-    .AddIdentityAuthMiddlewares();
+    .AddIdentityAuthMiddlewares()
+    .ConfigureAppPayLoad();
 
 app.MapControllers();
 

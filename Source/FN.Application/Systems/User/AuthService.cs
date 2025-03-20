@@ -1,18 +1,15 @@
 ﻿using AutoMapper;
-using FN.Application.Helper.Devices;
 using FN.Application.Helper.Images;
 using FN.Application.Systems.Redis;
 using FN.Application.Systems.Token;
 using FN.DataAccess.Entities;
 using FN.Utilities;
-using FN.Utilities.Device;
 using FN.ViewModel.Helper.API;
 using FN.ViewModel.Systems.Token;
 using FN.ViewModel.Systems.User;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using MongoDB.Driver;
-using System.Net;
+using RestSharp;
 
 namespace FN.Application.Systems.User
 {
@@ -22,103 +19,51 @@ namespace FN.Application.Systems.User
         private readonly UserManager<AppUser> _userManager;
         private readonly SignInManager<AppUser> _signInManager;
         private readonly ITokenService _tokenService;
-        private readonly IDeviceService _deviceSevice;
         public AuthService(IRedisService redisService,
                         IMongoDatabase database,
                         ITokenService tokenService,
                         IMapper mapper,
                         IImageService imageService,
-                        IDeviceService deviceService,
                         UserManager<AppUser> userManager,
             SignInManager<AppUser> signInManager)
         {
             _signInManager = signInManager;
             _redisService = redisService;
             _userManager = userManager;
-            _deviceSevice = deviceService;
             _tokenService = tokenService;
         }
-        private string GetClientIP(HttpContext context)
+        public async Task<ApiResult<TokenResponse>> Authenticate(LoginDTO request)
         {
-            var ipHeaders = new[] { "X-Forwarded-For", "Forwarded", "X-Real-IP" };
-            foreach (var header in ipHeaders)
+            var ipAddress = GetPublicIPAddress();
+            if (string.IsNullOrEmpty(ipAddress))
             {
-                if (context.Request.Headers.TryGetValue(header, out var headerValue))
-                {
-                    var ip = headerValue.ToString().Split(',')[0].Trim();
-                    if (!string.IsNullOrEmpty(ip) && IsIPv4(ip))
-                        return ip;
-                }
+                return new ApiErrorResult<TokenResponse>("Đăng nhập bất thường");
             }
-
-            var remoteIp = context.Connection.RemoteIpAddress;
-            if (remoteIp != null)
-            {
-                if (remoteIp.Equals(IPAddress.IPv6Loopback))
-                    return "localhost";
-
-                if (remoteIp.IsIPv4MappedToIPv6)
-                    return remoteIp.MapToIPv4().ToString();
-
-                return remoteIp.ToString();
-            }
-
-            return "Unknown";
-        }
-        private bool IsIPv4(string ip)
-        {
-            return IPAddress.TryParse(ip, out var address) &&
-                   address.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork;
-        }
-        public async Task<ApiResult<TokenResponse>> Authenticate(LoginDTO request, HttpContext context)
-        {
             var user = await _userManager.FindByNameAsync(request.UserName);
             if (user == null) return new ApiErrorResult<TokenResponse>("Tài khoản không chính xác");
 
             var result = await _signInManager.PasswordSignInAsync(user, request.Password, request.RememberMe, true);
             if (!result.Succeeded) return new ApiErrorResult<TokenResponse>("Tài khoản mật khẩu không chính xác");
 
-            string clientId = request.ClientId ?? Guid.NewGuid().ToString();
-            var ipAddress = GetClientIP(context);
+            string clientId = "";
+            if (string.IsNullOrEmpty(request.ClientId))
+                clientId = Guid.NewGuid().ToString();
+            else clientId = request.ClientId;
 
             var tokenReq = new TokenRequest
             {
                 UserId = user.Id,
                 ClientId = clientId
             };
-
-            var deviceInfo = Commons.ParseUserAgent(request.UserAgent);
-            var device = new DeviceInfoDetail
+            var publish = new LoginResponse
             {
-                ClientId = clientId,
-                Browser = deviceInfo.Browser,
-                DeviceType = deviceInfo.DeviceType,
-                IPAddress = ipAddress,
-                LastLogin = DateTime.Now,
-                OS = deviceInfo.OS
+                Email = user.Email!,
+                Username = user.UserName!,
+                Token = tokenReq,
+                IpAddress = ipAddress,
+                UserAgent = request.UserAgent,
             };
-
-            var isDeviceRegisteredTask = _deviceSevice.IsDeviceRegistered(tokenReq);
-            var justSendMailTask = IsJustSendMail(user.Id);
-
-            await Task.WhenAll(isDeviceRegisteredTask, justSendMailTask);
-
-            var isNewDevice = !isDeviceRegisteredTask.Result;
-            var justSendMail = justSendMailTask.Result;
-
-            if (isNewDevice && !justSendMail)
-            {
-                var publish = new LoginResponse
-                {
-                    Email = user.Email!,
-                    Username = user.UserName!,
-                    IpAddress = ipAddress,
-                    Token = tokenReq,
-                    DeviceInfo = device,
-                    IsNewDevice = isNewDevice
-                };
-                await _redisService.Publish(SystemConstant.MESSAGE_LOGIN_EVENT, publish);
-            }
+            await _redisService.Publish(SystemConstant.MESSAGE_LOGIN_EVENT, publish);
 
             var expires = request.RememberMe ? DateTime.Now.AddDays(14) : DateTime.Now.AddDays(3);
             var tokenTask = _tokenService.GenerateAccessToken(user);
@@ -144,7 +89,7 @@ namespace FN.Application.Systems.User
             {
                 var cacheKey = $"user:{request.UserName}";
                 var existed = await _redisService.KeyExist(cacheKey);
-                if(existed) return new ApiErrorResult<bool>("Tài khoản đã tồn tại");
+                if (existed) return new ApiErrorResult<bool>("Tài khoản đã tồn tại");
                 if (await _userManager.FindByNameAsync(request.UserName) != null)
                     return new ApiErrorResult<bool>("Tài khoản đã tồn tại");
 
@@ -179,12 +124,6 @@ namespace FN.Application.Systems.User
             {
                 return new ApiErrorResult<bool>(ex.Message);
             }
-        }       
-
-        public async Task<bool> IsJustSendMail(int userId)
-        {
-            var key = $"auth:{userId}:just_send_mail";
-            return await _redisService.KeyExist(key);
         }
         public async Task<ApiResult<TokenResponse>> RefreshToken(RefreshTokenRequest request)
         {
@@ -206,6 +145,24 @@ namespace FN.Application.Systems.User
             };
             await _tokenService.SaveRefreshToken(newRefreshToken, request, response.RefreshTokenExpiry - DateTime.Now);
             return new ApiSuccessResult<TokenResponse>(response);
+        }
+        private string GetPublicIPAddress()
+        {
+            try
+            {
+                // Tạo client và yêu cầu
+                var client = new RestClient("https://api.ipify.org");
+                var request = new RestRequest("", Method.Get);
+
+                // Thực hiện yêu cầu và lấy kết quả
+                var response = client.Execute(request);
+                return response.Content ?? string.Empty;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Lỗi khi lấy địa chỉ IP public: " + ex.Message);
+                return string.Empty;
+            }
         }
     }
 }

@@ -3,6 +3,7 @@ using FN.Application.Helper.Mail;
 using FN.Application.Systems.Redis;
 using FN.Application.Systems.User;
 using FN.Utilities;
+using FN.Utilities.Device;
 using FN.ViewModel.Systems.User;
 using Newtonsoft.Json.Linq;
 using System.Net;
@@ -48,27 +49,41 @@ namespace FN.EmailService
                         break;
                     case SystemConstant.MESSAGE_LOGIN_EVENT:
                         var userLogin = JsonSerializer.Deserialize<LoginResponse>(message!);
-                        var variables = new JObject
+
+                        if (!await deviceService.IsDeviceRegistered(userLogin!.Token))
                         {
-                            {"pbrowser", userLogin!.DeviceInfo.Browser},
-                            {"pos", userLogin.DeviceInfo.OS},
-                            {"ptime", userLogin.DeviceInfo.LastLogin.ToString("hh:mm dd/MM/yyyy")},
-                            {"puser", userLogin.Username},
-                            {"pip", userLogin.DeviceInfo.IPAddress}
-                        };
-                        if (userLogin.IsNewDevice)
-                            await deviceService.SaveDeviceInfo(userLogin.Token, userLogin.DeviceInfo, userLogin.DeviceInfo.IPAddress);
-                        await _mailService.SendMail(userLogin!.Email, $"Cảnh báo bảo mật cho {userLogin.Username}", SystemConstant.TEMPLATE_WARNING_ID, variables);
-                        await _redisService.SetValue($"auth:{userLogin.Token.UserId}:just_send_mail", userLogin.Username, TimeSpan.FromMinutes(30));
+                            var deviceInfo = Commons.ParseUserAgent(userLogin!.UserAgent);
+                            var device = new DeviceInfoDetail
+                            {
+                                ClientId = userLogin.Token.ClientId,
+                                Browser = deviceInfo.Browser,
+                                DeviceType = deviceInfo.DeviceType,
+                                IPAddress = userLogin.IpAddress,
+                                LastLogin = DateTime.Now,
+                                OS = deviceInfo.OS
+                            };
+                            var variables = new JObject
+                            {
+                                {"pbrowser", device.Browser},
+                                {"pos", device.OS},
+                                {"ptime", device.LastLogin.ToString("hh:mm dd/MM/yyyy")},
+                                {"puser", userLogin.Username},
+                                {"pip", device.IPAddress}
+                            };
+                            await deviceService.SaveDeviceInfo(userLogin.Token, device, device.IPAddress);
+                            if (!await _mailService.IsJustSendMail(userLogin.Token.UserId))
+                                await _mailService.SendMail(userLogin!.Email, $"Cảnh báo bảo mật cho {userLogin.Username}", SystemConstant.TEMPLATE_WARNING_ID, variables);
+                            await _redisService.SetValue($"auth:{userLogin.Token.UserId}:just_send_mail", userLogin.Username, TimeSpan.FromMinutes(30));
+                        }
                         break;
                     case SystemConstant.MESSAGE_UPDATE_EMAIL_EVENT:
                         var req = JsonSerializer.Deserialize<UpdateEmailResponse>(message!);
 
                         var link = UrlCallback(req!.UserId, req.NewEmail, req.Token, baseDomain ?? "https://mrkatsu.io.vn");
                         var obj = new JObject
-                {
-                    {"plink", link}
-                };
+                        {
+                            {"plink", link}
+                        };
                         await _mailService.SendMail(req!.NewEmail, $"Xác nhận thay đổi email", SystemConstant.TEMPLATE_UPDATE_MAIL_ID, obj);
                         break;
                     case SystemConstant.MESSAGE_FORGOT_PASSWORD_EVENT:

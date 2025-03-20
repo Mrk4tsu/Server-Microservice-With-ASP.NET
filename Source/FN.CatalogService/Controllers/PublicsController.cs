@@ -2,6 +2,7 @@
 using FN.ViewModel.Catalog.Products.Manage;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Diagnostics;
 
 namespace FN.ProductService.Controllers
 {
@@ -17,7 +18,11 @@ namespace FN.ProductService.Controllers
         [HttpGet("list")]
         public async Task<IActionResult> GetProducts([FromQuery] ProductPagingRequest request)
         {
+            Stopwatch stopwatch = new Stopwatch();
+            stopwatch.Start();
             var products = await _service.GetProducts(request);
+            Console.WriteLine($"Time to get products: {stopwatch.ElapsedMilliseconds}ms");
+            stopwatch.Stop();
             return Ok(products);
         }
         [HttpGet("{id}")]

@@ -1,6 +1,5 @@
 using FN.Application.Helper.Devices;
 using FN.Application.Systems.Token;
-using FN.Application.Systems.User;
 using FN.EmailService;
 using FN.Extensions;
 
@@ -24,6 +23,8 @@ builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddControllers();
 
 var app = builder.Build();
+
+app.ConfigureCORS(builder.Configuration);
 
 app.UseHttpsRedirection();
 

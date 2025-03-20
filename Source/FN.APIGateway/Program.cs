@@ -10,10 +10,12 @@ builder.Configuration.AddJsonFile($"ocelot.{evn.EnvironmentName}.json", optional
 builder.Services.AddOcelot(builder.Configuration);
 
 builder.Services.AddControllers();
+builder.Services.ConfigureServicePayload();
 
 var app = builder.Build();
 
-app.ConfigureCORS(builder.Configuration);
+app.ConfigureCORS(builder.Configuration)
+    .ConfigureAppPayLoad();
 
 //app.UseHttpsRedirection();
 

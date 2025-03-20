@@ -10,7 +10,6 @@ namespace FN.Application.Systems.User
     {
         Task<ApiResult<TokenResponse>> RefreshToken(RefreshTokenRequest request);
         Task<ApiResult<bool>> Register(RegisterDTO request);
-        Task<ApiResult<TokenResponse>> Authenticate(LoginDTO request, HttpContext context);
-        Task<bool> IsJustSendMail(int userId);
+        Task<ApiResult<TokenResponse>> Authenticate(LoginDTO request);
     }
 }

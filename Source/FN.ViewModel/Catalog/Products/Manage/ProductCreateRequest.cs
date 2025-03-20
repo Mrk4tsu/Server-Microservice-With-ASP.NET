@@ -1,6 +1,4 @@
-﻿using FN.DataAccess.Entities;
-using FN.DataAccess.Enums;
-using FN.ViewModel.Helper.Paging;
+﻿using FN.ViewModel.Helper.Paging;
 using Microsoft.AspNetCore.Http;
 
 namespace FN.ViewModel.Catalog.Products.Manage
@@ -23,7 +21,7 @@ namespace FN.ViewModel.Catalog.Products.Manage
     {
         public IFormFileCollection Images { get; set; }
     }
-    public class CreatePricesRequest : BaseCreateRequest
+    public class CreatePricesRequest : BaseRequest
     {
         public decimal Price { get; set; }
     }

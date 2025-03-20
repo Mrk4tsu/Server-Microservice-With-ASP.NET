@@ -27,7 +27,7 @@ namespace FN.Application.Catalog.Categories
                 return new ApiErrorResult<int>("Vui lòng nhập đầy đủ thông tin");
             }
             var alias = StringHelper.GenerateSeoAlias(request.Name!);
-            var thumbnail = await _image.UploadImage(request.Image!, alias, SetFolder(alias));
+            var thumbnail = await _image.UploadImage(request.Image!, alias, SetFolder(alias), null);
             if (string.IsNullOrEmpty(thumbnail))
                 return new ApiErrorResult<int>("Không upload được ảnh");
             var newCategory = new Category
@@ -48,7 +48,7 @@ namespace FN.Application.Catalog.Categories
 
         public async Task<ApiResult<List<CategoryViewModel>>> List()
         {
-            var key = SystemConstant.CACHE_CATEGORY;
+            var key = SystemConstant.CATEGORY_KEY;
             if (await _redis.KeyExist(key))
             {
                 var data = await _redis.GetValue<List<CategoryViewModel>>(key);
@@ -126,7 +126,7 @@ namespace FN.Application.Catalog.Categories
                 if (deleteOldImage)
                 {
                     var folder = string.IsNullOrEmpty(alias) ? categoryUpdate.SeoAlias : alias;
-                    var newImage = await _image.UploadImage(request.Image, folder, SetFolder($"{folder}"));
+                    var newImage = await _image.UploadImage(request.Image, folder, SetFolder($"{folder}"), null);
                     if (newImage != null)
                         categoryUpdate.SeoImage = newImage;
                 }

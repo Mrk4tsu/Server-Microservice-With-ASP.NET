@@ -43,8 +43,11 @@ namespace FN.Application.Helper.Images
                 return false;
             return true;
         }
-        public async Task<string?> UploadImage(IFormFile file, string publicId, string folderName)
+        public async Task<string?> UploadImage(IFormFile file, string publicId, string folderName, string? root = null)
         {
+            var folder = $"{Root}/{folderName}";
+            if(!string.IsNullOrEmpty(root))
+                folder = $"{Root}/{root}/{folderName}";
             if (file != null && file.Length > 0)
             {
                 await using var stream = file.OpenReadStream();
@@ -54,7 +57,7 @@ namespace FN.Application.Helper.Images
                     Format = "webp",
                     File = new FileDescription(file.FileName, stream),
                     PublicId = publicId,
-                    Folder = $"{Root}/{folderName}",
+                    Folder = folder,
                     Overwrite = true
                 };
                 var uploadResult = await _cloudinary.UploadAsync(uploadParams);
@@ -69,11 +72,32 @@ namespace FN.Application.Helper.Images
             var uploadResults = new List<string>();
             foreach (var image in files)
             {
+                var publicId = GenerateId();
                 var uploadParam = new ImageUploadParams
                 {
                     Transformation = new Transformation().Quality(50).Chain(),
                     File = new FileDescription(image.FileName, image.OpenReadStream()),
                     Folder = $"{Root}/{folderName}",
+                    PublicId = publicId,
+                    Overwrite = true
+                };
+                var uploadResult = await _cloudinary.UploadAsync(uploadParam);
+                uploadResults.Add(uploadResult.SecureUrl.AbsoluteUri);
+            }
+            return uploadResults;
+        }
+
+        public async Task<List<string>> UploadImages(List<IFormFile> files, string folderName, string publicId)
+        {
+            var uploadResults = new List<string>();
+            foreach (var image in files)
+            {
+                var uploadParam = new ImageUploadParams
+                {
+                    Transformation = new Transformation().Quality(35).Chain(),
+                    File = new FileDescription(image.FileName, image.OpenReadStream()),
+                    Folder = $"{Root}/{folderName}",
+                    PublicId = publicId,
                     Overwrite = true
                 };
                 var uploadResult = await _cloudinary.UploadAsync(uploadParam);

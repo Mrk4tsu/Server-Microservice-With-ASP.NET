@@ -31,10 +31,8 @@ namespace FN.UserService.Controllers
         [HttpPost("login"), AllowAnonymous]
         public async Task<IActionResult> Login(LoginDTO login)
         {
-            var result = await _authService.Authenticate(login, HttpContext);
-            if (result.Success)
-                return Ok(result);
-            return BadRequest(result);
+            var result = await _authService.Authenticate(login);
+            return Ok(result);
         }
         [HttpPost("logout"), AllowAnonymous]
         public async Task<IActionResult> Logout(TokenRequest request)
@@ -79,7 +77,7 @@ namespace FN.UserService.Controllers
             {
                 UserId = userId.Value
             };
-            var result  = await _deviceService.RemoveAllDevice(userId.Value);
+            var result = await _deviceService.RemoveAllDevice(userId.Value);
 
             if (result.Success)
                 return Ok(result);
