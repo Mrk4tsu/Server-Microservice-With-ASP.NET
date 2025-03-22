@@ -17,46 +17,93 @@ namespace FN.Application.Catalog.Blogs.Pattern
             : base(db, dbRedis, image, SystemConstant.BLOG_KEY)
         {
         }
+        //public async Task<ApiResult<int>> CreateCombine(BlogCombineCreateOrUpdateRequest request, int userId)
+        //{
+        //    using (var transaction = await _db.Database.BeginTransactionAsync())
+        //    {
+        //        try
+        //        {
+        //            //Tạo mới Item
+        //            var newItem = new BaseRequest
+        //            {
+        //                Title = request.Title!,
+        //                Description = request.Description!,
+        //                Keywords = request.Keywords!,
+        //                Thumbnail = request.Thumbnail!
+        //            };
+        //            var newItemResult = await CreateItemInternal(newItem, userId);
+        //            if (!newItemResult.Success) return newItemResult;
+        //            var newBlog = new BlogCreateOrUpdateRequest
+        //            {
+        //                Detail = request.Detail!
+        //            };
+        //            var newBlogResult = await CreateBlogInternal(newBlog, newItemResult.Data);
+        //            if (!newBlogResult.Success) return newBlogResult;
+
+        //            var newBlogImage = new BlogImageCreateOrUpdateRequest
+        //            {
+        //                ImageDetails = request.ImageDetails
+        //            };
+        //            var newBlogImageResult = await CreateBlogImageDetail(newBlogImage, newBlogResult.Data);
+        //            if (!newBlogImageResult.Success) return newBlogImageResult;
+
+        //            await transaction.CommitAsync();
+        //            await RemoveOldCache();
+        //            return new ApiSuccessResult<int>(newItemResult.Data);
+        //        }
+        //        catch (Exception ex)
+        //        {
+        //            return new ApiErrorResult<int>("Error: " + ex.Message);
+        //        }
+        //    }
+        //}
         public async Task<ApiResult<int>> CreateCombine(BlogCombineCreateOrUpdateRequest request, int userId)
         {
-            using (var transaction = await _db.Database.BeginTransactionAsync())
+            var strategy = _db.Database.CreateExecutionStrategy();
+            return await strategy.ExecuteAsync(async () =>
             {
-                try
+                using (var transaction = await _db.Database.BeginTransactionAsync())
                 {
-                    //Tạo mới Item
-                    var newItem = new BaseRequest
+                    try
                     {
-                        Title = request.Title!,
-                        Description = request.Description!,
-                        Keywords = request.Keywords!,
-                        Thumbnail = request.Thumbnail!
-                    };
-                    var newItemResult = await CreateItemInternal(newItem, userId);
-                    if (!newItemResult.Success) return newItemResult;
-                    var newBlog = new BlogCreateOrUpdateRequest
-                    {
-                        Detail = request.Detail!
-                    };
-                    var newBlogResult = await CreateBlogInternal(newBlog, newItemResult.Data);
-                    if (!newBlogResult.Success) return newBlogResult;
+                        // Create new Item
+                        var newItem = new BaseRequest
+                        {
+                            Title = request.Title!,
+                            Description = request.Description!,
+                            Keywords = request.Keywords!,
+                            Thumbnail = request.Thumbnail!
+                        };
+                        var newItemResult = await CreateItemInternal(newItem, userId);
+                        if (!newItemResult.Success) return newItemResult;
 
-                    var newBlogImage = new BlogImageCreateOrUpdateRequest
-                    {
-                        ImageDetails = request.ImageDetails
-                    };
-                    var newBlogImageResult = await CreateBlogImageDetail(newBlogImage, newBlogResult.Data);
-                    if (!newBlogImageResult.Success) return newBlogImageResult;
+                        var newBlog = new BlogCreateOrUpdateRequest
+                        {
+                            Detail = request.Detail!
+                        };
+                        var newBlogResult = await CreateBlogInternal(newBlog, newItemResult.Data);
+                        if (!newBlogResult.Success) return newBlogResult;
 
-                    await transaction.CommitAsync();
-                    await RemoveOldCache();
-                    return new ApiSuccessResult<int>(newItemResult.Data);
+                        var newBlogImage = new BlogImageCreateOrUpdateRequest
+                        {
+                            ImageDetails = request.ImageDetails
+                        };
+                        var newBlogImageResult = await CreateBlogImageDetail(newBlogImage, newBlogResult.Data);
+                        if (!newBlogImageResult.Success) return newBlogImageResult;
+
+                        await transaction.CommitAsync();
+                        await RemoveOldCache();
+                        return new ApiSuccessResult<int>(newItemResult.Data);
+                    }
+                    catch (Exception ex)
+                    {
+                        await transaction.RollbackAsync();
+                        return new ApiErrorResult<int>("Error: " + ex.Message);
+                    }
                 }
-                catch (Exception ex)
-                {
-                    return new ApiErrorResult<int>("Error: " + ex.Message);
-                }
-            }
+            });
         }
+
         private async Task<ApiResult<int>> CreateItemInternal(BaseRequest request, int userId)
         {
             var code = StringHelper.GenerateProductCode(request.Title!);

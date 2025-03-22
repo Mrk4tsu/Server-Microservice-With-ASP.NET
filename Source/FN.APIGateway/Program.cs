@@ -15,6 +15,7 @@ builder.Services.ConfigureServicePayload();
 var app = builder.Build();
 
 app.ConfigureCORS(builder.Configuration)
+    .ConfigureAppExplorer()
     .ConfigureAppPayLoad();
 
 //app.UseHttpsRedirection();

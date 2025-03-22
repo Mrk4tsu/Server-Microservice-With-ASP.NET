@@ -129,7 +129,7 @@ namespace FN.DataAccess.Migrations
                     b.Property<DateTime>("TimeCreated")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime(6)")
-                        .HasDefaultValue(new DateTime(2025, 3, 15, 15, 24, 25, 550, DateTimeKind.Local).AddTicks(5097));
+                        .HasDefaultValue(new DateTime(2025, 3, 20, 23, 40, 8, 994, DateTimeKind.Local).AddTicks(4375));
 
                     b.Property<bool>("TwoFactorEnabled")
                         .HasColumnType("tinyint(1)");
@@ -282,7 +282,7 @@ namespace FN.DataAccess.Migrations
                     b.Property<DateTime>("CreatedDate")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime(6)")
-                        .HasDefaultValue(new DateTime(2025, 3, 15, 15, 24, 25, 551, DateTimeKind.Local).AddTicks(9893));
+                        .HasDefaultValue(new DateTime(2025, 3, 20, 23, 40, 8, 995, DateTimeKind.Local).AddTicks(7551));
 
                     b.Property<string>("Description")
                         .IsRequired()
@@ -302,7 +302,7 @@ namespace FN.DataAccess.Migrations
                     b.Property<DateTime>("ModifiedDate")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime(6)")
-                        .HasDefaultValue(new DateTime(2025, 3, 15, 15, 24, 25, 552, DateTimeKind.Local).AddTicks(874));
+                        .HasDefaultValue(new DateTime(2025, 3, 20, 23, 40, 8, 995, DateTimeKind.Local).AddTicks(8040));
 
                     b.Property<string>("NormalizedTitle")
                         .IsRequired()
@@ -346,6 +346,86 @@ namespace FN.DataAccess.Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("items", (string)null);
+                });
+
+            modelBuilder.Entity("FN.DataAccess.Entities.Order", b =>
+                {
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ProductId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("AppUserId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("OrderDate")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime(6)")
+                        .HasDefaultValue(new DateTime(2025, 3, 20, 23, 40, 8, 997, DateTimeKind.Local).AddTicks(917));
+
+                    b.Property<int>("OrderStatus")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("TotalAmount")
+                        .ValueGeneratedOnAdd()
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)")
+                        .HasDefaultValue(0m);
+
+                    b.Property<decimal>("UnitPrice")
+                        .ValueGeneratedOnAdd()
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)")
+                        .HasDefaultValue(0m);
+
+                    b.HasKey("UserId", "ProductId");
+
+                    b.HasIndex("AppUserId");
+
+                    b.HasIndex("ProductId");
+
+                    b.ToTable("orders", (string)null);
+                });
+
+            modelBuilder.Entity("FN.DataAccess.Entities.Payment", b =>
+                {
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ProductId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<DateTime>("PaymentDate")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime(6)")
+                        .HasDefaultValue(new DateTime(2025, 3, 20, 23, 40, 8, 998, DateTimeKind.Local).AddTicks(4295));
+
+                    b.Property<decimal>("PaymentFee")
+                        .ValueGeneratedOnAdd()
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)")
+                        .HasDefaultValue(0m);
+
+                    b.Property<int>("PaymentStatus")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0);
+
+                    b.Property<string>("TransactionId")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("varchar(150)");
+
+                    b.HasKey("UserId", "ProductId");
+
+                    b.HasIndex("ProductId");
+
+                    b.ToTable("payments", (string)null);
                 });
 
             modelBuilder.Entity("FN.DataAccess.Entities.ProductDetail", b =>
@@ -467,7 +547,7 @@ namespace FN.DataAccess.Migrations
                     b.Property<DateTime>("CreatedDate")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime(6)")
-                        .HasDefaultValue(new DateTime(2025, 3, 15, 8, 24, 25, 554, DateTimeKind.Utc).AddTicks(8444));
+                        .HasDefaultValue(new DateTime(2025, 3, 20, 16, 40, 9, 0, DateTimeKind.Utc).AddTicks(6143));
 
                     b.Property<DateTime>("EndDate")
                         .HasColumnType("datetime(6)");
@@ -505,7 +585,7 @@ namespace FN.DataAccess.Migrations
                     b.Property<DateTime>("InteractionDate")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime(6)")
-                        .HasDefaultValue(new DateTime(2025, 3, 15, 15, 24, 25, 555, DateTimeKind.Local).AddTicks(2621));
+                        .HasDefaultValue(new DateTime(2025, 3, 20, 23, 40, 9, 1, DateTimeKind.Local).AddTicks(1596));
 
                     b.Property<int>("Type")
                         .HasColumnType("int");
@@ -655,6 +735,48 @@ namespace FN.DataAccess.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("FN.DataAccess.Entities.Order", b =>
+                {
+                    b.HasOne("FN.DataAccess.Entities.AppUser", null)
+                        .WithMany("Orders")
+                        .HasForeignKey("AppUserId");
+
+                    b.HasOne("FN.DataAccess.Entities.ProductDetail", "Product")
+                        .WithMany()
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("FN.DataAccess.Entities.AppUser", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Product");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("FN.DataAccess.Entities.Payment", b =>
+                {
+                    b.HasOne("FN.DataAccess.Entities.ProductDetail", "Product")
+                        .WithMany("Payments")
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("FN.DataAccess.Entities.AppUser", "User")
+                        .WithMany("Payments")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Product");
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("FN.DataAccess.Entities.ProductDetail", b =>
                 {
                     b.HasOne("FN.DataAccess.Entities.Category", "Category")
@@ -740,6 +862,10 @@ namespace FN.DataAccess.Migrations
 
                     b.Navigation("Items");
 
+                    b.Navigation("Orders");
+
+                    b.Navigation("Payments");
+
                     b.Navigation("ProductOwners");
                 });
 
@@ -766,6 +892,8 @@ namespace FN.DataAccess.Migrations
 
             modelBuilder.Entity("FN.DataAccess.Entities.ProductDetail", b =>
                 {
+                    b.Navigation("Payments");
+
                     b.Navigation("ProductImages");
 
                     b.Navigation("ProductPrices");

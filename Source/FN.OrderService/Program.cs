@@ -1,12 +1,22 @@
+using FN.Application.Systems.Orders;
+using FN.Extensions;
+
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
+builder.Services.AddSwaggerExplorer()
+        .InjectDbContextPool(builder.Configuration)
+        .AddIdentityHandlersAndStores()
+        .AddIdentityAuth(builder.Configuration)
+        .ConfigureIdentityOptions();
+
+builder.Services.AddScoped<IOrderService, OrderService>();
 
 builder.Services.AddControllers();
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
+app.ConfigureSwaggerExplorer()
+    .AddIdentityAuthMiddlewares();
 
 app.UseHttpsRedirection();
 

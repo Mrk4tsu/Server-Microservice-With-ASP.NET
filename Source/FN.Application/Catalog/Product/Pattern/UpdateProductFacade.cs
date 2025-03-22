@@ -15,49 +15,54 @@ namespace FN.Application.Catalog.Product.Pattern
         public UpdateProductFacade(AppDbContext db, IRedisService dbRedis, IImageService image) : base(db, dbRedis, image, SystemConstant.PRODUCT_KEY)
         {
         }
-        public async Task<ApiResult<bool>> UpdateCombined(CombinedUpdateRequest request, int itemId, int productId, int userId)
+        public async Task<ApiResult<bool>> UpdateCombined(CombinedCreateOrUpdateRequest request, int itemId, int productId, int userId)
         {
-            using (var transaction = await _db.Database.BeginTransactionAsync())
+            var executionStrategy = _db.Database.CreateExecutionStrategy();
+
+            return await executionStrategy.ExecuteAsync(async () =>
             {
-                try
+                using (var transaction = await _db.Database.BeginTransactionAsync())
                 {
-                    // Cập nhật Item
-                    var itemUpdateDto = new ItemUpdateDTO
+                    try
                     {
-                        Title = request.Title,
-                        Description = request.Description,
-                        Keywords = request.Keywords,
-                        Thumbnail = request.Thumbnail
-                    };
-                    var itemResult = await UpdateItemInternal(itemUpdateDto, itemId, userId);
-                    if (!itemResult.Success) return itemResult;
+                        // Cập nhật Item
+                        var itemUpdateDto = new ItemRequest
+                        {
+                            Title = request.Title,
+                            Description = request.Description,
+                            Keywords = request.Keywords,
+                            Thumbnail = request.Thumbnail
+                        };
+                        var itemResult = await UpdateItemInternal(itemUpdateDto, itemId, userId);
+                        if (!itemResult.Success) return itemResult;
 
-                    // Cập nhật ProductDetail
-                    var productDetailUpdateRequest = new ProductDetailUpdateRequest
+                        // Cập nhật ProductDetail
+                        var productDetailUpdateRequest = new ProductDetailRequest
+                        {
+                            Detail = request.Detail,
+                            Version = request.Version,
+                            Note = request.Note,
+                            CategoryId = request.CategoryId,
+                            Status = request.Status,
+                            NewImages = request.NewImages // Truyền danh sách ảnh mới
+                        };
+                        var productResult = await UpdateProductDetailInternal(productDetailUpdateRequest, itemId, productId);
+                        if (!productResult.Success) return productResult;
+
+                        await transaction.CommitAsync();
+                        await RemoveOldCache();
+                        return new ApiSuccessResult<bool>(true);
+                    }
+                    catch (Exception ex)
                     {
-                        Detail = request.Detail,
-                        Version = request.Version,
-                        Note = request.Note,
-                        CategoryId = request.CategoryId,
-                        Status = request.Status,
-                        NewImages = request.NewImages // Truyền danh sách ảnh mới
-                    };
-                    var productResult = await UpdateProductDetailInternal(productDetailUpdateRequest, itemId, productId);
-                    if (!productResult.Success) return productResult;
-
-                    await transaction.CommitAsync();
-                    await RemoveOldCache();
-                    return new ApiSuccessResult<bool>(true);
+                        await transaction.RollbackAsync();
+                        return new ApiErrorResult<bool>("Có lỗi xảy ra khi cập nhật: " + ex.Message);
+                    }
                 }
-                catch (Exception ex)
-                {
-                    await transaction.RollbackAsync();
-                    return new ApiErrorResult<bool>("Có lỗi xảy ra khi cập nhật: " + ex.Message);
-                }
-            }
+            });
         }
 
-        private async Task<ApiResult<bool>> UpdateItemInternal(ItemUpdateDTO request, int itemId, int userId)
+        private async Task<ApiResult<bool>> UpdateItemInternal(ItemRequest request, int itemId, int userId)
         {
             var item = await _db.Items.FirstOrDefaultAsync(x => x.Id == itemId && x.UserId == userId);
             if (item == null) return new ApiErrorResult<bool>("Không tìm thấy sản phẩm");
@@ -87,7 +92,7 @@ namespace FN.Application.Catalog.Product.Pattern
             return new ApiSuccessResult<bool>();
         }
 
-        private async Task<ApiResult<bool>> UpdateProductDetailInternal(ProductDetailUpdateRequest request, int itemId, int productId)
+        private async Task<ApiResult<bool>> UpdateProductDetailInternal(ProductDetailRequest request, int itemId, int productId)
         {
             var productDetail = await _db.ProductDetails
                                         .Include(pd => pd.Item) // Đảm bảo load thông tin Item liên quan

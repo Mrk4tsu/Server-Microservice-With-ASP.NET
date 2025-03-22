@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Http;
 
 namespace FN.ViewModel.Catalog.Products.Manage
 {
-    public class CombinedUpdateRequest
+    public class CombinedCreateOrUpdateRequest
     {
         // Các thuộc tính từ ItemUpdateDTO
         public string? Title { get; set; }
@@ -20,6 +20,9 @@ namespace FN.ViewModel.Catalog.Products.Manage
 
         //Cập nhật Image
         public List<IFormFile>? NewImages { get; set; }
+
+        //Cập nhật Price
+        public decimal? Price { get; set; }
     }
     public class DeleteProductImagesRequest
     {

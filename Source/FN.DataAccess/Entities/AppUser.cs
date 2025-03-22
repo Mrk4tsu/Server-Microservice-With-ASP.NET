@@ -10,5 +10,7 @@ namespace FN.DataAccess.Entities
         public List<Item> Items { get; set; } = new List<Item>();
         public List<ProductOwner> ProductOwners { get; set; } = new List<ProductOwner>();
         public List<UserBlogInteraction> Interactions { get; set; } = new List<UserBlogInteraction>();
+        public List<Order> Orders { get; set; } = new List<Order>();
+        public List<Payment> Payments { get; set; } = new List<Payment>();
     }
 }

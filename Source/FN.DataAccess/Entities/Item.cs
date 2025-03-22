@@ -20,5 +20,7 @@
         public List<ProductDetail> ProductDetails { get; set; }
         public List<Blog> Blogs { get; set; }
         public List<ProductOwner> ProductOwners { get; set; }
+        public List<Payment> Payments { get; set; }
+        public List<Order> Orders { get; set; }
     }
 }

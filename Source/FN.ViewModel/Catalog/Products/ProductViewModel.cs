@@ -9,7 +9,6 @@ namespace FN.ViewModel.Catalog.Products
         public int UserId { get; set; }
         public string Title { get; set; }
         public string NormalizeTitle { get; set; }
-        //public decimal Price { get; set; }
         public string Thumbnail { get; set; }
         public string SeoAlias { get; set; }
         public string Username { get; set; }
@@ -21,16 +20,9 @@ namespace FN.ViewModel.Catalog.Products
         public DateTime TimeUpdates { get; set; }
         public List<PriceViewModel> Prices { get; set; }
     }
-    public class PriceViewModel
-    {
-        public int Id { get; set; }
-        public decimal Price { get; set; }
-        public PriceType PriceType { get; set; } // Thêm using FN.DataAccess.Enums;
-        public DateTime StartDate { get; set; }
-        public DateTime EndDate { get; set; }
-    }
     public class ProductDetailViewModel : ProductViewModel
     {
+        public int ProductId { get; set; }
         public string Detail { get; set; }
         public string Note { get; set; }
         public int ViewCount { get; set; }
@@ -40,6 +32,14 @@ namespace FN.ViewModel.Catalog.Products
         public string CategoryName { get; set; }
         public string Author { get; set; }
         public List<ImageProductViewModel> Images { get; set; }
+    }
+    public class PriceViewModel
+    {
+        public int Id { get; set; }
+        public decimal Price { get; set; }
+        public PriceType PriceType { get; set; } // Thêm using FN.DataAccess.Enums;
+        public DateTime StartDate { get; set; }
+        public DateTime EndDate { get; set; }
     }
     public class ImageProductViewModel
     {
