@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace FN.DataAccess.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20250320164009_Add-Trans")]
-    partial class AddTrans
+    [Migration("20250325174309_Update-Order-Payment")]
+    partial class UpdateOrderPayment
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -132,7 +132,7 @@ namespace FN.DataAccess.Migrations
                     b.Property<DateTime>("TimeCreated")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime(6)")
-                        .HasDefaultValue(new DateTime(2025, 3, 20, 23, 40, 8, 994, DateTimeKind.Local).AddTicks(4375));
+                        .HasDefaultValue(new DateTime(2025, 3, 26, 0, 43, 8, 707, DateTimeKind.Local).AddTicks(5568));
 
                     b.Property<bool>("TwoFactorEnabled")
                         .HasColumnType("tinyint(1)");
@@ -285,7 +285,7 @@ namespace FN.DataAccess.Migrations
                     b.Property<DateTime>("CreatedDate")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime(6)")
-                        .HasDefaultValue(new DateTime(2025, 3, 20, 23, 40, 8, 995, DateTimeKind.Local).AddTicks(7551));
+                        .HasDefaultValue(new DateTime(2025, 3, 26, 0, 43, 8, 708, DateTimeKind.Local).AddTicks(7481));
 
                     b.Property<string>("Description")
                         .IsRequired()
@@ -305,7 +305,7 @@ namespace FN.DataAccess.Migrations
                     b.Property<DateTime>("ModifiedDate")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime(6)")
-                        .HasDefaultValue(new DateTime(2025, 3, 20, 23, 40, 8, 995, DateTimeKind.Local).AddTicks(8040));
+                        .HasDefaultValue(new DateTime(2025, 3, 26, 0, 43, 8, 708, DateTimeKind.Local).AddTicks(7925));
 
                     b.Property<string>("NormalizedTitle")
                         .IsRequired()
@@ -353,21 +353,21 @@ namespace FN.DataAccess.Migrations
 
             modelBuilder.Entity("FN.DataAccess.Entities.Order", b =>
                 {
-                    b.Property<int>("UserId")
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    b.Property<int>("ProductId")
-                        .HasColumnType("int");
-
-                    b.Property<int?>("AppUserId")
-                        .HasColumnType("int");
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<DateTime>("OrderDate")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime(6)")
-                        .HasDefaultValue(new DateTime(2025, 3, 20, 23, 40, 8, 997, DateTimeKind.Local).AddTicks(917));
+                        .HasDefaultValue(new DateTime(2025, 3, 26, 0, 43, 8, 709, DateTimeKind.Local).AddTicks(2585));
 
                     b.Property<int>("OrderStatus")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ProductId")
                         .HasColumnType("int");
 
                     b.Property<decimal>("TotalAmount")
@@ -382,21 +382,25 @@ namespace FN.DataAccess.Migrations
                         .HasColumnType("decimal(18,2)")
                         .HasDefaultValue(0m);
 
-                    b.HasKey("UserId", "ProductId");
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
 
-                    b.HasIndex("AppUserId");
+                    b.HasKey("Id");
 
                     b.HasIndex("ProductId");
+
+                    b.HasIndex("UserId");
 
                     b.ToTable("orders", (string)null);
                 });
 
             modelBuilder.Entity("FN.DataAccess.Entities.Payment", b =>
                 {
-                    b.Property<int>("UserId")
+                    b.Property<int>("OrderId")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    b.Property<int>("ProductId")
+                    b.Property<int?>("AppUserId")
                         .HasColumnType("int");
 
                     b.Property<string>("Description")
@@ -406,7 +410,7 @@ namespace FN.DataAccess.Migrations
                     b.Property<DateTime>("PaymentDate")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime(6)")
-                        .HasDefaultValue(new DateTime(2025, 3, 20, 23, 40, 8, 998, DateTimeKind.Local).AddTicks(4295));
+                        .HasDefaultValue(new DateTime(2025, 3, 26, 0, 43, 8, 709, DateTimeKind.Local).AddTicks(9897));
 
                     b.Property<decimal>("PaymentFee")
                         .ValueGeneratedOnAdd()
@@ -419,12 +423,17 @@ namespace FN.DataAccess.Migrations
                         .HasColumnType("int")
                         .HasDefaultValue(0);
 
+                    b.Property<int>("ProductId")
+                        .HasColumnType("int");
+
                     b.Property<string>("TransactionId")
                         .IsRequired()
                         .HasMaxLength(150)
                         .HasColumnType("varchar(150)");
 
-                    b.HasKey("UserId", "ProductId");
+                    b.HasKey("OrderId");
+
+                    b.HasIndex("AppUserId");
 
                     b.HasIndex("ProductId");
 
@@ -550,7 +559,7 @@ namespace FN.DataAccess.Migrations
                     b.Property<DateTime>("CreatedDate")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime(6)")
-                        .HasDefaultValue(new DateTime(2025, 3, 20, 16, 40, 9, 0, DateTimeKind.Utc).AddTicks(6143));
+                        .HasDefaultValue(new DateTime(2025, 3, 25, 17, 43, 8, 712, DateTimeKind.Utc).AddTicks(202));
 
                     b.Property<DateTime>("EndDate")
                         .HasColumnType("datetime(6)");
@@ -588,7 +597,7 @@ namespace FN.DataAccess.Migrations
                     b.Property<DateTime>("InteractionDate")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime(6)")
-                        .HasDefaultValue(new DateTime(2025, 3, 20, 23, 40, 9, 1, DateTimeKind.Local).AddTicks(1596));
+                        .HasDefaultValue(new DateTime(2025, 3, 26, 0, 43, 8, 712, DateTimeKind.Local).AddTicks(4081));
 
                     b.Property<int>("Type")
                         .HasColumnType("int");
@@ -740,18 +749,14 @@ namespace FN.DataAccess.Migrations
 
             modelBuilder.Entity("FN.DataAccess.Entities.Order", b =>
                 {
-                    b.HasOne("FN.DataAccess.Entities.AppUser", null)
+                    b.HasOne("FN.DataAccess.Entities.Item", "Product")
                         .WithMany("Orders")
-                        .HasForeignKey("AppUserId");
-
-                    b.HasOne("FN.DataAccess.Entities.ProductDetail", "Product")
-                        .WithMany()
                         .HasForeignKey("ProductId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.HasOne("FN.DataAccess.Entities.AppUser", "User")
-                        .WithMany()
+                        .WithMany("Orders")
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -763,21 +768,25 @@ namespace FN.DataAccess.Migrations
 
             modelBuilder.Entity("FN.DataAccess.Entities.Payment", b =>
                 {
-                    b.HasOne("FN.DataAccess.Entities.ProductDetail", "Product")
+                    b.HasOne("FN.DataAccess.Entities.AppUser", null)
+                        .WithMany("Payments")
+                        .HasForeignKey("AppUserId");
+
+                    b.HasOne("FN.DataAccess.Entities.Order", "Order")
+                        .WithOne("Payment")
+                        .HasForeignKey("FN.DataAccess.Entities.Payment", "OrderId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("FN.DataAccess.Entities.Item", "Product")
                         .WithMany("Payments")
                         .HasForeignKey("ProductId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("FN.DataAccess.Entities.AppUser", "User")
-                        .WithMany("Payments")
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                    b.Navigation("Order");
 
                     b.Navigation("Product");
-
-                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("FN.DataAccess.Entities.ProductDetail", b =>
@@ -888,15 +897,23 @@ namespace FN.DataAccess.Migrations
                 {
                     b.Navigation("Blogs");
 
+                    b.Navigation("Orders");
+
+                    b.Navigation("Payments");
+
                     b.Navigation("ProductDetails");
 
                     b.Navigation("ProductOwners");
                 });
 
+            modelBuilder.Entity("FN.DataAccess.Entities.Order", b =>
+                {
+                    b.Navigation("Payment")
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("FN.DataAccess.Entities.ProductDetail", b =>
                 {
-                    b.Navigation("Payments");
-
                     b.Navigation("ProductImages");
 
                     b.Navigation("ProductPrices");

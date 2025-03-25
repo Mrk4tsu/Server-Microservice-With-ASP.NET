@@ -6,8 +6,8 @@ namespace FN.Application.Systems.Orders
 {
     public interface IOrderService
     {
-        Task<ApiResult<bool>> CreateOrder(int userId, OrderCreateRequest request);
-        ApiResult<string> CreatePaymentUrl(PaymentInformationModel model, HttpContext context);
+        Task<ApiResult<int>> CreateOrder(int userId, OrderCreateRequest request);
+        Task<ApiResult<string>> CreatePaymentUrl(PaymentInformationModel model, HttpContext context, int orderId);
 
         Task<ApiResult<PaymentResponseModel>> PaymentExecute(IQueryCollection collections, int userId);
     }

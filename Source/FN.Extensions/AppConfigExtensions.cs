@@ -8,10 +8,12 @@ using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
-using Ocelot.Middleware;
+using Microsoft.Extensions.Options;
 using Ocelot.Values;
 using System.IO.Compression;
+using System.Net.WebSockets;
+using System.Text;
+using System.Text.Json;
 
 namespace FN.Extensions
 {
@@ -33,15 +35,42 @@ namespace FN.Extensions
             });
             return app;
         }
-        public static IApplicationBuilder ConfigureAppExplorer(this IApplicationBuilder app)
+        public static IApplicationBuilder ConfigureAppForwarded(this IApplicationBuilder app)
         {
-            app.UseForwardedHeaders(new ForwardedHeadersOptions
+            app.UseForwardedHeaders();
+            return app;
+        }
+        public static IApplicationBuilder ConfigureWebSocket(this IApplicationBuilder app, string path)
+        {
+            app.UseWebSockets();
+            app.Use(async (context, next) =>
             {
-                ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
+                Console.WriteLine($"WebSocket request to: {context.Request.Path}");
+                if (context.Request.Path == path && context.WebSockets.IsWebSocketRequest)
+                {
+                    Console.WriteLine("WebSocket request accepted.");
+                    using var webSocket = await context.WebSockets.AcceptWebSocketAsync();
+                    await HandleOrderWebSocket(webSocket);
+                }
+                else
+                {
+                    Console.WriteLine("WebSocket request failed.");
+                    context.Response.StatusCode = 400;
+                    await next();
+                }
             });
             return app;
         }
-        
+        public static IServiceCollection ConfigureServiceForwarded(this IServiceCollection services)
+        {
+            services.Configure<ForwardedHeadersOptions>(options =>
+            {
+                options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+                options.KnownNetworks.Clear();
+                options.KnownProxies.Clear();
+            });
+            return services;
+        }
         public static IServiceCollection AddSmtpConfig(this IServiceCollection services, IConfiguration config)
         {
             services.Configure<MailSetting>(config.GetSection(SystemConstant.SMTP_SETTINGS));
@@ -91,6 +120,26 @@ namespace FN.Extensions
 
             app.UseResponseCompression();
             return app;
+        }
+
+        private static async Task HandleOrderWebSocket(WebSocket webSocket)
+        {
+            var buffer = new byte[1024 * 4];
+            var result = await webSocket.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None);
+
+            while (!result.CloseStatus.HasValue)
+            {
+                // Giả lập xử lý order
+                var orderData = Encoding.UTF8.GetString(buffer, 0, result.Count);
+                var orderId = Guid.NewGuid().ToString();
+                var response = new { OrderId = orderId, Total = 20 }; // Payload nhỏ gọn
+                var responseBytes = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(response));
+
+                await webSocket.SendAsync(new ArraySegment<byte>(responseBytes), result.MessageType, true, CancellationToken.None);
+                result = await webSocket.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None);
+            }
+
+            await webSocket.CloseAsync(result.CloseStatus.Value, result.CloseStatusDescription, CancellationToken.None);
         }
     }
 }

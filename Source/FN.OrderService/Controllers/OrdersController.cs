@@ -29,9 +29,9 @@ namespace FN.OrderService.Controllers
             return Ok(result);
         }
         [HttpPost("create-url")]
-        public IActionResult PaymentRequest([FromBody] PaymentInformationModel model)
+        public async Task<IActionResult> PaymentRequest(int orderId, [FromBody] PaymentInformationModel model)
         {
-            var result = _service.CreatePaymentUrl(model, HttpContext);
+            var result = await _service.CreatePaymentUrl(model, HttpContext, orderId);
             return Ok(result);
         }
         [HttpGet("payment-callback")]

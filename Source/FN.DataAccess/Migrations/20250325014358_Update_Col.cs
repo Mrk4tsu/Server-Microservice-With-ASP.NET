@@ -9,7 +9,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace FN.DataAccess.Migrations
 {
     /// <inheritdoc />
-    public partial class AddTrans : Migration
+    public partial class Update_Col : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -48,7 +48,7 @@ namespace FN.DataAccess.Migrations
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     Avatar = table.Column<string>(type: "varchar(255)", maxLength: 255, nullable: false, defaultValue: "https://res.cloudinary.com/dje3seaqj/image/upload/v1736989161/gatapchoi_biglrl.jpg")
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    TimeCreated = table.Column<DateTime>(type: "datetime(6)", nullable: false, defaultValue: new DateTime(2025, 3, 20, 23, 40, 8, 994, DateTimeKind.Local).AddTicks(4375)),
+                    TimeCreated = table.Column<DateTime>(type: "datetime(6)", nullable: false, defaultValue: new DateTime(2025, 3, 25, 8, 43, 57, 706, DateTimeKind.Local).AddTicks(6618)),
                     UserName = table.Column<string>(type: "varchar(255)", nullable: true)
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     NormalizedUserName = table.Column<string>(type: "longtext", nullable: true)
@@ -217,8 +217,8 @@ namespace FN.DataAccess.Migrations
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     SeoTitle = table.Column<string>(type: "varchar(256)", maxLength: 256, nullable: false)
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    CreatedDate = table.Column<DateTime>(type: "datetime(6)", nullable: false, defaultValue: new DateTime(2025, 3, 20, 23, 40, 8, 995, DateTimeKind.Local).AddTicks(7551)),
-                    ModifiedDate = table.Column<DateTime>(type: "datetime(6)", nullable: false, defaultValue: new DateTime(2025, 3, 20, 23, 40, 8, 995, DateTimeKind.Local).AddTicks(8040)),
+                    CreatedDate = table.Column<DateTime>(type: "datetime(6)", nullable: false, defaultValue: new DateTime(2025, 3, 25, 8, 43, 57, 708, DateTimeKind.Local).AddTicks(5810)),
+                    ModifiedDate = table.Column<DateTime>(type: "datetime(6)", nullable: false, defaultValue: new DateTime(2025, 3, 25, 8, 43, 57, 708, DateTimeKind.Local).AddTicks(6395)),
                     IsDeleted = table.Column<bool>(type: "tinyint(1)", nullable: false, defaultValue: false)
                 },
                 constraints: table =>
@@ -251,6 +251,71 @@ namespace FN.DataAccess.Migrations
                     table.ForeignKey(
                         name: "FK_blogs_items_ItemId",
                         column: x => x.ItemId,
+                        principalTable: "items",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                })
+                .Annotation("MySql:CharSet", "utf8mb4");
+
+            migrationBuilder.CreateTable(
+                name: "orders",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
+                    UserId = table.Column<int>(type: "int", nullable: false),
+                    ProductId = table.Column<int>(type: "int", nullable: false),
+                    OrderDate = table.Column<DateTime>(type: "datetime(6)", nullable: false, defaultValue: new DateTime(2025, 3, 25, 8, 43, 57, 709, DateTimeKind.Local).AddTicks(1988)),
+                    OrderStatus = table.Column<int>(type: "int", nullable: false),
+                    UnitPrice = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: false, defaultValue: 0m),
+                    TotalAmount = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: false, defaultValue: 0m)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_orders", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_orders_app_users_UserId",
+                        column: x => x.UserId,
+                        principalTable: "app_users",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_orders_items_ProductId",
+                        column: x => x.ProductId,
+                        principalTable: "items",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                })
+                .Annotation("MySql:CharSet", "utf8mb4");
+
+            migrationBuilder.CreateTable(
+                name: "payments",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
+                    UserId = table.Column<int>(type: "int", nullable: false),
+                    ProductId = table.Column<int>(type: "int", nullable: false),
+                    PaymentDate = table.Column<DateTime>(type: "datetime(6)", nullable: false, defaultValue: new DateTime(2025, 3, 25, 8, 43, 57, 709, DateTimeKind.Local).AddTicks(8655)),
+                    PaymentStatus = table.Column<int>(type: "int", nullable: false, defaultValue: 0),
+                    TransactionId = table.Column<string>(type: "varchar(150)", maxLength: 150, nullable: false)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    Description = table.Column<string>(type: "longtext", nullable: false)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    PaymentFee = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: false, defaultValue: 0m)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_payments", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_payments_app_users_UserId",
+                        column: x => x.UserId,
+                        principalTable: "app_users",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_payments_items_ProductId",
+                        column: x => x.ProductId,
                         principalTable: "items",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
@@ -353,7 +418,7 @@ namespace FN.DataAccess.Migrations
                     UserId = table.Column<int>(type: "int", nullable: false),
                     BlogId = table.Column<int>(type: "int", nullable: false),
                     Type = table.Column<int>(type: "int", nullable: false),
-                    InteractionDate = table.Column<DateTime>(type: "datetime(6)", nullable: false, defaultValue: new DateTime(2025, 3, 20, 23, 40, 9, 1, DateTimeKind.Local).AddTicks(1596))
+                    InteractionDate = table.Column<DateTime>(type: "datetime(6)", nullable: false, defaultValue: new DateTime(2025, 3, 25, 8, 43, 57, 713, DateTimeKind.Local).AddTicks(372))
                 },
                 constraints: table =>
                 {
@@ -368,73 +433,6 @@ namespace FN.DataAccess.Migrations
                         name: "FK_user_blog_interactions_blogs_BlogId",
                         column: x => x.BlogId,
                         principalTable: "blogs",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                })
-                .Annotation("MySql:CharSet", "utf8mb4");
-
-            migrationBuilder.CreateTable(
-                name: "orders",
-                columns: table => new
-                {
-                    UserId = table.Column<int>(type: "int", nullable: false),
-                    ProductId = table.Column<int>(type: "int", nullable: false),
-                    OrderDate = table.Column<DateTime>(type: "datetime(6)", nullable: false, defaultValue: new DateTime(2025, 3, 20, 23, 40, 8, 997, DateTimeKind.Local).AddTicks(917)),
-                    OrderStatus = table.Column<int>(type: "int", nullable: false),
-                    UnitPrice = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: false, defaultValue: 0m),
-                    TotalAmount = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: false, defaultValue: 0m),
-                    AppUserId = table.Column<int>(type: "int", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_orders", x => new { x.UserId, x.ProductId });
-                    table.ForeignKey(
-                        name: "FK_orders_app_users_AppUserId",
-                        column: x => x.AppUserId,
-                        principalTable: "app_users",
-                        principalColumn: "Id");
-                    table.ForeignKey(
-                        name: "FK_orders_app_users_UserId",
-                        column: x => x.UserId,
-                        principalTable: "app_users",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_orders_product_details_ProductId",
-                        column: x => x.ProductId,
-                        principalTable: "product_details",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                })
-                .Annotation("MySql:CharSet", "utf8mb4");
-
-            migrationBuilder.CreateTable(
-                name: "payments",
-                columns: table => new
-                {
-                    UserId = table.Column<int>(type: "int", nullable: false),
-                    ProductId = table.Column<int>(type: "int", nullable: false),
-                    PaymentDate = table.Column<DateTime>(type: "datetime(6)", nullable: false, defaultValue: new DateTime(2025, 3, 20, 23, 40, 8, 998, DateTimeKind.Local).AddTicks(4295)),
-                    PaymentStatus = table.Column<int>(type: "int", nullable: false, defaultValue: 0),
-                    TransactionId = table.Column<string>(type: "varchar(150)", maxLength: 150, nullable: false)
-                        .Annotation("MySql:CharSet", "utf8mb4"),
-                    Description = table.Column<string>(type: "longtext", nullable: false)
-                        .Annotation("MySql:CharSet", "utf8mb4"),
-                    PaymentFee = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: false, defaultValue: 0m)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_payments", x => new { x.UserId, x.ProductId });
-                    table.ForeignKey(
-                        name: "FK_payments_app_users_UserId",
-                        column: x => x.UserId,
-                        principalTable: "app_users",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_payments_product_details_ProductId",
-                        column: x => x.ProductId,
-                        principalTable: "product_details",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                 })
@@ -475,7 +473,7 @@ namespace FN.DataAccess.Migrations
                     ProductDetailId = table.Column<int>(type: "int", nullable: false),
                     Price = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: false),
                     PriceType = table.Column<int>(type: "int", nullable: false, defaultValue: 0),
-                    CreatedDate = table.Column<DateTime>(type: "datetime(6)", nullable: false, defaultValue: new DateTime(2025, 3, 20, 16, 40, 9, 0, DateTimeKind.Utc).AddTicks(6143)),
+                    CreatedDate = table.Column<DateTime>(type: "datetime(6)", nullable: false, defaultValue: new DateTime(2025, 3, 25, 1, 43, 57, 712, DateTimeKind.Utc).AddTicks(5720)),
                     StartDate = table.Column<DateTime>(type: "datetime(6)", nullable: false),
                     EndDate = table.Column<DateTime>(type: "datetime(6)", nullable: false)
                 },
@@ -539,19 +537,24 @@ namespace FN.DataAccess.Migrations
                 column: "UserId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_orders_AppUserId",
-                table: "orders",
-                column: "AppUserId");
-
-            migrationBuilder.CreateIndex(
                 name: "IX_orders_ProductId",
                 table: "orders",
                 column: "ProductId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_orders_UserId",
+                table: "orders",
+                column: "UserId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_payments_ProductId",
                 table: "payments",
                 column: "ProductId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_payments_UserId",
+                table: "payments",
+                column: "UserId");
 
             migrationBuilder.CreateIndex(
                 name: "idx_productDetail_categoryId",

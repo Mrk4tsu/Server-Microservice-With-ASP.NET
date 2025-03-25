@@ -7,9 +7,11 @@ using FN.Utilities;
 using FN.ViewModel.Helper.API;
 using FN.ViewModel.Systems.Token;
 using FN.ViewModel.Systems.User;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using MongoDB.Driver;
 using RestSharp;
+using System.Net;
 
 namespace FN.Application.Systems.User
 {
@@ -32,9 +34,9 @@ namespace FN.Application.Systems.User
             _userManager = userManager;
             _tokenService = tokenService;
         }
-        public async Task<ApiResult<TokenResponse>> Authenticate(LoginDTO request)
+        public async Task<ApiResult<TokenResponse>> Authenticate(LoginDTO request, HttpContext context)
         {
-            var ipAddress = GetPublicIPAddress();
+            var ipAddress = GetPublicIPAddress(context);
             if (string.IsNullOrEmpty(ipAddress))
             {
                 return new ApiErrorResult<TokenResponse>("Đăng nhập bất thường");
@@ -146,23 +148,47 @@ namespace FN.Application.Systems.User
             await _tokenService.SaveRefreshToken(newRefreshToken, request, response.RefreshTokenExpiry - DateTime.Now);
             return new ApiSuccessResult<TokenResponse>(response);
         }
-        private string GetPublicIPAddress()
+        private string GetPublicIPAddress(HttpContext context)
         {
-            try
-            {
-                // Tạo client và yêu cầu
-                var client = new RestClient("https://api.ipify.org");
-                var request = new RestRequest("", Method.Get);
+            //try
+            //{
+            //    // Tạo client và yêu cầu
+            //    var client = new RestClient("https://api.ipify.org");
+            //    var request = new RestRequest("", Method.Get);
 
-                // Thực hiện yêu cầu và lấy kết quả
-                var response = client.Execute(request);
-                return response.Content ?? string.Empty;
-            }
-            catch (Exception ex)
+            //    // Thực hiện yêu cầu và lấy kết quả
+            //    var response = client.Execute(request);
+            //    return response.Content ?? string.Empty;
+            //}
+            //catch (Exception ex)
+            //{
+            //    Console.WriteLine("Lỗi khi lấy địa chỉ IP public: " + ex.Message);
+            //    return string.Empty;
+            //}
+            var ipHeaders = new[] { "X-Forwarded-For", "Forwarded", "X-Real-IP" };
+            foreach (var header in ipHeaders)
             {
-                Console.WriteLine("Lỗi khi lấy địa chỉ IP public: " + ex.Message);
-                return string.Empty;
+                if (context.Request.Headers.TryGetValue(header, out var headerValue))
+                {
+                    var ip = headerValue.ToString().Split(',')[0].Trim();
+                    if (!string.IsNullOrEmpty(ip))
+                        return ip;
+                }
             }
+
+            var remoteIp = context.Connection.RemoteIpAddress;
+            if (remoteIp != null)
+            {
+                if (remoteIp.Equals(IPAddress.IPv6Loopback))
+                    return "127.0.0.1";
+
+                if (remoteIp.IsIPv4MappedToIPv6)
+                    return remoteIp.MapToIPv4().ToString();
+
+                return remoteIp.ToString();
+            }
+
+            return "Unknown";
         }
     }
 }

@@ -9,11 +9,8 @@ namespace FN.DataAccess.Configurations
         public void Configure(EntityTypeBuilder<Order> builder)
         {
             builder.ToTable("orders");
-            builder.HasKey(x => new
-            {
-                x.UserId,
-                x.ProductId
-            });
+            builder.HasKey(x => x.Id);
+            builder.Property(x => x.Id).ValueGeneratedOnAdd();
 
             builder.Property(x => x.OrderDate).HasDefaultValue(DateTime.Now);
             builder.Property(x => x.TotalAmount).HasDefaultValue(0).HasPrecision(18, 2);
@@ -26,6 +23,10 @@ namespace FN.DataAccess.Configurations
             builder.HasOne(x => x.Product)
                 .WithMany(x => x.Orders)
                 .HasForeignKey(x => x.ProductId)
+                .OnDelete(DeleteBehavior.Cascade);
+            builder.HasOne(x => x.Payment)
+                .WithOne(x => x.Order)
+                .HasForeignKey<Payment>(x => x.OrderId)
                 .OnDelete(DeleteBehavior.Cascade);
         }
     }
