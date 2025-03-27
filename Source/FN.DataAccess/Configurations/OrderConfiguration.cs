@@ -15,7 +15,6 @@ namespace FN.DataAccess.Configurations
             builder.Property(x => x.OrderDate).HasDefaultValue(DateTime.Now);
             builder.Property(x => x.TotalAmount).HasDefaultValue(0).HasPrecision(18, 2);
             builder.Property(x => x.UnitPrice).HasDefaultValue(0).HasPrecision(18, 2);
-            builder.Property(x => x.DiscountPrice).HasDefaultValue(0).HasPrecision(18, 2);
 
             builder.HasOne(x => x.User)
                 .WithMany(x => x.Orders)

@@ -38,7 +38,6 @@ namespace FN.Application.Systems.Orders
                 {
                     UserId = userId,
                     ProductId = request.ProductId,
-                    DiscountPrice = request.DiscountPrice,
                     TotalAmount = request.Amount,
                     OrderDate = DateTime.Now,
                     OrderStatus = OrderStatus.PENDING,
@@ -160,7 +159,7 @@ namespace FN.Application.Systems.Orders
                     PaymentStatus = x.PaymentStatus,
                     PaymentFee = x.PaymentFee,
                     Author = x.Product.Item.User.FullName,
-                    DiscountPrice = x.Order.DiscountPrice,
+                    DiscountPrice = x.Order.TotalAmount < x.Order.UnitPrice ? x.Order.TotalAmount : x.Order.UnitPrice,
                     UnitPrice = x.Order.UnitPrice,
                     CategoryName = x.Product.Category.Name
                 })

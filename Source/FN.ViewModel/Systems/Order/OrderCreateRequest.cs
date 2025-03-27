@@ -4,6 +4,5 @@
     {
         public int ProductId { get; set; }
         public decimal Amount { get; set; }
-        public decimal DiscountPrice { get; set; }
     }
 }
