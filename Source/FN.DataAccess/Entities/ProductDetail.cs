@@ -21,5 +21,6 @@ namespace FN.DataAccess.Entities
         public List<ProductImage> ProductImages { get; set; }
         public List<Payment> Payments { get; set; }
         public List<UserOrder> Orders { get; set; }
+        public List<ProductOwner> ProductOwners { get; set; }
     }
 }

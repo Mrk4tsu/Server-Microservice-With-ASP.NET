@@ -17,7 +17,7 @@ namespace FN.DataAccess.Configurations
             builder.HasOne(x => x.User)
                 .WithMany(x => x.ProductOwners)
                 .HasForeignKey(x => x.UserId);
-            builder.HasOne(x => x.Item)
+            builder.HasOne(x => x.Product)
                 .WithMany(x => x.ProductOwners)
                 .HasForeignKey(x => x.ProductId);
         }

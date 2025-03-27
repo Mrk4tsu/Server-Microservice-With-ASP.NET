@@ -19,6 +19,5 @@
         public AppUser User { get; set; }
         public List<ProductDetail> ProductDetails { get; set; }
         public List<Blog> Blogs { get; set; } 
-        public List<ProductOwner> ProductOwners { get; set; }
     }
 }

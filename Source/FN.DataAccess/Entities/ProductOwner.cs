@@ -5,6 +5,6 @@
         public int UserId { get; set; }
         public int ProductId { get; set; }
         public AppUser User { get; set; }
-        public Item Item { get; set; }
+        public ProductDetail Product { get; set; }
     }
 }

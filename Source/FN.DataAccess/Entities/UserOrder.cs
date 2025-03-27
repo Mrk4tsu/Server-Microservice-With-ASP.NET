@@ -10,6 +10,7 @@ namespace FN.DataAccess.Entities
         public DateTime OrderDate { get; set; }
         public OrderStatus OrderStatus { get; set; }
         public decimal UnitPrice { get; set; }
+        public decimal DiscountPrice { get; set; }
         public decimal TotalAmount { get; set; }
         public AppUser User { get; set; }
         public ProductDetail Product { get; set; }

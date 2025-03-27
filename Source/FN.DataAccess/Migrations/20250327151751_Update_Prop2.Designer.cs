@@ -4,6 +4,7 @@ using FN.DataAccess;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace FN.DataAccess.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250327151751_Update_Prop2")]
+    partial class Update_Prop2
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -129,7 +132,7 @@ namespace FN.DataAccess.Migrations
                     b.Property<DateTime>("TimeCreated")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime(6)")
-                        .HasDefaultValue(new DateTime(2025, 3, 27, 22, 37, 40, 378, DateTimeKind.Local).AddTicks(9014));
+                        .HasDefaultValue(new DateTime(2025, 3, 27, 22, 17, 51, 278, DateTimeKind.Local).AddTicks(4844));
 
                     b.Property<bool>("TwoFactorEnabled")
                         .HasColumnType("tinyint(1)");
@@ -282,7 +285,7 @@ namespace FN.DataAccess.Migrations
                     b.Property<DateTime>("CreatedDate")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime(6)")
-                        .HasDefaultValue(new DateTime(2025, 3, 27, 22, 37, 40, 381, DateTimeKind.Local).AddTicks(2279));
+                        .HasDefaultValue(new DateTime(2025, 3, 27, 22, 17, 51, 279, DateTimeKind.Local).AddTicks(8014));
 
                     b.Property<string>("Description")
                         .IsRequired()
@@ -302,7 +305,7 @@ namespace FN.DataAccess.Migrations
                     b.Property<DateTime>("ModifiedDate")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime(6)")
-                        .HasDefaultValue(new DateTime(2025, 3, 27, 22, 37, 40, 381, DateTimeKind.Local).AddTicks(2786));
+                        .HasDefaultValue(new DateTime(2025, 3, 27, 22, 17, 51, 279, DateTimeKind.Local).AddTicks(8527));
 
                     b.Property<string>("NormalizedTitle")
                         .IsRequired()
@@ -361,7 +364,7 @@ namespace FN.DataAccess.Migrations
                     b.Property<DateTime>("PaymentDate")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime(6)")
-                        .HasDefaultValue(new DateTime(2025, 3, 27, 22, 37, 40, 383, DateTimeKind.Local).AddTicks(941));
+                        .HasDefaultValue(new DateTime(2025, 3, 27, 22, 17, 51, 281, DateTimeKind.Local).AddTicks(2287));
 
                     b.Property<decimal>("PaymentFee")
                         .ValueGeneratedOnAdd()
@@ -513,7 +516,7 @@ namespace FN.DataAccess.Migrations
                     b.Property<DateTime>("CreatedDate")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime(6)")
-                        .HasDefaultValue(new DateTime(2025, 3, 27, 15, 37, 40, 389, DateTimeKind.Utc).AddTicks(9959));
+                        .HasDefaultValue(new DateTime(2025, 3, 27, 15, 17, 51, 286, DateTimeKind.Utc).AddTicks(4395));
 
                     b.Property<DateTime>("EndDate")
                         .HasColumnType("datetime(6)");
@@ -551,7 +554,7 @@ namespace FN.DataAccess.Migrations
                     b.Property<DateTime>("InteractionDate")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime(6)")
-                        .HasDefaultValue(new DateTime(2025, 3, 27, 22, 37, 40, 390, DateTimeKind.Local).AddTicks(4889));
+                        .HasDefaultValue(new DateTime(2025, 3, 27, 22, 17, 51, 286, DateTimeKind.Local).AddTicks(8702));
 
                     b.Property<int>("Type")
                         .HasColumnType("int");
@@ -580,7 +583,7 @@ namespace FN.DataAccess.Migrations
                     b.Property<DateTime>("OrderDate")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime(6)")
-                        .HasDefaultValue(new DateTime(2025, 3, 27, 22, 37, 40, 381, DateTimeKind.Local).AddTicks(9596));
+                        .HasDefaultValue(new DateTime(2025, 3, 27, 22, 17, 51, 280, DateTimeKind.Local).AddTicks(3667));
 
                     b.Property<int>("OrderStatus")
                         .HasColumnType("int");
@@ -809,7 +812,7 @@ namespace FN.DataAccess.Migrations
 
             modelBuilder.Entity("FN.DataAccess.Entities.ProductOwner", b =>
                 {
-                    b.HasOne("FN.DataAccess.Entities.ProductDetail", "Product")
+                    b.HasOne("FN.DataAccess.Entities.Item", "Item")
                         .WithMany("ProductOwners")
                         .HasForeignKey("ProductId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -821,7 +824,7 @@ namespace FN.DataAccess.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("Product");
+                    b.Navigation("Item");
 
                     b.Navigation("User");
                 });
@@ -905,6 +908,8 @@ namespace FN.DataAccess.Migrations
                     b.Navigation("Blogs");
 
                     b.Navigation("ProductDetails");
+
+                    b.Navigation("ProductOwners");
                 });
 
             modelBuilder.Entity("FN.DataAccess.Entities.ProductDetail", b =>
@@ -914,8 +919,6 @@ namespace FN.DataAccess.Migrations
                     b.Navigation("Payments");
 
                     b.Navigation("ProductImages");
-
-                    b.Navigation("ProductOwners");
 
                     b.Navigation("ProductPrices");
                 });

@@ -31,13 +31,14 @@ namespace FN.Application.Systems.Orders
         {
             try
             {
-                var product = await _db.ProductDetails.Include(x => x.ProductPrices).FirstOrDefaultAsync(x => x.ItemId == request.ProductId);
+                var product = await _db.ProductDetails.Include(x => x.ProductPrices).FirstOrDefaultAsync(x => x.Id == request.ProductId);
                 if (product == null) return new ApiErrorResult<int>("Product not found");
                 var basePrice = product.ProductPrices.FirstOrDefault(x => x.PriceType == PriceType.BASE)?.Price;
                 var order = new UserOrder
                 {
                     UserId = userId,
                     ProductId = request.ProductId,
+                    DiscountPrice = request.DiscountPrice,
                     TotalAmount = request.Amount,
                     OrderDate = DateTime.Now,
                     OrderStatus = OrderStatus.PENDING,
@@ -159,8 +160,9 @@ namespace FN.Application.Systems.Orders
                     PaymentStatus = x.PaymentStatus,
                     PaymentFee = x.PaymentFee,
                     Author = x.Product.Item.User.FullName,
-                    DiscountPrice = x.Product.ProductPrices.Min(pr => pr.Price),
-                    UnitPrice = x.Product.ProductPrices.FirstOrDefault(pr => pr.PriceType == PriceType.BASE)!.Price
+                    DiscountPrice = x.Order.DiscountPrice,
+                    UnitPrice = x.Order.UnitPrice,
+                    CategoryName = x.Product.Category.Name
                 })
                 .ToListAsync();
             var result = new PagedResult<PaymentViewModel>()

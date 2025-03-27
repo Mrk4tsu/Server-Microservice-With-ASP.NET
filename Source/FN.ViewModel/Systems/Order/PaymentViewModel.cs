@@ -7,6 +7,7 @@ namespace FN.ViewModel.Systems.Order
     {
         public int OrderId { get; set; }
         public string ProductName { get; set; } = string.Empty;
+        public string CategoryName { get; set; } = string.Empty;
         public string Author { get; set; } = string.Empty;
         public string ProductImage { get; set; } = string.Empty;
         public PaymentStatus PaymentStatus { get; set; }
