@@ -26,6 +26,6 @@ namespace FN.ViewModel.Catalog.Products.Manage
     }
     public class DeleteProductImagesRequest
     {
-        public List<int> ImageIds { get; set; }
+        public List<int> ImageIds { get; set; } = new();
     }
 }

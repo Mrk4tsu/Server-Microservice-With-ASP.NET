@@ -20,8 +20,10 @@ namespace FN.DataAccess.Configurations
 
             builder.HasOne(x => x.Product)
                 .WithMany(x => x.Payments)
-                .HasForeignKey(x => x.ProductId)
-                .OnDelete(DeleteBehavior.Cascade);
+                .HasForeignKey(x => x.ProductId);
+            builder.HasOne(x => x.User)
+                .WithMany(x => x.Payments)
+                .HasForeignKey(x => x.UserId);
         }
     }
 }

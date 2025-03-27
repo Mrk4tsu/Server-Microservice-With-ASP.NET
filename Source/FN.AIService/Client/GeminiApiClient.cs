@@ -73,7 +73,7 @@ namespace GeminiAIDev.Client
 
             return postData;
         }
-        private async Task<ContentResponse> GetGeminiResponse()
+        private async Task<ContentResponse?> GetGeminiResponse()
         {
             string url = $"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={_apiKey}";
 
@@ -116,7 +116,7 @@ namespace GeminiAIDev.Client
             }
 
             string jsonResponse = await response.Content.ReadAsStringAsync();
-            return JsonConvert.DeserializeObject<ContentResponse>(jsonResponse);
+            return JsonConvert.DeserializeObject<ContentResponse?>(jsonResponse);
         }
         private PostResponse ProcessGeminiResponse(ContentResponse response)
         {

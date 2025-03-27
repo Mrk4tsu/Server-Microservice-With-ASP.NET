@@ -2,7 +2,7 @@
 
 namespace FN.DataAccess.Entities
 {
-    public class Order
+    public class UserOrder
     {
         public int Id { get; set; }
         public int UserId { get; set; }
@@ -12,7 +12,7 @@ namespace FN.DataAccess.Entities
         public decimal UnitPrice { get; set; }
         public decimal TotalAmount { get; set; }
         public AppUser User { get; set; }
-        public Item Product { get; set; }
+        public ProductDetail Product { get; set; }
         public Payment Payment { get; set; }
     }
 }

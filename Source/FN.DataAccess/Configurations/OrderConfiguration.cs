@@ -4,9 +4,9 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace FN.DataAccess.Configurations
 {
-    public class OrderConfiguration : IEntityTypeConfiguration<Order>
+    public class OrderConfiguration : IEntityTypeConfiguration<UserOrder>
     {
-        public void Configure(EntityTypeBuilder<Order> builder)
+        public void Configure(EntityTypeBuilder<UserOrder> builder)
         {
             builder.ToTable("orders");
             builder.HasKey(x => x.Id);
@@ -18,16 +18,13 @@ namespace FN.DataAccess.Configurations
 
             builder.HasOne(x => x.User)
                 .WithMany(x => x.Orders)
-                .HasForeignKey(x => x.UserId)
-                .OnDelete(DeleteBehavior.Cascade);
+                .HasForeignKey(x => x.UserId);
             builder.HasOne(x => x.Product)
                 .WithMany(x => x.Orders)
-                .HasForeignKey(x => x.ProductId)
-                .OnDelete(DeleteBehavior.Cascade);
+                .HasForeignKey(x => x.ProductId);
             builder.HasOne(x => x.Payment)
                 .WithOne(x => x.Order)
-                .HasForeignKey<Payment>(x => x.OrderId)
-                .OnDelete(DeleteBehavior.Cascade);
+                .HasForeignKey<Payment>(x => x.OrderId);
         }
     }
 }

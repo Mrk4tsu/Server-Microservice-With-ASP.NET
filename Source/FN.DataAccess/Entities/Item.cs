@@ -4,23 +4,21 @@
     {
         public int Id { get; set; }
         public int UserId { get; set; }
-        public string Code { get; set; }
-        public string Title { get; set; }
-        public string NormalizedTitle { get; set; }
-        public string Description { get; set; }
-        public string Keywords { get; set; }
-        public string Thumbnail { get; set; }
+        public string Code { get; set; } = string.Empty;        
+        public string Title { get; set; } = string.Empty;
+        public string NormalizedTitle { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
+        public string Keywords { get; set; } = string.Empty;
+        public string Thumbnail { get; set; } = string.Empty;
         public int ViewCount { get; set; }
-        public string SeoAlias { get; set; }
-        public string SeoTitle { get; set; }
+        public string SeoAlias { get; set; } = string.Empty;
+        public string SeoTitle { get; set; } = string.Empty;    
         public DateTime CreatedDate { get; set; }
         public DateTime ModifiedDate { get; set; }
         public bool IsDeleted { get; set; }
         public AppUser User { get; set; }
         public List<ProductDetail> ProductDetails { get; set; }
-        public List<Blog> Blogs { get; set; }
+        public List<Blog> Blogs { get; set; } 
         public List<ProductOwner> ProductOwners { get; set; }
-        public List<Payment> Payments { get; set; }
-        public List<Order> Orders { get; set; }
     }
 }

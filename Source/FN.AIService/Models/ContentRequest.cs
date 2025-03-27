@@ -2,14 +2,14 @@
 {
     public class ContentRequest
     {
-        public Content[] contents { get; set; }
+        public Content[] contents { get; set; } = Array.Empty<Content>();
     }
     public class Content
     {
-        public Part[] parts { get; set; }
+        public Part[] parts { get; set; } = Array.Empty<Part>();
     }
     public class Part
     {
-        public string text { get; set; }
+        public string text { get; set; } = string.Empty;
     }
 }

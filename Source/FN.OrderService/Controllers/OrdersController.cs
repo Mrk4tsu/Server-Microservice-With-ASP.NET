@@ -20,6 +20,22 @@ namespace FN.OrderService.Controllers
         {
             return Ok("Hello from Email Service");
         }
+        [HttpGet("list")]
+        public async Task<IActionResult> GetOrders([FromQuery]OrderPagingRequest request)
+        {
+            var userId = GetUserIdFromClaims();
+            if (userId == null) return Unauthorized();
+            var result = await _service.GetOrders(userId.Value, request);
+            return Ok(result);
+        }
+        [HttpGet("list-payment")]
+        public async Task<IActionResult> GetPayments([FromQuery] PaymentPagingRequest request)
+        {
+            var userId = GetUserIdFromClaims();
+            if (userId == null) return Unauthorized();
+            var result = await _service.GetPayments(userId.Value, request);
+            return Ok(result);
+        }
         [HttpPost("request-order")]
         public async Task<IActionResult> CreateOrder([FromBody] OrderCreateRequest request)
         {

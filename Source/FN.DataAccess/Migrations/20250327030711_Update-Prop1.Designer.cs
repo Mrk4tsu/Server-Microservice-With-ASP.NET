@@ -4,6 +4,7 @@ using FN.DataAccess;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace FN.DataAccess.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250327030711_Update-Prop1")]
+    partial class UpdateProp1
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -129,7 +132,7 @@ namespace FN.DataAccess.Migrations
                     b.Property<DateTime>("TimeCreated")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime(6)")
-                        .HasDefaultValue(new DateTime(2025, 3, 27, 10, 30, 30, 497, DateTimeKind.Local).AddTicks(8236));
+                        .HasDefaultValue(new DateTime(2025, 3, 27, 10, 7, 7, 205, DateTimeKind.Local).AddTicks(2130));
 
                     b.Property<bool>("TwoFactorEnabled")
                         .HasColumnType("tinyint(1)");
@@ -282,7 +285,7 @@ namespace FN.DataAccess.Migrations
                     b.Property<DateTime>("CreatedDate")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime(6)")
-                        .HasDefaultValue(new DateTime(2025, 3, 27, 10, 30, 30, 499, DateTimeKind.Local).AddTicks(694));
+                        .HasDefaultValue(new DateTime(2025, 3, 27, 10, 7, 7, 206, DateTimeKind.Local).AddTicks(4320));
 
                     b.Property<string>("Description")
                         .IsRequired()
@@ -302,7 +305,7 @@ namespace FN.DataAccess.Migrations
                     b.Property<DateTime>("ModifiedDate")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime(6)")
-                        .HasDefaultValue(new DateTime(2025, 3, 27, 10, 30, 30, 499, DateTimeKind.Local).AddTicks(1156));
+                        .HasDefaultValue(new DateTime(2025, 3, 27, 10, 7, 7, 206, DateTimeKind.Local).AddTicks(4792));
 
                     b.Property<string>("NormalizedTitle")
                         .IsRequired()
@@ -361,7 +364,7 @@ namespace FN.DataAccess.Migrations
                     b.Property<DateTime>("PaymentDate")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime(6)")
-                        .HasDefaultValue(new DateTime(2025, 3, 27, 10, 30, 30, 500, DateTimeKind.Local).AddTicks(3302));
+                        .HasDefaultValue(new DateTime(2025, 3, 27, 10, 7, 7, 207, DateTimeKind.Local).AddTicks(7043));
 
                     b.Property<decimal>("PaymentFee")
                         .ValueGeneratedOnAdd()
@@ -513,7 +516,7 @@ namespace FN.DataAccess.Migrations
                     b.Property<DateTime>("CreatedDate")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime(6)")
-                        .HasDefaultValue(new DateTime(2025, 3, 27, 3, 30, 30, 505, DateTimeKind.Utc).AddTicks(4852));
+                        .HasDefaultValue(new DateTime(2025, 3, 27, 3, 7, 7, 209, DateTimeKind.Utc).AddTicks(7172));
 
                     b.Property<DateTime>("EndDate")
                         .HasColumnType("datetime(6)");
@@ -551,7 +554,7 @@ namespace FN.DataAccess.Migrations
                     b.Property<DateTime>("InteractionDate")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime(6)")
-                        .HasDefaultValue(new DateTime(2025, 3, 27, 10, 30, 30, 505, DateTimeKind.Local).AddTicks(9377));
+                        .HasDefaultValue(new DateTime(2025, 3, 27, 10, 7, 7, 210, DateTimeKind.Local).AddTicks(1060));
 
                     b.Property<int>("Type")
                         .HasColumnType("int");
@@ -574,7 +577,7 @@ namespace FN.DataAccess.Migrations
                     b.Property<DateTime>("OrderDate")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime(6)")
-                        .HasDefaultValue(new DateTime(2025, 3, 27, 10, 30, 30, 499, DateTimeKind.Local).AddTicks(5981));
+                        .HasDefaultValue(new DateTime(2025, 3, 27, 10, 7, 7, 206, DateTimeKind.Local).AddTicks(9535));
 
                     b.Property<int>("OrderStatus")
                         .HasColumnType("int");
@@ -752,7 +755,7 @@ namespace FN.DataAccess.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("FN.DataAccess.Entities.ProductDetail", "Product")
+                    b.HasOne("FN.DataAccess.Entities.Item", "Product")
                         .WithMany("Payments")
                         .HasForeignKey("ProductId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -852,7 +855,7 @@ namespace FN.DataAccess.Migrations
 
             modelBuilder.Entity("FN.DataAccess.Entities.UserOrder", b =>
                 {
-                    b.HasOne("FN.DataAccess.Entities.ProductDetail", "Product")
+                    b.HasOne("FN.DataAccess.Entities.Item", "Product")
                         .WithMany("Orders")
                         .HasForeignKey("ProductId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -898,6 +901,10 @@ namespace FN.DataAccess.Migrations
                 {
                     b.Navigation("Blogs");
 
+                    b.Navigation("Orders");
+
+                    b.Navigation("Payments");
+
                     b.Navigation("ProductDetails");
 
                     b.Navigation("ProductOwners");
@@ -905,10 +912,6 @@ namespace FN.DataAccess.Migrations
 
             modelBuilder.Entity("FN.DataAccess.Entities.ProductDetail", b =>
                 {
-                    b.Navigation("Orders");
-
-                    b.Navigation("Payments");
-
                     b.Navigation("ProductImages");
 
                     b.Navigation("ProductPrices");

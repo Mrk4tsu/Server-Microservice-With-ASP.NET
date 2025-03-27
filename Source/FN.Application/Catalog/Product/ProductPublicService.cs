@@ -34,7 +34,66 @@ namespace FN.Application.Catalog.Product
 
         //    return new ApiSuccessResult<ProductDetailViewModel>(product);
         //}
-        public async Task<ApiResult<ProductDetailViewModel>> GetProduct(int itemId)
+        public async Task<ApiResult<ProductDetailViewModel>> GetProduct(int itemId, int userId)
+        {
+            bool flagOwner = false;
+
+            var product = await _db.ProductDetails
+                .Include(x => x.Item)
+                .ThenInclude(x => x.User)
+                .Include(x => x.Category)
+                .Include(x => x.ProductPrices)
+                .Include(x => x.ProductImages)
+                .FirstOrDefaultAsync(x => x.ItemId == itemId);
+            if (product == null) return new ApiErrorResult<ProductDetailViewModel>("Không tìm thấy sản phẩm");
+
+
+            var ownerProduct = await _db.ProductOwners.FirstOrDefaultAsync(x => x.ProductId == itemId && x.UserId == userId);
+            if(ownerProduct != null || product.Item.UserId == userId) flagOwner = true;
+            var detailVM = new ProductDetailViewModel
+            {
+                Id = product.Item.Id,
+                ProductId = product.Id,
+                CategoryIcon = product.Category.SeoImage,
+                Title = product.Item.Title,
+                Detail = product.Detail,
+                LikeCount = product.LikeCount,
+                DisLikeCount = product.DislikeCount,
+                DownloadCount = product.DownloadCount,
+                Version = product.Version,
+                Note = product.Note,
+                IsOwned = flagOwner,
+                CategoryName = product.Category.Name,
+                SeoAlias = product.Item.SeoAlias,
+                TimeCreates = product.Item.CreatedDate,
+                TimeUpdates = product.Item.ModifiedDate,
+                CategorySeoAlias = product.Category.SeoAlias,
+                Description = product.Item.Description,
+                Thumbnail = product.Item.Thumbnail,
+                Username = product.Item.User.UserName!,
+                Author = product.Item.User.FullName,
+                ViewCount = product.Item.ViewCount,
+                Prices = product.ProductPrices
+                        .Where(pp => !pp.ProductDetail.IsDeleted && pp.EndDate > DateTime.Now) // Lọc nếu cần
+                        .Select(pp => new PriceViewModel
+                        {
+                            Id = pp.Id,
+                            Price = pp.Price,
+                            PriceType = pp.PriceType,
+                            StartDate = pp.StartDate,
+                            EndDate = pp.EndDate
+                        })
+                        .ToList(),
+                Images = product.ProductImages.Select(x => new ImageProductViewModel
+                {
+                    Id = x.Id,
+                    ImageUrl = x.ImageUrl,
+                    Caption = x.Caption
+                }).ToList()
+            };
+            return new ApiSuccessResult<ProductDetailViewModel>(detailVM);
+        }
+        public async Task<ApiResult<ProductDetailViewModel>> GetProductWithoutLogin(int itemId)       
         {
             var product = await _db.ProductDetails
                 .Include(x => x.Item)
@@ -46,7 +105,8 @@ namespace FN.Application.Catalog.Product
             if (product == null) return new ApiErrorResult<ProductDetailViewModel>("Không tìm thấy sản phẩm");
             var detailVM = new ProductDetailViewModel
             {
-                Id = product.Id,
+                Id = product.Item.Id,
+                ProductId = product.Id,
                 CategoryIcon = product.Category.SeoImage,
                 Title = product.Item.Title,
                 Detail = product.Detail,
@@ -55,6 +115,7 @@ namespace FN.Application.Catalog.Product
                 DownloadCount = product.DownloadCount,
                 Version = product.Version,
                 Note = product.Note,
+                IsOwned = false,
                 CategoryName = product.Category.Name,
                 SeoAlias = product.Item.SeoAlias,
                 TimeCreates = product.Item.CreatedDate,
@@ -89,6 +150,11 @@ namespace FN.Application.Catalog.Product
         {
             var facade = new GetProductFacade(_db, _dbRedis!, null!, _mapper);
             return await facade.GetProducts(request, false, false, null);
+        }
+
+        public Task<ApiResult<PagedResult<ProductViewModel>>> GetProductsOwner(ProductPagingRequest request, int userId)
+        {
+            throw new NotImplementedException();
         }
     }
 }

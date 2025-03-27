@@ -65,7 +65,7 @@ namespace FN.Application.Systems.Orders.Lib
                 {
                     if (!string.IsNullOrEmpty(key) && key.StartsWith("vnp_"))
                     {
-                        vnPay.AddResponseData(key, value);
+                        vnPay.AddResponseData(key, value!);
                     }
                 }
 
@@ -104,7 +104,7 @@ namespace FN.Application.Systems.Orders.Lib
                         OrderId = orderId.ToString(),
                         PaymentId = vnPayTranId.ToString(),
                         TransactionId = vnPayTranId.ToString(),
-                        Token = vnpSecureHash,
+                        Token = vnpSecureHash!,
                         VnPayResponseCode = vnpResponseCode
                     };
                 }
@@ -117,23 +117,13 @@ namespace FN.Application.Systems.Orders.Lib
                     OrderId = orderId.ToString(),
                     PaymentId = vnPayTranId.ToString(),
                     TransactionId = vnPayTranId.ToString(),
-                    Token = vnpSecureHash,
+                    Token = vnpSecureHash!,
                     VnPayResponseCode = vnpResponseCode
                 };
             }
             catch (Exception ex)
             {
-                return new PaymentResponseModel()
-                {
-                    Success = false,
-                    PaymentMethod = "VnPay",
-                    OrderDescription = null,
-                    OrderId = null,
-                    PaymentId = null,
-                    TransactionId = null,
-                    Token = null,
-                    VnPayResponseCode = null
-                };
+                throw new InvalidOperationException("Lỗi khi xử lý dữ liệu phản hồi từ VnPay", ex);
             }
         }
         public string GetIpAddress(HttpContext context)

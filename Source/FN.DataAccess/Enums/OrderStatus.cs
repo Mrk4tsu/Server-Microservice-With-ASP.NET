@@ -4,6 +4,8 @@
     {
         PENDING,
         COMPLETED,
+        WAITING_FOR_PAYMENT,
+        PAYMENT_FAILED,
         CANCELED
     }
 }

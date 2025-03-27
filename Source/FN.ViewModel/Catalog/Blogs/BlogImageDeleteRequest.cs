@@ -2,6 +2,6 @@
 {
     public class BlogImageDeleteRequest
     {
-        public List<int> ImageIds { get; set; }
+        public List<int> ImageIds { get; set; } = new();
     }
 }

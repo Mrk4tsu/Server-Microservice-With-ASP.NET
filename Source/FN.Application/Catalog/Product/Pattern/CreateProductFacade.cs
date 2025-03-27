@@ -18,60 +18,112 @@ namespace FN.Application.Catalog.Product.Pattern
         }
         public async Task<ApiResult<int>> CreateCombine(CombinedCreateOrUpdateRequest request, int userId)
         {
-            var executionStrategy = _db.Database.CreateExecutionStrategy();
 
-            return await executionStrategy.ExecuteAsync(async () =>
+            using var transaction = await _db.Database.BeginTransactionAsync();
+            try
             {
-                using var transaction = await _db.Database.BeginTransactionAsync();
-                try
+                var itemCreate = new ItemRequest
                 {
-                    var itemCreate = new ItemRequest
-                    {
-                        Title = request.Title,
-                        Description = request.Description,
-                        Keywords = request.Keywords,
-                        Thumbnail = request.Thumbnail
-                    };
-                    var itemResult = await CreateItemInternal(userId, itemCreate);
-                    if (!itemResult.Success) return itemResult;
+                    Title = request.Title,
+                    Description = request.Description,
+                    Keywords = request.Keywords,
+                    Thumbnail = request.Thumbnail
+                };
+                var itemResult = await CreateItemInternal(userId, itemCreate);
+                if (!itemResult.Success) return itemResult;
 
-                    var productDetailCreate = new ProductDetailRequest
-                    {
-                        Detail = request.Detail,
-                        Version = request.Version,
-                        Note = request.Note,
-                        CategoryId = request.CategoryId,
-                        Status = request.Status,
-                        NewImages = request.NewImages
-                    };
-                    var productDetailResult = await CreateProductDetailInternal(itemResult.Data, productDetailCreate);
-                    if (!productDetailResult.Success) return productDetailResult;
-
-                    var priceCreate = new ProductPriceRequest
-                    {
-                        Price = request.Price
-                    };
-                    var priceResult = await CreatePriceInternal(priceCreate, productDetailResult.Data);
-                    if (!priceResult.Success) return priceResult;
-
-                    var imageCreate = new ProductImagesRequest
-                    {
-                        Images = request.NewImages
-                    };
-                    var imageResult = await CreateImageInternal(imageCreate, productDetailResult.Data);
-                    if (!imageResult.Success) return imageResult;
-
-                    await transaction.CommitAsync();
-                    await RemoveOldCache();
-                    return new ApiSuccessResult<int>(itemResult.Data);
-                }
-                catch (Exception ex)
+                var productDetailCreate = new ProductDetailRequest
                 {
-                    await transaction.RollbackAsync();
-                    return new ApiErrorResult<int>(ex.ToString());
-                }
-            });
+                    Detail = request.Detail,
+                    Version = request.Version,
+                    Note = request.Note,
+                    CategoryId = request.CategoryId,
+                    Status = request.Status,
+                    NewImages = request.NewImages
+                };
+                var productDetailResult = await CreateProductDetailInternal(itemResult.Data, productDetailCreate);
+                if (!productDetailResult.Success) return productDetailResult;
+
+                var priceCreate = new ProductPriceRequest
+                {
+                    Price = request.Price
+                };
+                var priceResult = await CreatePriceInternal(priceCreate, productDetailResult.Data);
+                if (!priceResult.Success) return priceResult;
+
+                var imageCreate = new ProductImagesRequest
+                {
+                    Images = request.NewImages
+                };
+                var imageResult = await CreateImageInternal(imageCreate, productDetailResult.Data);
+                if (!imageResult.Success) return imageResult;
+
+                await transaction.CommitAsync();
+                await RemoveOldCache();
+                return new ApiSuccessResult<int>(itemResult.Data);
+            }
+            catch (Exception ex)
+            {
+                await transaction.RollbackAsync();
+                return new ApiErrorResult<int>(ex.ToString());
+            }
         }
+        //public async Task<ApiResult<int>> CreateCombine(CombinedCreateOrUpdateRequest request, int userId)
+        //{
+        //    var executionStrategy = _db.Database.CreateExecutionStrategy();
+
+        //    return await executionStrategy.ExecuteAsync(async () =>
+        //    {
+        //        using var transaction = await _db.Database.BeginTransactionAsync();
+        //        try
+        //        {
+        //            var itemCreate = new ItemRequest
+        //            {
+        //                Title = request.Title,
+        //                Description = request.Description,
+        //                Keywords = request.Keywords,
+        //                Thumbnail = request.Thumbnail
+        //            };
+        //            var itemResult = await CreateItemInternal(userId, itemCreate);
+        //            if (!itemResult.Success) return itemResult;
+
+        //            var productDetailCreate = new ProductDetailRequest
+        //            {
+        //                Detail = request.Detail,
+        //                Version = request.Version,
+        //                Note = request.Note,
+        //                CategoryId = request.CategoryId,
+        //                Status = request.Status,
+        //                NewImages = request.NewImages
+        //            };
+        //            var productDetailResult = await CreateProductDetailInternal(itemResult.Data, productDetailCreate);
+        //            if (!productDetailResult.Success) return productDetailResult;
+
+        //            var priceCreate = new ProductPriceRequest
+        //            {
+        //                Price = request.Price
+        //            };
+        //            var priceResult = await CreatePriceInternal(priceCreate, productDetailResult.Data);
+        //            if (!priceResult.Success) return priceResult;
+
+        //            var imageCreate = new ProductImagesRequest
+        //            {
+        //                Images = request.NewImages
+        //            };
+        //            var imageResult = await CreateImageInternal(imageCreate, productDetailResult.Data);
+        //            if (!imageResult.Success) return imageResult;
+
+        //            await transaction.CommitAsync();
+        //            await RemoveOldCache();
+        //            return new ApiSuccessResult<int>(itemResult.Data);
+        //        }
+        //        catch (Exception ex)
+        //        {
+        //            await transaction.RollbackAsync();
+        //            return new ApiErrorResult<int>(ex.ToString());
+        //        }
+        //    });
+        //}
         private async Task<ApiResult<int>> CreateItemInternal(int userId, ItemRequest request)
         {
             var code = StringHelper.GenerateProductCode(request.Title!);
@@ -97,7 +149,7 @@ namespace FN.Application.Catalog.Product.Pattern
             await _db.SaveChangesAsync();
             return new ApiSuccessResult<int>(newItem.Id);
         }
-        private async Task<ApiResult<int>> CreateProductDetailInternal(int itemId ,ProductDetailRequest request)
+        private async Task<ApiResult<int>> CreateProductDetailInternal(int itemId, ProductDetailRequest request)
         {
             var sanitizer = new HtmlSanitizer();
             sanitizer.AllowedAttributes.Add("class");
@@ -114,7 +166,7 @@ namespace FN.Application.Catalog.Product.Pattern
             await _db.SaveChangesAsync();
 
             return new ApiSuccessResult<int>(productDetail.Id);
-        }      
+        }
         private async Task<ApiResult<int>> CreatePriceInternal(ProductPriceRequest request, int productDetailId)
         {
             var price = new ProductPrice()
