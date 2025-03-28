@@ -16,12 +16,5 @@ namespace FN.ViewModel.Catalog.Blogs
 
         //Blog
         public string? Detail { get; set; }
-
-        //Quản lý Image của Blog đăng từ CkEditor lên Cloud
-        public List<IFormFile>? ImageDetails { get; set; }
-    }
-    public class BlogImageCreateOrUpdateRequest
-    {
-        public List<IFormFile>? ImageDetails { get; set; }
     }
 }

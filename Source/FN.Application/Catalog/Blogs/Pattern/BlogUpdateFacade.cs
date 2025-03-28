@@ -38,12 +38,7 @@ namespace FN.Application.Catalog.Blogs.Pattern
                         Detail = request.Detail
                     };
                     var blogResult = await UpdateBlogInternal(blogUpdate, itemResult.Data, blogId);
-                    if(!itemResult.Success) return blogResult;
-                    var imageUpload = new BlogImageCreateOrUpdateRequest
-                    {
-                        ImageDetails = request.ImageDetails
-                    };
-                    var imageResult = await CreateBlogImageDetail(imageUpload, blogResult.Data);
+                    if(!itemResult.Success) return blogResult;                 
                     await RemoveOldCache();
                     await transaction.CommitAsync();
                     return new ApiSuccessResult<int>(itemId);
@@ -99,31 +94,6 @@ namespace FN.Application.Catalog.Blogs.Pattern
             await _db.SaveChangesAsync();
             return new ApiSuccessResult<int>(blog.Id);
         }
-        private async Task<ApiResult<int>> CreateBlogImageDetail(BlogImageCreateOrUpdateRequest request, int blogId)
-        {
-            var blog = await _db.Blogs.Include(x => x.Item).FirstOrDefaultAsync(x => x.Id == blogId);
-            if (blog == null) return new ApiErrorResult<int>("Blog not found");
-            if (blog.BlogImages == null) blog.BlogImages = new List<BlogImage>();
-
-            //Nếu không có ảnh thì bỏ qua việc upload ảnh
-            if (request.ImageDetails == null || !request.ImageDetails.Any()) return new ApiSuccessResult<int>(blogId); ;
-
-            foreach (var imageFile in request.ImageDetails)
-            {
-                var publicId = _image.GenerateId();
-                var newImage = await UploadImage(imageFile, publicId, $"{blog.ItemId.ToString()}/assets");
-                if (newImage == null) return new ApiErrorResult<int>("Upload image failed");
-                var newBlogImage = new BlogImage()
-                {
-                    BlogId = blogId,
-                    ImageUrl = newImage,
-                    Caption = blog.Item.Title,
-                    PublicId = publicId
-                };
-                _db.BlogsImages.Add(newBlogImage);
-            }
-            var result = await _db.SaveChangesAsync();
-            return new ApiSuccessResult<int>(result);
-        }
+        
     }
 }

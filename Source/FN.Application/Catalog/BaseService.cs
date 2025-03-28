@@ -3,6 +3,7 @@ using FN.Application.Systems.Redis;
 using FN.DataAccess;
 using FN.Utilities;
 using Microsoft.AspNetCore.Http;
+using System.Text.RegularExpressions;
 
 namespace FN.Application.Catalog
 {
@@ -18,6 +19,19 @@ namespace FN.Application.Catalog
             _dbRedis = dbRedis;
             _image = image;
             ROOT = root;
+        }
+        protected async Task<string> ProcessContentImages(string content, string folder)
+        {
+            var regex = new Regex(@"<img[^>]*src=""data:image/(?<type>[a-z]+);base64,(?<data>[^""]+)""[^>]*>", RegexOptions.IgnoreCase);
+            var matches = regex.Matches(content);
+
+            foreach (Match match in matches)
+            {
+                var imageUrl = await _image.UploadImageRegex(match.Value, Folder(folder));
+                content = content.Replace(match.Value, $"<img src=\"{imageUrl}\" />");
+            }
+
+            return content;
         }
         protected async Task<string?> UploadImage(IFormFile thumbnail, string publicId, string itemId)
         {
@@ -48,9 +62,9 @@ namespace FN.Application.Catalog
                 .SetRemoveTick(true).Build();
             return timeNow;
         }
-        protected string Folder(string code)
+        protected string Folder(string folderChild)
         {
-            return $"{ROOT}/{code}";
+            return $"{ROOT}/{folderChild}";
         }
     }
 }

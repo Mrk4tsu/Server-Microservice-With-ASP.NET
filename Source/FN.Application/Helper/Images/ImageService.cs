@@ -2,6 +2,7 @@
 using CloudinaryDotNet;
 using CloudinaryDotNet.Actions;
 using System.Net;
+using System.Text.RegularExpressions;
 
 namespace FN.Application.Helper.Images
 {
@@ -66,6 +67,24 @@ namespace FN.Application.Helper.Images
                 return null;
             }
             return null;
+        }
+        public async Task<string> UploadImageRegex(string base64Image, string folderName)
+        {
+            if (string.IsNullOrEmpty(base64Image)) return string.Empty;
+            var folder = $"{Root}/{folderName}";
+            var base64Data = Regex.Match(base64Image, @"data:image/(?<type>.+?);base64,(?<data>.+)").Groups["data"].Value;
+            var bytes = Convert.FromBase64String(base64Data);
+            using var stream = new MemoryStream(bytes);
+            var uploadParams = new ImageUploadParams
+            {
+                File = new FileDescription(Guid.NewGuid().ToString(), stream),
+                Folder = folder,
+                UseFilename = true,
+                UniqueFilename = false,
+            };
+
+            var uploadResult = await _cloudinary.UploadAsync(uploadParams);
+            return uploadResult.SecureUrl.ToString();
         }
         public async Task<List<string>> UploadImages(List<IFormFile> files, string folderName)
         {
