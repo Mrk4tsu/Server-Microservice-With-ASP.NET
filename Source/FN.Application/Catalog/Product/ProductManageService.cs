@@ -32,12 +32,12 @@ namespace FN.Application.Catalog.Product
             _config = configuration;
         }
 
-        public async Task<ApiResult<int>> Create(CreateProductRequest request, int userId)
+        public async Task<ApiResult<int>> Create(CombinedCreateOrUpdateRequest request, int userId)
         {
             var facade = new CreateProductFacade(_db, _dbRedis, _image);
-            return await facade.Create(request, userId);
+            return await facade.CreateCombine(request, userId);
         }
-        public async Task<ApiResult<bool>> Update(CombinedUpdateRequest request, int itemId, int productId, int userId)
+        public async Task<ApiResult<bool>> Update(CombinedCreateOrUpdateRequest request, int itemId, int productId, int userId)
         {
             var facade = new UpdateProductFacade(_db, _dbRedis, _image);
             return await facade.UpdateCombined(request, itemId, productId, userId);

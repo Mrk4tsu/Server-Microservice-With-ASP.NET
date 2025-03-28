@@ -1,8 +1,6 @@
 ﻿using FN.DataAccess;
 using FN.DataAccess.Entities;
 using FN.DataAccess.Enums;
-using FN.DataAccess.Migrations;
-using Mailjet.Client.Resources;
 
 namespace FN.Application.Catalog.Blogs.Interactions
 {

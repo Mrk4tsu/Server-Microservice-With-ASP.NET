@@ -8,7 +8,7 @@ namespace FN.ProductService.Controllers
 {
     [Route("api/public")]
     [ApiController, AllowAnonymous]
-    public class PublicsController : ControllerBase
+    public class PublicsController : BasesController
     {
         private readonly IProductPublicService _service;
         public PublicsController(IProductPublicService service)
@@ -26,9 +26,17 @@ namespace FN.ProductService.Controllers
             return Ok(products);
         }
         [HttpGet("{id}")]
+        public async Task<IActionResult> GetProductGetProductWithoutLogin(int id)
+        {
+            var product = await _service.GetProductWithoutLogin(id);
+            return Ok(product);
+        }
+        [HttpGet("product/{id}")]
         public async Task<IActionResult> GetProduct(int id)
         {
-            var product = await _service.GetProduct(id);
+            var userId = GetUserIdFromClaims();
+            if (userId == null) return Unauthorized();
+            var product = await _service.GetProduct(id, userId.Value);
             return Ok(product);
         }
     }

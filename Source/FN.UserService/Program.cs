@@ -26,7 +26,7 @@ var app = builder.Build();
 
 app.ConfigureSwaggerExplorer()
     .ConfigureCORS(builder.Configuration)
-    .ConfigureAppExplorer()
+    .ConfigureAppForwarded()
     .AddIdentityAuthMiddlewares()
     .ConfigureAppPayLoad();
 

@@ -8,6 +8,7 @@ using FN.ViewModel.Catalog.Blogs;
 using FN.ViewModel.Helper.API;
 using Ganss.Xss;
 using Microsoft.EntityFrameworkCore;
+using System.Reflection.Metadata;
 
 namespace FN.Application.Catalog.Blogs.Pattern
 {
@@ -35,18 +36,10 @@ namespace FN.Application.Catalog.Blogs.Pattern
                     if (!newItemResult.Success) return newItemResult;
                     var newBlog = new BlogCreateOrUpdateRequest
                     {
-                        Detail = request.Detail!
+                        Detail = await ProcessContentImages(request.Detail!, $"{newItemResult.Data}/assets")
                     };
                     var newBlogResult = await CreateBlogInternal(newBlog, newItemResult.Data);
                     if (!newBlogResult.Success) return newBlogResult;
-
-                    var newBlogImage = new BlogImageCreateOrUpdateRequest
-                    {
-                        ImageDetails = request.ImageDetails
-                    };
-                    var newBlogImageResult = await CreateBlogImageDetail(newBlogImage, newBlogResult.Data);
-                    if (!newBlogImageResult.Success) return newBlogImageResult;
-
                     await transaction.CommitAsync();
                     await RemoveOldCache();
                     return new ApiSuccessResult<int>(newItemResult.Data);
@@ -57,6 +50,56 @@ namespace FN.Application.Catalog.Blogs.Pattern
                 }
             }
         }
+#if POOLING
+        //public async Task<ApiResult<int>> CreateCombine(BlogCombineCreateOrUpdateRequest request, int userId)
+        //{
+        //    var strategy = _db.Database.CreateExecutionStrategy();
+        //    return await strategy.ExecuteAsync(async () =>
+        //    {
+        //        using (var transaction = await _db.Database.BeginTransactionAsync())
+        //        {
+        //            try
+        //            {
+        //                // Create new Item
+        //                var newItem = new BaseRequest
+        //                {
+        //                    Title = request.Title!,
+        //                    Description = request.Description!,
+        //                    Keywords = request.Keywords!,
+        //                    Thumbnail = request.Thumbnail!
+        //                };
+        //                var newItemResult = await CreateItemInternal(newItem, userId);
+        //                if (!newItemResult.Success) return newItemResult;
+
+        //                var newBlog = new BlogCreateOrUpdateRequest
+        //                {
+        //                    Detail = request.Detail!
+        //                };
+        //                var newBlogResult = await CreateBlogInternal(newBlog, newItemResult.Data);
+        //                if (!newBlogResult.Success) return newBlogResult;
+
+        //                var newBlogImage = new BlogImageCreateOrUpdateRequest
+        //                {
+        //                    ImageDetails = request.ImageDetails
+        //                };
+        //                var newBlogImageResult = await CreateBlogImageDetail(newBlogImage, newBlogResult.Data);
+        //                if (!newBlogImageResult.Success) return newBlogImageResult;
+
+        //                await transaction.CommitAsync();
+        //                await RemoveOldCache();
+        //                return new ApiSuccessResult<int>(newItemResult.Data);
+        //            }
+        //            catch (Exception ex)
+        //            {
+        //                await transaction.RollbackAsync();
+        //                return new ApiErrorResult<int>("Error: " + ex.Message);
+        //            }
+        //        }
+        //    });
+        //}
+
+#endif
+
         private async Task<ApiResult<int>> CreateItemInternal(BaseRequest request, int userId)
         {
             var code = StringHelper.GenerateProductCode(request.Title!);
@@ -82,7 +125,6 @@ namespace FN.Application.Catalog.Blogs.Pattern
 
             _db.Items.Update(newItem);
             await _db.SaveChangesAsync();
-
             return new ApiSuccessResult<int>(newItem.Id);
         }
         private async Task<ApiResult<int>> CreateBlogInternal(BlogCreateOrUpdateRequest request, int itemId)
@@ -104,33 +146,8 @@ namespace FN.Application.Catalog.Blogs.Pattern
 
             _db.Blogs.Add(newBlog);
             await _db.SaveChangesAsync();
+
             return new ApiSuccessResult<int>(newBlog.Id);
-        }
-        private async Task<ApiResult<int>> CreateBlogImageDetail(BlogImageCreateOrUpdateRequest request, int blogId)
-        {
-            var blog = await _db.Blogs.Include(x => x.Item).FirstOrDefaultAsync(x => x.Id == blogId);
-            if (blog == null) return new ApiErrorResult<int>("Blog not found");
-            if (blog.BlogImages == null) blog.BlogImages = new List<BlogImage>();
-
-            //Nếu không có ảnh thì bỏ qua việc upload ảnh
-            if (request.ImageDetails == null || !request.ImageDetails.Any()) return new ApiSuccessResult<int>(blogId); ;
-
-            foreach (var imageFile in request.ImageDetails)
-            {
-                var publicId = _image.GenerateId();
-                var newImage = await UploadImage(imageFile, publicId, $"{blog.ItemId.ToString()}/assets");
-                if (newImage == null) return new ApiErrorResult<int>("Upload image failed");
-                var newBlogImage = new BlogImage()
-                {
-                    BlogId = blogId,
-                    ImageUrl = newImage,
-                    Caption = blog.Item.Title,
-                    PublicId = publicId
-                };
-                _db.BlogsImages.Add(newBlogImage);
-            }
-            var result = await _db.SaveChangesAsync();
-            return new ApiSuccessResult<int>(result);
         }
     }
 }

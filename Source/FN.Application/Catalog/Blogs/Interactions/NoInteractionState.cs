@@ -20,7 +20,7 @@ namespace FN.Application.Catalog.Blogs.Interactions
             blogIn.DislikeCount++;
             await blog.Init(blogId, InteractionType.Dislike, userId);
             await _db.SaveChangesAsync();
-            blog.SetState(new DislikedState(_db), blogId, userId);
+            await blog.SetState(new DislikedState(_db), blogId, userId);
         }
 
         public async Task HandleLike(BlogInteraction blog, int blogId, int userId)
@@ -30,7 +30,7 @@ namespace FN.Application.Catalog.Blogs.Interactions
             blogIn.LikeCount++;
             await blog.Init(blogId, InteractionType.Like, userId);
             await _db.SaveChangesAsync();
-            blog.SetState(new LikedState(_db), blogId, userId);
+            await blog.SetState(new LikedState(_db), blogId, userId);
         }
     }
 }

@@ -7,6 +7,12 @@
             Success = true;
             Data = data;
         }
+        public ApiSuccessResult(T data, string message)
+        {
+            Success = true;
+            Data = data;
+            Message = message;
+        }
         public ApiSuccessResult()
         {
             Success = true;

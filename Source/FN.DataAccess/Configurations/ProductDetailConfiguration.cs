@@ -25,8 +25,8 @@ namespace FN.DataAccess.Configurations
 
             builder.HasIndex(x => x.ItemId).HasDatabaseName("idx_productDetail_itemId");
             builder.HasIndex(x => x.CategoryId).HasDatabaseName("idx_productDetail_categoryId");
-            builder.HasOne(x => x.Item).WithMany(x => x.ProductDetails).HasForeignKey(x => x.ItemId).OnDelete(DeleteBehavior.Cascade);
-            builder.HasOne(x => x.Category).WithMany(x => x.ProductDetails).HasForeignKey(x => x.CategoryId).OnDelete(DeleteBehavior.Cascade);
+            builder.HasOne(x => x.Item).WithMany(x => x.ProductDetails).HasForeignKey(x => x.ItemId);
+            builder.HasOne(x => x.Category).WithMany(x => x.ProductDetails).HasForeignKey(x => x.CategoryId);
         }
     }
 }

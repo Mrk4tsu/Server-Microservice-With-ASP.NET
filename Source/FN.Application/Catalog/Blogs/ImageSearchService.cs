@@ -12,14 +12,15 @@ namespace FN.Application.Catalog.Blogs
         private readonly string _googleCx;
         private readonly string _unsplashAccessKey;
         public ImageSearchService(
-        IConfiguration config,
-        HttpClient httpClient)
+            IConfiguration config,
+            HttpClient httpClient)
         {
             _httpClient = httpClient;
-            _googleApiKey = config["ApiKeys:GoogleApiKey"];
-            _googleCx = config["ApiKeys:GoogleCx"];
-            _unsplashAccessKey = config["ApiKeys:UnsplashAccessKey"];
+            _googleApiKey = config["ApiKeys:GoogleApiKey"] ?? throw new ArgumentNullException(nameof(config), "Google API key is missing.");
+            _googleCx = config["ApiKeys:GoogleCx"] ?? throw new ArgumentNullException(nameof(config), "Google CX is missing.");
+            _unsplashAccessKey = config["ApiKeys:UnsplashAccessKey"] ?? throw new ArgumentNullException(nameof(config), "Unsplash access key is missing.");
         }
+
         public async Task<string> GetGameThumbnailAsync(string query)
         {
             try

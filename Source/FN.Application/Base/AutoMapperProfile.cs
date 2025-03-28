@@ -16,6 +16,7 @@ namespace FN.Application.Base
                 .ForMember(dest => dest.UserId, opt => opt.MapFrom(src => src.Id));
 
             CreateMap<ProductDetail, ProductDetailViewModel>()
+             .ForMember(dest => dest.ProductId, opt => opt.MapFrom(src => src.Id))
             .ForMember(dest => dest.CategoryIcon, opt => opt.MapFrom(src => src.Category.SeoImage))
             .ForMember(dest => dest.CategoryName, opt => opt.MapFrom(src => src.Category.Name))
             .ForMember(dest => dest.CategorySeoAlias, opt => opt.MapFrom(src => src.Category.SeoAlias))

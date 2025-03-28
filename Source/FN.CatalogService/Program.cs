@@ -9,7 +9,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
 builder.Services.AddSwaggerExplorer()
-    .InjectDbContextPool(builder.Configuration)
+    .InjectDbContext(builder.Configuration)
     .InjectRedis(builder.Configuration)
     .InjectMongoDb(builder.Configuration)
     .AddIdentityHandlersAndStores()
@@ -39,7 +39,7 @@ var app = builder.Build();
 
 app.ConfigureSwaggerExplorer()
     .ConfigureCORS(builder.Configuration)
-    .ConfigureAppExplorer()
+    .ConfigureAppForwarded()
     .ConfigureAppPayLoad()
     .AddIdentityAuthMiddlewares();
 

@@ -34,7 +34,7 @@ namespace FN.ProductService.Controllers
             return Ok(result);
         }
         [HttpPost("create")]
-        public async Task<IActionResult> CreateProduct([FromForm] CreateProductRequest request)
+        public async Task<IActionResult> CreateProduct([FromForm] CombinedCreateOrUpdateRequest request)
         {
             var userId = GetUserIdFromClaims();
             if (userId == null)
@@ -45,7 +45,7 @@ namespace FN.ProductService.Controllers
             return Ok(result);
         }
         [HttpPut("update/{itemId}/{productId}")]
-        public async Task<IActionResult> Update(int itemId, int productId, [FromForm] CombinedUpdateRequest request)
+        public async Task<IActionResult> Update(int itemId, int productId, [FromForm] CombinedCreateOrUpdateRequest request)
         {
             var userId = GetUserIdFromClaims();
             if (userId == null) return Unauthorized();
