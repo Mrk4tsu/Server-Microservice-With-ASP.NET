@@ -1,17 +1,16 @@
 ﻿using AutoMapper;
-using FN.Application.Helper.Devices;
 using FN.Application.Helper.Images;
 using FN.Application.Systems.Redis;
 using FN.Application.Systems.Token;
 using FN.DataAccess.Entities;
 using FN.Utilities;
-using FN.Utilities.Device;
 using FN.ViewModel.Helper.API;
 using FN.ViewModel.Systems.Token;
 using FN.ViewModel.Systems.User;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using MongoDB.Driver;
+using RestSharp;
 using System.Net;
 
 namespace FN.Application.Systems.User
@@ -22,7 +21,6 @@ namespace FN.Application.Systems.User
         private readonly UserManager<AppUser> _userManager;
         private readonly SignInManager<AppUser> _signInManager;
         private readonly ITokenService _tokenService;
-        private readonly IMongoCollection<UserDevice> _userDevicesCollection;
         public AuthService(IRedisService redisService,
                         IMongoDatabase database,
                         ITokenService tokenService,
@@ -35,92 +33,56 @@ namespace FN.Application.Systems.User
             _redisService = redisService;
             _userManager = userManager;
             _tokenService = tokenService;
-            _userDevicesCollection = database.GetCollection<UserDevice>("UserDevices");
-        }
-        private string GetClientIP(HttpContext context)
-        {
-            var ipHeaders = new[] { "X-Forwarded-For", "Forwarded", "X-Real-IP" };
-            foreach (var header in ipHeaders)
-            {
-                if (context.Request.Headers.TryGetValue(header, out var headerValue))
-                {
-                    var ip = headerValue.ToString().Split(',')[0].Trim();
-                    if (!string.IsNullOrEmpty(ip) && IsIPv4(ip))
-                        return ip;
-                }
-            }
-
-            var remoteIp = context.Connection.RemoteIpAddress;
-            if (remoteIp != null)
-            {
-                if (remoteIp.Equals(IPAddress.IPv6Loopback))
-                    return "127.0.0.1";
-
-                if (remoteIp.IsIPv4MappedToIPv6)
-                    return remoteIp.MapToIPv4().ToString();
-
-                return remoteIp.ToString();
-            }
-
-            return "Unknown";
-        }
-        private bool IsIPv4(string ip)
-        {
-            return IPAddress.TryParse(ip, out var address) &&
-                   address.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork;
         }
         public async Task<ApiResult<TokenResponse>> Authenticate(LoginDTO request, HttpContext context)
         {
+            var ipAddress = GetPublicIPAddress(context);
+            if (string.IsNullOrEmpty(ipAddress))
+            {
+                return new ApiErrorResult<TokenResponse>("Đăng nhập bất thường");
+            }
             var user = await _userManager.FindByNameAsync(request.UserName);
             if (user == null) return new ApiErrorResult<TokenResponse>("Tài khoản không chính xác");
 
             var result = await _signInManager.PasswordSignInAsync(user, request.Password, request.RememberMe, true);
             if (!result.Succeeded) return new ApiErrorResult<TokenResponse>("Tài khoản mật khẩu không chính xác");
 
-            string clientId = request.ClientId;
-            var ipAddress = GetClientIP(context);
-            bool isNewDevice = false;
-            if (string.IsNullOrEmpty(clientId)) clientId = Guid.NewGuid().ToString();
+            string clientId = "";
+            if (string.IsNullOrEmpty(request.ClientId))
+                clientId = Guid.NewGuid().ToString();
+            else clientId = request.ClientId;
+
             var tokenReq = new TokenRequest
             {
                 UserId = user.Id,
                 ClientId = clientId
             };
-            if (!await IsDeviceRegistered(tokenReq))
+            var publish = new LoginResponse
             {
-                isNewDevice = true;
-                await SaveDeviceInfo(tokenReq, request.UserAgent, ipAddress);
-            }
-            var deviceInfo = Commons.ParseUserAgent(request.UserAgent);
-            var device = new DeviceInfoDetail
-            {
-                ClientId = clientId,
-                Browser = deviceInfo.Browser,
-                DeviceType = deviceInfo.DeviceType,
-                IPAddress = ipAddress,
-                LastLogin = DateTime.Now,
-                OS = deviceInfo.OS
+                Email = user.Email!,
+                Username = user.UserName!,
+                Token = tokenReq,
+                IpAddress = ipAddress,
+                UserAgent = request.UserAgent,
             };
-            if (isNewDevice)
-            {
-                var publish = new LoginResponse
-                {
-                    Email = user.Email!,
-                    Username = user.UserName!,
-                    DeviceInfo = device
-                };
-                await _redisService.Publish(SystemConstant.MESSAGE_LOGIN_EVENT, publish);
-            }
+            await _redisService.Publish(SystemConstant.MESSAGE_LOGIN_EVENT, publish);
+
             var expires = request.RememberMe ? DateTime.Now.AddDays(14) : DateTime.Now.AddDays(3);
-            var token = await _tokenService.GenerateAccessToken(user);
+            var tokenTask = _tokenService.GenerateAccessToken(user);
+            var refreshToken = _tokenService.GenerateRefreshToken();
+
+            await Task.WhenAll(tokenTask);
+
             var response = new TokenResponse
             {
-                AccessToken = token,
-                RefreshToken = _tokenService.GenerateRefreshToken(),
+                AccessToken = tokenTask.Result,
+                RefreshToken = refreshToken,
                 RefreshTokenExpiry = expires,
                 ClientId = clientId
             };
+
             await _tokenService.SaveRefreshToken(response.RefreshToken, tokenReq, expires - DateTime.Now);
+
             return new ApiSuccessResult<TokenResponse>(response);
         }
         public async Task<ApiResult<bool>> Register(RegisterDTO request)
@@ -129,7 +91,7 @@ namespace FN.Application.Systems.User
             {
                 var cacheKey = $"user:{request.UserName}";
                 var existed = await _redisService.KeyExist(cacheKey);
-                if(existed) return new ApiErrorResult<bool>("Tài khoản đã tồn tại");
+                if (existed) return new ApiErrorResult<bool>("Tài khoản đã tồn tại");
                 if (await _userManager.FindByNameAsync(request.UserName) != null)
                     return new ApiErrorResult<bool>("Tài khoản đã tồn tại");
 
@@ -165,93 +127,68 @@ namespace FN.Application.Systems.User
                 return new ApiErrorResult<bool>(ex.Message);
             }
         }
-        public async Task<ApiResult<bool>> RevokeDevice(TokenRequest request)
+        public async Task<ApiResult<TokenResponse>> RefreshToken(RefreshTokenRequest request)
         {
-            try
-            {
-                //1. Xóa Client khỏi danh sách thiết bị đã đăng ký
-                var filter = Builders<UserDevice>.Filter.Eq(u => u.UserId, request.UserId);
-                var update = Builders<UserDevice>.Update.PullFilter(u => u.Devices, d => d.ClientId == request.ClientId);
+            var currentToken = await _tokenService.GetRefreshToken(request);
+            if (currentToken == null || currentToken != request.RefreshToken)
+                return new ApiErrorResult<TokenResponse>("Refresh token không hợp lệ");
+            var user = await _userManager.FindByIdAsync(request.UserId.ToString());
+            if (user == null) return new ApiErrorResult<TokenResponse>("Tài khoản không tồn tại");
 
-                await _userDevicesCollection.UpdateOneAsync(filter, update);
-                //2. Xóa Refresh Token
-                await _tokenService.RemoveRefreshToken(request);
-                return new ApiSuccessResult<bool>();
-            }
-            catch (Exception ex)
-            {
-                return new ApiErrorResult<bool>(ex.Message);
-            }
-        }
-        public async Task<ApiResult<bool>> RemoveAllDevice(int userId)
-        {
-            try
-            {
-                // 1. Xóa tất cả thiết bị đã đăng ký trong MongoDB
-                var filter = Builders<UserDevice>.Filter.Eq(u => u.UserId, userId);
-                var update = Builders<UserDevice>.Update.Set(u => u.Devices, new List<DeviceInfoDetail>());
-                await _userDevicesCollection.UpdateOneAsync(filter, update);
+            var token = await _tokenService.GenerateAccessToken(user);
+            var newRefreshToken = _tokenService.GenerateRefreshToken();
 
-                // 2. Xóa tất cả Refresh Tokens của user
-                await _tokenService.RemoveAllTokensForUser(userId);
-
-                return new ApiSuccessResult<bool>(true);
-            }
-            catch (Exception ex)
+            var response = new TokenResponse
             {
-                return new ApiErrorResult<bool>(ex.Message);
-            }
-        }
-        public async Task SaveDeviceInfo(TokenRequest request, string userAgent, string ipAddress)
-        {
-            var device = Commons.ParseUserAgent(userAgent);
-            var deviceInfo = new DeviceInfoDetail
-            {
-                ClientId = request.ClientId,
-                Browser = device.Browser,
-                DeviceType = device.DeviceType,
-                IPAddress = ipAddress,
-                LastLogin = DateTime.Now,
-                OS = device.OS,
+                AccessToken = token,
+                RefreshToken = newRefreshToken,
+                RefreshTokenExpiry = DateTime.Now.AddDays(3),
+                ClientId = request.ClientId
             };
-            // Lấy danh sách thiết bị hiện tại từ cơ sở dữ liệu
-            var filter = Builders<UserDevice>.Filter.Eq(u => u.UserId, request.UserId);
-            var userDevice = await _userDevicesCollection.Find(filter).FirstOrDefaultAsync();
+            await _tokenService.SaveRefreshToken(newRefreshToken, request, response.RefreshTokenExpiry - DateTime.Now);
+            return new ApiSuccessResult<TokenResponse>(response);
+        }
+        private string GetPublicIPAddress(HttpContext context)
+        {
+            //try
+            //{
+            //    // Tạo client và yêu cầu
+            //    var client = new RestClient("https://api.ipify.org");
+            //    var request = new RestRequest("", Method.Get);
 
-            var deviceList = new DeviceLinkedList(10, request.UserId, _tokenService);
-
-            if (userDevice != null)
+            //    // Thực hiện yêu cầu và lấy kết quả
+            //    var response = client.Execute(request);
+            //    return response.Content ?? string.Empty;
+            //}
+            //catch (Exception ex)
+            //{
+            //    Console.WriteLine("Lỗi khi lấy địa chỉ IP public: " + ex.Message);
+            //    return string.Empty;
+            //}
+            var ipHeaders = new[] { "X-Forwarded-For", "Forwarded", "X-Real-IP" };
+            foreach (var header in ipHeaders)
             {
-                // Thêm các thiết bị hiện tại vào Linked List
-                foreach (var deviceItem in userDevice.Devices)
+                if (context.Request.Headers.TryGetValue(header, out var headerValue))
                 {
-                    await deviceList.Add(deviceItem);
+                    var ip = headerValue.ToString().Split(',')[0].Trim();
+                    if (!string.IsNullOrEmpty(ip))
+                        return ip;
                 }
             }
-            await deviceList.Add(deviceInfo);
-            var update = Builders<UserDevice>.Update.Set(u => u.Devices, deviceList.ToList());
-            await _userDevicesCollection.UpdateOneAsync(filter, update, new UpdateOptions { IsUpsert = true });
-        }
-        public async Task<ApiResult<List<DeviceInfoDetail>>> GetRegisteredDevices(int userId)
-        {
-            var userDevice = await _userDevicesCollection.Find(u => u.UserId == userId).FirstOrDefaultAsync();
-            if (userDevice == null)
+
+            var remoteIp = context.Connection.RemoteIpAddress;
+            if (remoteIp != null)
             {
-                return new ApiErrorResult<List<DeviceInfoDetail>>("Không có CLJ hết");
+                if (remoteIp.Equals(IPAddress.IPv6Loopback))
+                    return "127.0.0.1";
+
+                if (remoteIp.IsIPv4MappedToIPv6)
+                    return remoteIp.MapToIPv4().ToString();
+
+                return remoteIp.ToString();
             }
-            return new ApiSuccessResult<List<DeviceInfoDetail>>(userDevice.Devices);
-        }
-        public async Task<bool> IsDeviceRegistered(TokenRequest request)
-        {
-            var filter = Builders<UserDevice>.Filter.And(
-            Builders<UserDevice>.Filter.Eq(u => u.UserId, request.UserId),
-            Builders<UserDevice>.Filter.ElemMatch(u => u.Devices,
-                Builders<DeviceInfoDetail>.Filter.Eq(d => d.ClientId, request.ClientId)));
-            return await _userDevicesCollection.Find(filter).AnyAsync();
-        }
-        public Task<ApiResult<TokenResponse>> RefreshToken(RefreshTokenRequest request)
-        {
-            throw new NotImplementedException();
+
+            return "Unknown";
         }
     }
 }

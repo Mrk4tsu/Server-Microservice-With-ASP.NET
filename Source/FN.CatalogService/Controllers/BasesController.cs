@@ -15,7 +15,7 @@ namespace FN.ProductService.Controllers
 
             return int.Parse(userId);
         }
-        public static IActionResult Success(string? message = null, object data = null)
+        public static IActionResult Success(string? message = null, object? data = null)
         {
             return new OkObjectResult(new
             {
@@ -24,7 +24,7 @@ namespace FN.ProductService.Controllers
                 data
             });
         }
-        public static IActionResult Success(object data = null)
+        public static IActionResult Success(object? data = null)
         {
             return new OkObjectResult(new
             {
@@ -32,7 +32,7 @@ namespace FN.ProductService.Controllers
                 data
             });
         }
-        public static IActionResult Error(string? message = null, Code statusCode = Code.BadRequest, object errors = null)
+        public static IActionResult Error(string? message = null, Code statusCode = Code.BadRequest, object? errors = null)
         {
             return new ObjectResult(new
             {
@@ -44,7 +44,7 @@ namespace FN.ProductService.Controllers
                 StatusCode = (int)statusCode
             };
         }
-        public static IActionResult NotFound(string? message = null, object errors = null)
+        public static IActionResult NotFound(string? message = null, object? errors = null)
         {
             return new ObjectResult(new
             {
@@ -56,7 +56,7 @@ namespace FN.ProductService.Controllers
                 StatusCode = Code.NotFound.GetHashCode()
             };
         }
-        public static IActionResult BadRequest(string? message = null, object errors = null)
+        public static IActionResult BadRequest(string? message = null, object? errors = null)
         {
             return new ObjectResult(new
             {

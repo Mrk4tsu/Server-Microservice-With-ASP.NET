@@ -1,4 +1,5 @@
-﻿using FN.ViewModel.Helper;
+﻿using FN.Application.Systems.Redis;
+using FN.ViewModel.Helper;
 using Mailjet.Client;
 using Mailjet.Client.Resources;
 using Microsoft.Extensions.Options;
@@ -9,9 +10,11 @@ namespace FN.Application.Helper.Mail
     public class MailService : IMailService
     {
         private readonly MailSetting _smtpSettings;
-        public MailService(IOptions<MailSetting> smtpSettings)
+        private readonly IRedisService _redisService;
+        public MailService(IOptions<MailSetting> smtpSettings, IRedisService redisService)
         {
             _smtpSettings = smtpSettings.Value;
+            _redisService = redisService;
         }
         public async Task<bool> SendMail(string toMail, string subject, string templateId, JObject variables)
         {
@@ -105,6 +108,11 @@ namespace FN.Application.Helper.Mail
                 Console.WriteLine(string.Format("ErrorMessage: {0}", response.GetErrorMessage()));
                 return false;
             }
+        }
+        public async Task<bool> IsJustSendMail(int userId)
+        {
+            var key = $"auth:{userId}:just_send_mail";
+            return await _redisService.KeyExist(key);
         }
     }
 }

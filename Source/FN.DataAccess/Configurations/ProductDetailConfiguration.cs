@@ -19,14 +19,14 @@ namespace FN.DataAccess.Configurations
             builder.Property(x => x.LikeCount).HasDefaultValue(0).IsRequired();
             builder.Property(x => x.DislikeCount).HasDefaultValue(0).IsRequired();
             builder.Property(x => x.DownloadCount).HasDefaultValue(0).IsRequired();
-            builder.Property(x => x.Version).HasMaxLength(10);
+            builder.Property(x => x.Version).HasMaxLength(15);
             builder.Property(x => x.Note).HasMaxLength(250);
             builder.Property(x => x.Status).HasDefaultValue(ProductType.PUBLIC).IsRequired();
 
             builder.HasIndex(x => x.ItemId).HasDatabaseName("idx_productDetail_itemId");
             builder.HasIndex(x => x.CategoryId).HasDatabaseName("idx_productDetail_categoryId");
-            builder.HasOne(x => x.Item).WithMany(x => x.ProductDetails).HasForeignKey(x => x.ItemId).OnDelete(DeleteBehavior.Cascade);
-            builder.HasOne(x => x.Category).WithMany(x => x.ProductDetails).HasForeignKey(x => x.CategoryId).OnDelete(DeleteBehavior.Cascade);
+            builder.HasOne(x => x.Item).WithMany(x => x.ProductDetails).HasForeignKey(x => x.ItemId);
+            builder.HasOne(x => x.Category).WithMany(x => x.ProductDetails).HasForeignKey(x => x.CategoryId);
         }
     }
 }

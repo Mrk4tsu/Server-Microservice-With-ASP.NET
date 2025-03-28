@@ -20,10 +20,19 @@ namespace FN.DataAccess
 
             modelBuilder.Entity<IdentityRoleClaim<int>>().ToTable("role_claims");
             modelBuilder.Entity<IdentityUserToken<int>>().ToTable("user_tokens").HasKey(x => x.UserId);
+
+            modelBuilder.Seed();
         }
         public DbSet<Item> Items { get; set; }
         public DbSet<Category> Categories { get; set; }
         public DbSet<ProductDetail> ProductDetails { get; set; }
         public DbSet<ProductPrice> ProductPrices { get; set; }
+        public DbSet<ProductImage> ProductImages { get; set; }
+        public DbSet<Blog> Blogs { get; set; }
+        public DbSet<ProductOwner> ProductOwners { get; set; }
+        public DbSet<BlogImage> BlogsImages { get; set; }
+        public DbSet<UserBlogInteraction> UserBlogInteractions { get; set; }
+        public DbSet<UserOrder> Orders { get; set; }
+        public DbSet<Payment> Payments { get; set; }
     }
 }
