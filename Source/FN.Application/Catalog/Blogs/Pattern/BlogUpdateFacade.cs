@@ -35,7 +35,7 @@ namespace FN.Application.Catalog.Blogs.Pattern
 
                     var blogUpdate = new BlogCreateOrUpdateRequest
                     {
-                        Detail = request.Detail
+                        Detail = await ProcessContentImages(request.Detail!, itemId)
                     };
                     var blogResult = await UpdateBlogInternal(blogUpdate, itemResult.Data, blogId);
                     if(!itemResult.Success) return blogResult;                 

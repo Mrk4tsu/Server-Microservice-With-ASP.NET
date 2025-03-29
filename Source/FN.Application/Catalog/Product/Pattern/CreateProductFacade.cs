@@ -34,7 +34,7 @@ namespace FN.Application.Catalog.Product.Pattern
 
                 var productDetailCreate = new ProductDetailRequest
                 {
-                    Detail = request.Detail,
+                    Detail = await ProcessContentImages(request.Detail!, itemResult.Data),
                     Version = request.Version,
                     Note = request.Note,
                     CategoryId = request.CategoryId,

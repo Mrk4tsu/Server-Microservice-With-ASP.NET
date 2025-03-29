@@ -36,7 +36,7 @@ namespace FN.Application.Catalog.Blogs.Pattern
                     if (!newItemResult.Success) return newItemResult;
                     var newBlog = new BlogCreateOrUpdateRequest
                     {
-                        Detail = await ProcessContentImages(request.Detail!, $"{newItemResult.Data}/assets")
+                        Detail = await ProcessContentImages(request.Detail!, itemId: newItemResult.Data)
                     };
                     var newBlogResult = await CreateBlogInternal(newBlog, newItemResult.Data);
                     if (!newBlogResult.Success) return newBlogResult;

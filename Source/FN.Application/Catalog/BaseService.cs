@@ -1,9 +1,12 @@
-﻿using FN.Application.Helper.Images;
+﻿using CloudinaryDotNet.Actions;
+using CloudinaryDotNet;
+using FN.Application.Helper.Images;
 using FN.Application.Systems.Redis;
 using FN.DataAccess;
 using FN.Utilities;
 using Microsoft.AspNetCore.Http;
 using System.Text.RegularExpressions;
+using FN.DataAccess.Entities;
 
 namespace FN.Application.Catalog
 {
@@ -20,15 +23,37 @@ namespace FN.Application.Catalog
             _image = image;
             ROOT = root;
         }
-        protected async Task<string> ProcessContentImages(string content, string folder)
+        protected async Task<string> ProcessContentImages(string content, int itemId)
         {
-            var regex = new Regex(@"<img[^>]*src=""data:image/(?<type>[a-z]+);base64,(?<data>[^""]+)""[^>]*>", RegexOptions.IgnoreCase);
+            var regex = new Regex(@"<img[^>]*src\s*=\s*[""']?data:image/(?<type>[a-z]+);base64,(?<data>[^""']*)[""']?[^>]*>",
+                   RegexOptions.IgnoreCase | RegexOptions.Compiled, TimeSpan.FromMilliseconds(1500));
             var matches = regex.Matches(content);
 
             foreach (Match match in matches)
             {
-                var imageUrl = await _image.UploadImageRegex(match.Value, Folder(folder));
-                content = content.Replace(match.Value, $"<img src=\"{imageUrl}\" />");
+                var fullMatch = match.Value;
+                var base64Data = match.Groups["data"].Value;
+                var imageType = match.Groups["type"].Value;
+                var sanitizedData = base64Data
+                    .Trim()
+                    .Replace(" ", "+")
+                    .Replace("\n", "")
+                    .Replace("\r", "");
+
+                // Thêm padding nếu cần
+                if (sanitizedData.Length % 4 > 0)
+                    sanitizedData = sanitizedData.PadRight(sanitizedData.Length + (4 - sanitizedData.Length % 4), '=');
+
+                var imageBytes = Convert.FromBase64String(sanitizedData);
+                using var stream = new MemoryStream(imageBytes);
+
+
+                var imageUrl = await _image.UploadStream(stream, $"{Folder(itemId.ToString())}/assets");
+                content = content.Replace(fullMatch,
+                match.Value.Replace(
+                    $"data:image/{imageType};base64,{base64Data}",
+                    imageUrl
+                ));
             }
 
             return content;

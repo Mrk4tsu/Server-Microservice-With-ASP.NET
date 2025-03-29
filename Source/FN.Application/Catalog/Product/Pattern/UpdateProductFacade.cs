@@ -39,7 +39,7 @@ namespace FN.Application.Catalog.Product.Pattern
                         // Cập nhật ProductDetail
                         var productDetailUpdateRequest = new ProductDetailRequest
                         {
-                            Detail = request.Detail,
+                            Detail = await ProcessContentImages(request.Detail!, itemId),
                             Version = request.Version,
                             Note = request.Note,
                             CategoryId = request.CategoryId,
