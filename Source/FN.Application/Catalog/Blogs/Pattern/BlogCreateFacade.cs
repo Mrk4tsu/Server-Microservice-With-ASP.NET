@@ -132,13 +132,9 @@ namespace FN.Application.Catalog.Blogs.Pattern
             var item = await _db.Items.FindAsync(itemId);
             if (item == null) return new ApiErrorResult<int>("Item not found");
 
-            var sanitizer = new HtmlSanitizer();
-            sanitizer.AllowedAttributes.Add("class");
-            sanitizer.AllowedTags.Add("code");
-
             var newBlog = new Blog()
             {
-                Detail = sanitizer.Sanitize(request.Detail!),
+                Detail = ProcessSantizer(request.Detail!),
                 ItemId = itemId,
                 DislikeCount = 0,
                 LikeCount = 0,

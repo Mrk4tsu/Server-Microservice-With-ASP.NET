@@ -41,6 +41,48 @@ namespace FN.Application.Catalog.Blogs
             var facade = new BlogUpdateFacade(_db, _redis, _image, SystemConstant.BLOG_KEY);
             return await facade.Update(request, itemId, blogId, userId);
         }
+        public async Task<ApiResult<PagedResult<BlogViewModel>>> GetMyBlogs(BlogPagingRequest request, int userId)
+        {
+            var cachePageKey = $"{SystemConstant.BLOG_KEY}:{userId}";
+
+            // Kiểm tra cache
+            if (await _redis.KeyExist(cachePageKey))
+            {
+                var cachedData = await _redis.GetValue<PagedResult<BlogViewModel>>(cachePageKey);
+                if (cachedData != null) return new ApiSuccessResult<PagedResult<BlogViewModel>>(cachedData);
+            }
+
+            // Truy vấn tổng số blog trước khi phân trang
+            var query = _db.Blogs.AsNoTracking()
+                .Where(x => !x.Item.IsDeleted && x.Item.UserId == userId)
+                .Include(x => x.Item)
+                .ThenInclude(x => x.User);
+
+            var totalRecords = await query.Select(x => x.Id).CountAsync();
+
+            // Truy vấn danh sách blog đã phân trang
+            var blogs = await query
+                .OrderByDescending(x => x.Item.CreatedDate)
+                .Skip((request.PageIndex - 1) * request.PageSize)
+                .Take(request.PageSize)
+                .ToListAsync();
+
+            // Ánh xạ dữ liệu bằng AutoMapper
+            var data = _mapper.Map<List<BlogViewModel>>(blogs);
+
+            var result = new PagedResult<BlogViewModel>
+            {
+                TotalRecords = totalRecords,
+                PageIndex = request.PageIndex,
+                PageSize = request.PageSize,
+                Items = data
+            };
+
+            // Lưu cache
+            await _redis.SetValue(cachePageKey, result);
+
+            return new ApiSuccessResult<PagedResult<BlogViewModel>>(result);
+        }
         public async Task<ApiResult<PagedResult<BlogViewModel>>> GetBlogs(BlogPagingRequest request)
         {
             var cachePageKey = SystemConstant.BLOG_KEY;

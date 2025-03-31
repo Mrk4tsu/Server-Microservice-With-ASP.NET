@@ -7,6 +7,7 @@ using FN.Utilities;
 using Microsoft.AspNetCore.Http;
 using System.Text.RegularExpressions;
 using FN.DataAccess.Entities;
+using Ganss.Xss;
 
 namespace FN.Application.Catalog
 {
@@ -22,6 +23,19 @@ namespace FN.Application.Catalog
             _dbRedis = dbRedis;
             _image = image;
             ROOT = root;
+        }
+
+        protected string ProcessSantizer(string content)
+        {
+            var sanitizer = new HtmlSanitizer();
+            sanitizer.AllowedAttributes.Add("class");
+            sanitizer.AllowedTags.Add("code");
+            sanitizer.AllowedCssProperties.Clear();
+            sanitizer.AllowedCssProperties.Add("font-size");
+            sanitizer.AllowedCssProperties.Add("font-style");
+            sanitizer.AllowedCssProperties.Add("line-height");
+
+            return sanitizer.Sanitize(content);
         }
         protected async Task<string> ProcessContentImages(string content, int itemId)
         {

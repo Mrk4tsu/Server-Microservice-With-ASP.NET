@@ -1,4 +1,5 @@
 ﻿using FN.Application.Catalog.Blogs;
+using FN.Application.Catalog.Blogs.Comments;
 using FN.Application.Catalog.Blogs.Interactions;
 using FN.ProductService.Controllers;
 using FN.ViewModel.Catalog.Blogs;
@@ -12,11 +13,13 @@ namespace FN.CatalogService.Controllers
     public class BlogsController : BasesController
     {
         private readonly IBlogService _blogService;
+        private readonly ITestRepository _testRepository;
         private readonly BlogInteraction _blogInteraction;
-        public BlogsController(IBlogService blogService, BlogInteraction interaction)
+        public BlogsController(IBlogService blogService, BlogInteraction interaction, ITestRepository test)
         {
             _blogService = blogService;
             _blogInteraction = interaction;
+            _testRepository = test;
         }
         [HttpGet("detail/{id}")]
         public async Task<IActionResult> GetDetail(int id)
@@ -54,6 +57,67 @@ namespace FN.CatalogService.Controllers
         {
             var result = await _blogService.UpdateView(id);
             return Ok(result);
+        }
+
+        [HttpGet("list-test")]
+        public async Task<IActionResult> GetAll()
+        {
+            var products = await _testRepository.GetAllAsync();
+            return Ok(products);
+        }
+
+        [HttpGet("test/{id}")]
+        public async Task<IActionResult> Get(string id)
+        {
+            var product = await _testRepository.GetByIdAsync(id);
+            if (product == null)
+            {
+                return NotFound();
+            }
+            return Ok(product);
+        }
+
+        [HttpPost("create-test")]
+        public async Task<IActionResult> Create(TestProduct product)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            var id = await _testRepository.AddAsync(product);
+            return CreatedAtAction(nameof(Get), new { id }, product);
+        }
+
+        [HttpPut("update-test/{id}")]
+        public async Task<IActionResult> Update(string id, TestProduct product)
+        {
+            if (id != product.Id)
+            {
+                return BadRequest();
+            }
+
+            var existingProduct = await _testRepository.GetByIdAsync(id);
+            if (existingProduct == null)
+            {
+                return NotFound();
+            }
+
+            await _testRepository.UpdateAsync(product);
+            return NoContent();
+        }
+
+        [HttpDelete("delete-test/{id}")]
+        public async Task<IActionResult> Delete(string id)
+        {
+            var product = await _testRepository.GetByIdAsync(id);
+            if (product == null)
+            {
+                return NotFound();
+            }
+
+            await _testRepository.DeleteAsync(id);
+            return NoContent();
         }
     }
 }

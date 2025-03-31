@@ -151,12 +151,10 @@ namespace FN.Application.Catalog.Product.Pattern
         }
         private async Task<ApiResult<int>> CreateProductDetailInternal(int itemId, ProductDetailRequest request)
         {
-            var sanitizer = new HtmlSanitizer();
-            sanitizer.AllowedAttributes.Add("class");
-            sanitizer.AllowedTags.Add("code");
+            
             var productDetail = new ProductDetail()
             {
-                Detail = sanitizer.Sanitize(request.Detail!),
+                Detail = ProcessSantizer(request.Detail!),
                 Version = request.Version!,
                 Note = request.Note!,
                 ItemId = itemId,

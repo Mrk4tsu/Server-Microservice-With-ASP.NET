@@ -10,6 +10,7 @@ namespace FN.Application.Catalog.Blogs
         Task<ApiResult<int>> CreateCombine(BlogCombineCreateOrUpdateRequest request, int userId);
         Task<ApiResult<int>> UpdateCombine(BlogCombineCreateOrUpdateRequest request, int itemId, int blogId, int userId); 
         Task<ApiResult<PagedResult<BlogViewModel>>> GetBlogs(BlogPagingRequest request);
+        Task<ApiResult<PagedResult<BlogViewModel>>> GetMyBlogs(BlogPagingRequest request, int userId);
         Task<ApiResult<BlogCombineCreateOrUpdateViewModel>> GetDetailManage(int id);
         Task<ApiResult<BlogDetailViewModel>> GetDetail(int id);
         Task<ApiResult<bool>> Delete(int itemId, int userId);

@@ -5,6 +5,7 @@ using FN.DataAccess.Entities;
 using FN.Utilities;
 using FN.ViewModel.Catalog.Products.Manage;
 using FN.ViewModel.Helper.API;
+using Ganss.Xss;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 
@@ -99,10 +100,9 @@ namespace FN.Application.Catalog.Product.Pattern
                                         .FirstOrDefaultAsync(x => x.ItemId == itemId && x.Id == productId);
             if (productDetail == null) return new ApiErrorResult<bool>("Không tìm thấy chi tiết sản phẩm");
 
-            // Cập nhật thông tin cơ bản của ProductDetail
             productDetail.Status = request.Status;
             if (!string.IsNullOrEmpty(request.Detail))
-                productDetail.Detail = request.Detail;
+                productDetail.Detail = ProcessSantizer(request.Detail);
             if (!string.IsNullOrEmpty(request.Note))
                 productDetail.Note = request.Note;
             if (!string.IsNullOrEmpty(request.Version))
