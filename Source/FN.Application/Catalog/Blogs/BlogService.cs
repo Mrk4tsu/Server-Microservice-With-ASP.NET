@@ -88,11 +88,11 @@ namespace FN.Application.Catalog.Blogs
             var cachePageKey = SystemConstant.BLOG_KEY;
 
             // Kiểm tra cache
-            if (await _redis.KeyExist(cachePageKey))
-            {
-                var cachedData = await _redis.GetValue<PagedResult<BlogViewModel>>(cachePageKey);
-                if (cachedData != null) return new ApiSuccessResult<PagedResult<BlogViewModel>>(cachedData);
-            }
+            //if (await _redis.KeyExist(cachePageKey))
+            //{
+            //    var cachedData = await _redis.GetValue<PagedResult<BlogViewModel>>(cachePageKey);
+            //    if (cachedData != null) return new ApiSuccessResult<PagedResult<BlogViewModel>>(cachedData);
+            //}
 
             // Truy vấn tổng số blog trước khi phân trang
             var query = _db.Blogs.AsNoTracking()
@@ -112,6 +112,9 @@ namespace FN.Application.Catalog.Blogs
             // Ánh xạ dữ liệu bằng AutoMapper
             var data = _mapper.Map<List<BlogViewModel>>(blogs);
 
+            // Lưu cache
+            //await _redis.SetValue(cachePageKey, data);
+
             var result = new PagedResult<BlogViewModel>
             {
                 TotalRecords = totalRecords,
@@ -120,32 +123,29 @@ namespace FN.Application.Catalog.Blogs
                 Items = data
             };
 
-            // Lưu cache
-            await _redis.SetValue(cachePageKey, result);
-
             return new ApiSuccessResult<PagedResult<BlogViewModel>>(result);
         }
         public async Task<ApiResult<BlogDetailViewModel>> GetDetail(int id)
         {
-            var cacheKey = $"{SystemConstant.BLOG_DETAIL_KEY}:{id}";
+            //var cacheKey = $"{SystemConstant.BLOG_DETAIL_KEY}:{id}";
 
-            // Kiểm tra cache
-            if (await _redis.KeyExist(cacheKey))
-            {
-                var cachedData = await _redis.GetValue<BlogDetailViewModel>(cacheKey);
-                if (cachedData != null) return new ApiSuccessResult<BlogDetailViewModel>(cachedData);
-            }
+            //// Kiểm tra cache
+            //if (await _redis.KeyExist(cacheKey))
+            //{
+            //    var cachedData = await _redis.GetValue<BlogDetailViewModel>(cacheKey);
+            //    if (cachedData != null) return new ApiSuccessResult<BlogDetailViewModel>(cachedData);
+            //}
 
             var blog = await _db.Blogs
                 .Include(x => x.Item)
                 .ThenInclude(x => x.User)
-                .FirstOrDefaultAsync(x => x.ItemId == id);
+                .FirstOrDefaultAsync(x => x.Id == id);
 
             if (blog == null || blog.Item == null || blog.Item.User == null)
                 return new ApiErrorResult<BlogDetailViewModel>("Blog not found");
 
             var data = _mapper.Map<BlogDetailViewModel>(blog);
-            await _redis.SetValue(cacheKey, data, TimeSpan.FromMinutes(15));
+            //await _redis.SetValue(cacheKey, data, TimeSpan.FromMinutes(15));
 
             return new ApiSuccessResult<BlogDetailViewModel>(data);
         }

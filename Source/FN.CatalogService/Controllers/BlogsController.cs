@@ -1,8 +1,9 @@
 ﻿using FN.Application.Catalog.Blogs;
-using FN.Application.Catalog.Blogs.Comments;
+using FN.Application.Catalog.Blogs.BlogComments;
 using FN.Application.Catalog.Blogs.Interactions;
 using FN.ProductService.Controllers;
 using FN.ViewModel.Catalog.Blogs;
+using FN.ViewModel.Catalog.Blogs.Comments;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -13,9 +14,9 @@ namespace FN.CatalogService.Controllers
     public class BlogsController : BasesController
     {
         private readonly IBlogService _blogService;
-        private readonly ITestRepository _testRepository;
+        private readonly IBlogCommentRepository _testRepository;
         private readonly BlogInteraction _blogInteraction;
-        public BlogsController(IBlogService blogService, BlogInteraction interaction, ITestRepository test)
+        public BlogsController(IBlogService blogService, BlogInteraction interaction, IBlogCommentRepository test)
         {
             _blogService = blogService;
             _blogInteraction = interaction;
@@ -59,17 +60,17 @@ namespace FN.CatalogService.Controllers
             return Ok(result);
         }
 
-        [HttpGet("list-test")]
+        [HttpGet("list-comment")]
         public async Task<IActionResult> GetAll()
         {
             var products = await _testRepository.GetAllAsync();
             return Ok(products);
         }
 
-        [HttpGet("test/{id}")]
-        public async Task<IActionResult> Get(string id)
+        [HttpGet("comment/{id}")]
+        public async Task<IActionResult> Get(string id, int blogId)
         {
-            var product = await _testRepository.GetByIdAsync(id);
+            var product = await _testRepository.GetByIdAsync(id, blogId);
             if (product == null)
             {
                 return NotFound();
@@ -77,27 +78,24 @@ namespace FN.CatalogService.Controllers
             return Ok(product);
         }
 
-        [HttpPost("create-test")]
-        public async Task<IActionResult> Create(TestProduct product)
+        [HttpPost("comment")]
+        public async Task<IActionResult> Create(BlogCommentCreate comment)
         {
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState);
-            }
-
-            var id = await _testRepository.AddAsync(product);
-            return CreatedAtAction(nameof(Get), new { id }, product);
+            var userId = GetUserIdFromClaims();
+            if (userId == null) return Unauthorized();
+            var id = await _testRepository.AddAsync(comment, userId.Value);
+            return CreatedAtAction(nameof(Get), new { id }, comment);
         }
 
-        [HttpPut("update-test/{id}")]
-        public async Task<IActionResult> Update(string id, TestProduct product)
+        [HttpPut("comment/{id}")]
+        public async Task<IActionResult> Update(string id, BlogComment product, int blogId)
         {
             if (id != product.Id)
             {
                 return BadRequest();
             }
 
-            var existingProduct = await _testRepository.GetByIdAsync(id);
+            var existingProduct = await _testRepository.GetByIdAsync(id, blogId);
             if (existingProduct == null)
             {
                 return NotFound();
@@ -107,10 +105,10 @@ namespace FN.CatalogService.Controllers
             return NoContent();
         }
 
-        [HttpDelete("delete-test/{id}")]
-        public async Task<IActionResult> Delete(string id)
+        [HttpDelete("comment/{id}")]
+        public async Task<IActionResult> Delete(string id, int blogId)
         {
-            var product = await _testRepository.GetByIdAsync(id);
+            var product = await _testRepository.GetByIdAsync(id, blogId);
             if (product == null)
             {
                 return NotFound();

@@ -1,16 +1,10 @@
-﻿using FirebaseAdmin;
-using FN.Application.Catalog.Blogs;
-using FN.Application.Catalog.Blogs.Comments;
+﻿using FN.Application.Catalog.Blogs;
+using FN.Application.Catalog.Blogs.BlogComments;
 using FN.Application.Catalog.Blogs.Interactions;
 using FN.Application.Catalog.Categories;
 using FN.Application.Catalog.Product;
 using FN.Application.Catalog.Product.Prices;
 using FN.Extensions;
-using FN.Utilities;
-using FN.ViewModel.Helper;
-using Google.Apis.Auth.OAuth2;
-using Google.Cloud.Firestore;
-using static Org.BouncyCastle.Math.EC.ECCurve;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -31,7 +25,7 @@ builder.Services.AddScoped<IProductManageService, ProductManageService>();
 builder.Services.AddScoped<ICategoryService, CategoryService>();
 builder.Services.AddScoped<IPriceProductService, PriceProductService>();
 builder.Services.AddScoped<IBlogService, BlogService>();
-builder.Services.AddScoped<ITestRepository, TestRepository>();
+builder.Services.AddScoped<IBlogCommentRepository, BlogCommentRepository>();
 
 // Đăng ký BlogInteraction như một dịch vụ scoped
 builder.Services.AddScoped<BlogInteraction>();
