@@ -34,6 +34,12 @@ namespace FN.CatalogService.Controllers
             var blogs = await _blogService.GetBlogs(request);
             return Ok(blogs);
         }
+        [HttpGet("list-latest")]
+        public async Task<IActionResult> GetLatestBlogs()
+        {
+            var blogs = await _blogService.GetLatestBlogs();
+            return Ok(blogs);
+        }
         [HttpPost("like/{blogId}")]
         public async Task<IActionResult> LikeBlog(int blogId)
         {

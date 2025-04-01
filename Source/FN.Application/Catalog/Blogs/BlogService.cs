@@ -41,15 +41,42 @@ namespace FN.Application.Catalog.Blogs
             var facade = new BlogUpdateFacade(_db, _redis, _image, SystemConstant.BLOG_KEY);
             return await facade.Update(request, itemId, blogId, userId);
         }
+        public async Task<ApiResult<List<BlogViewModel>>> GetLatestBlogs()
+        {
+            var cacheKey = SystemConstant.BLOG_KEY + "new";
+            if (await _redis.KeyExist(cacheKey))
+            {
+                var cachedData = await _redis.GetValue<List<BlogViewModel>>(cacheKey);
+                if (cachedData != null) return new ApiSuccessResult<List<BlogViewModel>>(cachedData);
+            }
+            var query = _db.Blogs.AsNoTracking()
+                .Where(x => !x.Item.IsDeleted)
+                .Include(x => x.Item)
+                .ThenInclude(x => x.User);
+            var blogs = await query
+                .OrderByDescending(x => x.Item.CreatedDate)
+                .Take(2)
+                .ToListAsync();
+            var data = _mapper.Map<List<BlogViewModel>>(blogs);
+            await _redis.SetValue(cacheKey, data, TimeSpan.FromHours(12));
+            return new ApiSuccessResult<List<BlogViewModel>>(data);
+        }
         public async Task<ApiResult<PagedResult<BlogViewModel>>> GetMyBlogs(BlogPagingRequest request, int userId)
         {
-            var cachePageKey = $"{SystemConstant.BLOG_KEY}:{userId}";
+            var cachePageKey = $"my{SystemConstant.BLOG_KEY}:{userId}";
 
             // Kiểm tra cache
             if (await _redis.KeyExist(cachePageKey))
             {
-                var cachedData = await _redis.GetValue<PagedResult<BlogViewModel>>(cachePageKey);
-                if (cachedData != null) return new ApiSuccessResult<PagedResult<BlogViewModel>>(cachedData);
+                var cachedData = await _redis.GetValue<List<BlogViewModel>>(cachePageKey);
+                var resultCache = new PagedResult<BlogViewModel>
+                {
+                    TotalRecords = cachedData.Count,
+                    PageIndex = request.PageIndex,
+                    PageSize = request.PageSize,
+                    Items = cachedData
+                };
+                if (cachedData != null) return new ApiSuccessResult<PagedResult<BlogViewModel>>(resultCache);
             }
 
             // Truy vấn tổng số blog trước khi phân trang
@@ -69,6 +96,8 @@ namespace FN.Application.Catalog.Blogs
 
             // Ánh xạ dữ liệu bằng AutoMapper
             var data = _mapper.Map<List<BlogViewModel>>(blogs);
+            // Lưu cache
+            await _redis.SetValue(cachePageKey, data);
 
             var result = new PagedResult<BlogViewModel>
             {
@@ -78,9 +107,6 @@ namespace FN.Application.Catalog.Blogs
                 Items = data
             };
 
-            // Lưu cache
-            await _redis.SetValue(cachePageKey, result);
-
             return new ApiSuccessResult<PagedResult<BlogViewModel>>(result);
         }
         public async Task<ApiResult<PagedResult<BlogViewModel>>> GetBlogs(BlogPagingRequest request)
@@ -88,11 +114,18 @@ namespace FN.Application.Catalog.Blogs
             var cachePageKey = SystemConstant.BLOG_KEY;
 
             // Kiểm tra cache
-            //if (await _redis.KeyExist(cachePageKey))
-            //{
-            //    var cachedData = await _redis.GetValue<PagedResult<BlogViewModel>>(cachePageKey);
-            //    if (cachedData != null) return new ApiSuccessResult<PagedResult<BlogViewModel>>(cachedData);
-            //}
+            if (await _redis.KeyExist(cachePageKey))
+            {
+                var cachedData = await _redis.GetValue<List<BlogViewModel>>(cachePageKey);
+                var resultCache = new PagedResult<BlogViewModel>
+                {
+                    TotalRecords = cachedData!.Count,
+                    PageIndex = request.PageIndex,
+                    PageSize = request.PageSize,
+                    Items = cachedData
+                };
+                if (cachedData != null) return new ApiSuccessResult<PagedResult<BlogViewModel>>(resultCache);
+            }
 
             // Truy vấn tổng số blog trước khi phân trang
             var query = _db.Blogs.AsNoTracking()
@@ -113,7 +146,7 @@ namespace FN.Application.Catalog.Blogs
             var data = _mapper.Map<List<BlogViewModel>>(blogs);
 
             // Lưu cache
-            //await _redis.SetValue(cachePageKey, data);
+            await _redis.SetValue(cachePageKey, data);
 
             var result = new PagedResult<BlogViewModel>
             {
