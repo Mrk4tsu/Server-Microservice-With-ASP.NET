@@ -1,4 +1,5 @@
-﻿using FN.ViewModel.Helper.Paging;
+﻿using FN.DataAccess.Enums;
+using FN.ViewModel.Helper.Paging;
 using Microsoft.AspNetCore.Http;
 
 namespace FN.ViewModel.Catalog.Blogs
@@ -17,13 +18,14 @@ namespace FN.ViewModel.Catalog.Blogs
         public string Author { get; set; } = string.Empty;
         public int ViewCount { get; set; }
         public string Thumbnail { get; set; } = string.Empty;
-        public string SeoAlias { get; set; } = string.Empty;    
+        public string SeoAlias { get; set; } = string.Empty;
     }
     public class BlogDetailViewModel : BlogViewModel
     {
-        public string SeoTitle { get; set; } = string.Empty;    
+        public string SeoTitle { get; set; } = string.Empty;
         public int LikeCount { get; set; }
         public int DislikeCount { get; set; }
+        public InteractionType IsInteractive { get; set; }
         public string Detail { get; set; } = string.Empty;
         public string Username { get; set; } = string.Empty;
         public DateTime TimeUpdate { get; set; }

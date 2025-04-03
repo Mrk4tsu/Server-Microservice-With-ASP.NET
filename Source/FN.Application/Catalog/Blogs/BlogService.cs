@@ -3,6 +3,7 @@ using FN.Application.Catalog.Blogs.Pattern;
 using FN.Application.Helper.Images;
 using FN.Application.Systems.Redis;
 using FN.DataAccess;
+using FN.DataAccess.Enums;
 using FN.Utilities;
 using FN.ViewModel.Catalog.Blogs;
 using FN.ViewModel.Helper.API;
@@ -111,21 +112,21 @@ namespace FN.Application.Catalog.Blogs
         }
         public async Task<ApiResult<PagedResult<BlogViewModel>>> GetBlogs(BlogPagingRequest request)
         {
-            var cachePageKey = SystemConstant.BLOG_KEY;
+            //var cachePageKey = SystemConstant.BLOG_KEY;
 
-            // Kiểm tra cache
-            if (await _redis.KeyExist(cachePageKey))
-            {
-                var cachedData = await _redis.GetValue<List<BlogViewModel>>(cachePageKey);
-                var resultCache = new PagedResult<BlogViewModel>
-                {
-                    TotalRecords = cachedData!.Count,
-                    PageIndex = request.PageIndex,
-                    PageSize = request.PageSize,
-                    Items = cachedData
-                };
-                if (cachedData != null) return new ApiSuccessResult<PagedResult<BlogViewModel>>(resultCache);
-            }
+            //// Kiểm tra cache
+            //if (await _redis.KeyExist(cachePageKey))
+            //{
+            //    var cachedData = await _redis.GetValue<List<BlogViewModel>>(cachePageKey);
+            //    var resultCache = new PagedResult<BlogViewModel>
+            //    {
+            //        TotalRecords = cachedData!.Count,
+            //        PageIndex = request.PageIndex,
+            //        PageSize = request.PageSize,
+            //        Items = cachedData
+            //    };
+            //    if (cachedData != null) return new ApiSuccessResult<PagedResult<BlogViewModel>>(resultCache);
+            //}
 
             // Truy vấn tổng số blog trước khi phân trang
             var query = _db.Blogs.AsNoTracking()
@@ -146,7 +147,7 @@ namespace FN.Application.Catalog.Blogs
             var data = _mapper.Map<List<BlogViewModel>>(blogs);
 
             // Lưu cache
-            await _redis.SetValue(cachePageKey, data);
+            //await _redis.SetValue(cachePageKey, data);
 
             var result = new PagedResult<BlogViewModel>
             {
@@ -158,7 +159,7 @@ namespace FN.Application.Catalog.Blogs
 
             return new ApiSuccessResult<PagedResult<BlogViewModel>>(result);
         }
-        public async Task<ApiResult<BlogDetailViewModel>> GetDetail(int id)
+        public async Task<ApiResult<BlogDetailViewModel>> GetDetail(int id, int userId)
         {
             //var cacheKey = $"{SystemConstant.BLOG_DETAIL_KEY}:{id}";
 
@@ -174,15 +175,37 @@ namespace FN.Application.Catalog.Blogs
                 .ThenInclude(x => x.User)
                 .FirstOrDefaultAsync(x => x.Id == id);
 
+
             if (blog == null || blog.Item == null || blog.Item.User == null)
                 return new ApiErrorResult<BlogDetailViewModel>("Blog not found");
 
             var data = _mapper.Map<BlogDetailViewModel>(blog);
-            //await _redis.SetValue(cacheKey, data, TimeSpan.FromMinutes(15));
+            var interaction = await _db.UserBlogInteractions
+                .Where(x => x.BlogId == id && x.UserId == userId)
+                .FirstOrDefaultAsync();
+            if (interaction != null)
+            {
+                data.IsInteractive = interaction.Type;
+            }
 
             return new ApiSuccessResult<BlogDetailViewModel>(data);
         }
+        public async Task<ApiResult<BlogDetailViewModel>> GetDetailWithoutLogin(int id)
+        {
+            var blog = await _db.Blogs
+                .Include(x => x.Item)
+                .ThenInclude(x => x.User)
+                .FirstOrDefaultAsync(x => x.Id == id);
 
+
+            if (blog == null || blog.Item == null || blog.Item.User == null)
+                return new ApiErrorResult<BlogDetailViewModel>("Blog not found");
+
+            var data = _mapper.Map<BlogDetailViewModel>(blog);
+            data.IsInteractive = InteractionType.None;
+
+            return new ApiSuccessResult<BlogDetailViewModel>(data);
+        }
         public async Task<ApiResult<bool>> Delete(int itemId, int userId)
         {
             var item = await _db.Items.FirstOrDefaultAsync(x => x.Id == itemId && x.UserId == userId);

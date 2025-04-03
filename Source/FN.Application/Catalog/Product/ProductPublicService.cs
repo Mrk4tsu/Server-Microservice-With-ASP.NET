@@ -1,5 +1,4 @@
 ﻿using AutoMapper;
-using AutoMapper.QueryableExtensions;
 using FN.Application.Catalog.Product.Pattern;
 using FN.Application.Systems.Redis;
 using FN.DataAccess;
@@ -48,7 +47,7 @@ namespace FN.Application.Catalog.Product
             if (product == null) return new ApiErrorResult<ProductDetailViewModel>("Không tìm thấy sản phẩm");
 
 
-            var ownerProduct = await _db.ProductOwners.FirstOrDefaultAsync(x => x.ProductId == itemId && x.UserId == userId);
+            var ownerProduct = await _db.ProductOwners.FirstOrDefaultAsync(x => x.ProductId == product.Id && x.UserId == userId);
             if(ownerProduct != null || product.Item.UserId == userId) flagOwner = true;
             var detailVM = new ProductDetailViewModel
             {

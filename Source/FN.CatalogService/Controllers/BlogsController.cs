@@ -25,7 +25,15 @@ namespace FN.CatalogService.Controllers
         [HttpGet("detail/{id}")]
         public async Task<IActionResult> GetDetail(int id)
         {
-            var blog = await _blogService.GetDetail(id);
+            var userId = GetUserIdFromClaims();
+            if (userId == null) return Unauthorized();
+            var blog = await _blogService.GetDetail(id, userId.Value);
+            return Ok(blog);
+        }
+        [HttpGet("detail-anonymous/{id}")]
+        public async Task<IActionResult> GetDetailWithouLogin(int id)
+        {
+            var blog = await _blogService.GetDetailWithoutLogin(id);
             return Ok(blog);
         }
         [HttpGet("list")]

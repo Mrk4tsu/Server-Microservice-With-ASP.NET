@@ -12,7 +12,8 @@ namespace FN.Application.Catalog.Blogs
         Task<ApiResult<PagedResult<BlogViewModel>>> GetBlogs(BlogPagingRequest request);
         Task<ApiResult<PagedResult<BlogViewModel>>> GetMyBlogs(BlogPagingRequest request, int userId);
         Task<ApiResult<BlogCombineCreateOrUpdateViewModel>> GetDetailManage(int id);
-        Task<ApiResult<BlogDetailViewModel>> GetDetail(int id);
+        Task<ApiResult<BlogDetailViewModel>> GetDetail(int id, int userId);
+        Task<ApiResult<BlogDetailViewModel>> GetDetailWithoutLogin(int id);
         Task<ApiResult<List<BlogViewModel>>> GetLatestBlogs();
         Task<ApiResult<bool>> Delete(int itemId, int userId);
         Task<ApiResult<bool>> DeletePermanently(int itemId, int userId);
