@@ -16,7 +16,7 @@ FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk:8.0-alpine AS build
 
 COPY . /source
 
-WORKDIR /source/FN.OrderService
+WORKDIR /source/FN.CatalogService
 
 # This is the architecture you’re building for, which is passed in by the builder.
 # Placing it here allows the previous steps to be cached across architectures.
@@ -53,4 +53,4 @@ COPY --from=build /app .
 # and https://github.com/dotnet/dotnet-docker/discussions/4764
 USER $APP_UID
 
-ENTRYPOINT ["dotnet", "FN.OrderService.dll"]
+ENTRYPOINT ["dotnet", "FN.CatalogService.dll"]

@@ -132,7 +132,12 @@ namespace FN.Application.Catalog.Blogs
             var query = _db.Blogs.AsNoTracking()
                 .Where(x => !x.Item.IsDeleted)
                 .Include(x => x.Item)
-                .ThenInclude(x => x.User);
+                .ThenInclude(x => x.User)
+                .AsQueryable();
+            if (!string.IsNullOrEmpty(request.KeyWord))
+                query = query.Where(x => x.Item.Title.Contains(request.KeyWord) 
+                || x.Item.NormalizedTitle.Contains(request.KeyWord)
+                || x.Item.User.FullName.Contains(request.KeyWord));
 
             var totalRecords = await query.Select(x => x.Id).CountAsync();
 

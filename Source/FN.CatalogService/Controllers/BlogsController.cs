@@ -30,7 +30,7 @@ namespace FN.CatalogService.Controllers
             var blog = await _blogService.GetDetail(id, userId.Value);
             return Ok(blog);
         }
-        [HttpGet("detail-anonymous/{id}")]
+        [HttpGet("detail-anonymous/{id}"), AllowAnonymous]
         public async Task<IActionResult> GetDetailWithouLogin(int id)
         {
             var blog = await _blogService.GetDetailWithoutLogin(id);
@@ -42,7 +42,7 @@ namespace FN.CatalogService.Controllers
             var blogs = await _blogService.GetBlogs(request);
             return Ok(blogs);
         }
-        [HttpGet("list-latest")]
+        [HttpGet("list-latest"), AllowAnonymous]
         public async Task<IActionResult> GetLatestBlogs()
         {
             var blogs = await _blogService.GetLatestBlogs();

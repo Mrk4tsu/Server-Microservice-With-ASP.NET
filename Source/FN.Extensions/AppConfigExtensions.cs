@@ -27,6 +27,7 @@ namespace FN.Extensions
         {
             app.UseCors(options =>
             options.WithOrigins(
+                "http://127.0.0.1:5500",
                 "http://localhost:4200",
                 "https://mrkatsu.io.vn",
                 "https://katsudev.vercel.app",
