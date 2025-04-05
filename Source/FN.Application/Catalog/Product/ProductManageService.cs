@@ -5,6 +5,7 @@ using FN.Application.Systems.Redis;
 using FN.DataAccess;
 using FN.DataAccess.Entities;
 using FN.Utilities;
+using FN.ViewModel.Catalog.ProductItems;
 using FN.ViewModel.Catalog.Products;
 using FN.ViewModel.Catalog.Products.Manage;
 using FN.ViewModel.Helper.API;
@@ -163,5 +164,38 @@ namespace FN.Application.Catalog.Product
             return $"{SystemConstant.PRODUCT_KEY}/{code}";
         }
 
+        public async Task<ApiResult<int>> AddItemProduct(ProductItemRequest request, int productId)
+        {
+            var product = await _db.ProductDetails.FindAsync(productId);
+            if (product == null) return new ApiErrorResult<int>("Không tìm thấy sản phẩm");
+
+            if (request.Url != null)
+            {
+                foreach (var u in request.Url)
+                {
+                    var item = new ProductItem()
+                    {
+                        ProductId = productId,
+                        Url = u,
+                    };
+                    await _db.ProductItems.AddAsync(item).ConfigureAwait(false);
+                }
+            }
+            await _db.SaveChangesAsync().ConfigureAwait(false);
+            return new ApiSuccessResult<int>(product.Id);
+        }
+
+        public async Task<ApiResult<int>> EditItemProduct(ProductItemSingleRequest request, int itemProductId)
+        {
+            var productItem = await _db.ProductItems.FindAsync(itemProductId);
+            if (productItem == null) return new ApiErrorResult<int>("Không tìm thấy sản phẩm");
+            if (!string.IsNullOrEmpty(request.Url))
+            {
+                productItem.Url = request.Url;
+            }
+            _db.ProductItems.Update(productItem);
+            await _db.SaveChangesAsync().ConfigureAwait(false);
+            return new ApiSuccessResult<int>(productItem.Id);
+        }
     }
 }

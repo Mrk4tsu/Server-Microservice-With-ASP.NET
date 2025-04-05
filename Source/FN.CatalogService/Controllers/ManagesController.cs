@@ -1,6 +1,7 @@
 ﻿using FN.Application.Catalog.Product;
 using FN.Application.Catalog.Product.Prices;
 using FN.Application.Helper.Images;
+using FN.ViewModel.Catalog.ProductItems;
 using FN.ViewModel.Catalog.Products.Manage;
 using FN.ViewModel.Catalog.Products.Prices;
 using Microsoft.AspNetCore.Authorization;
@@ -78,6 +79,18 @@ namespace FN.ProductService.Controllers
             var userId = GetUserIdFromClaims();
             if (userId == null) return Unauthorized();
             var result = await _priceService.Create(request);
+            return Ok(result);
+        }
+        [HttpPost("add-item/{productId}")]
+        public async Task<IActionResult> AddItem([FromForm] ProductItemRequest request, int productId)
+        {
+            var result = await _service.AddItemProduct(request, productId);
+            return Ok(result);
+        }
+        [HttpPut("edit-item/{itemProductID}")]
+        public async Task<IActionResult> EditItem([FromForm] ProductItemSingleRequest request, int itemProductID)
+        {
+            var result = await _service.EditItemProduct(request, itemProductID);
             return Ok(result);
         }
         [HttpPut("update-price")]

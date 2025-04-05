@@ -26,6 +26,7 @@ namespace FN.DataAccess
         public DbSet<Item> Items { get; set; }
         public DbSet<Category> Categories { get; set; }
         public DbSet<ProductDetail> ProductDetails { get; set; }
+        public DbSet<ProductItem> ProductItems { get; set; }
         public DbSet<ProductPrice> ProductPrices { get; set; }
         public DbSet<ProductImage> ProductImages { get; set; }
         public DbSet<Blog> Blogs { get; set; }

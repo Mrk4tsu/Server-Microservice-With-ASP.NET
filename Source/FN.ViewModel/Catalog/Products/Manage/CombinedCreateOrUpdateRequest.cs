@@ -23,6 +23,9 @@ namespace FN.ViewModel.Catalog.Products.Manage
 
         //Cập nhật Price
         public decimal? Price { get; set; }
+
+        //Url
+        public string? Url { get; set; }
     }
     public class DeleteProductImagesRequest
     {
