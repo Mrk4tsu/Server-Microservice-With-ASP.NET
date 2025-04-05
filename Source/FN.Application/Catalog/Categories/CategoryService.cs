@@ -22,28 +22,38 @@ namespace FN.Application.Catalog.Categories
         }
         public async Task<ApiResult<int>> Create(CategoryCreateUpdateRequest request)
         {
-            if (StringHelper.IsNullOrEmpty(request.Other ?? string.Empty, request.Description ?? string.Empty, request.Name ?? string.Empty))
+            try
             {
-                return new ApiErrorResult<int>("Vui lòng nhập đầy đủ thông tin");
-            }
-            var alias = StringHelper.GenerateSeoAlias(request.Name!);
-            var thumbnail = await _image.UploadImage(request.Image!, alias, SetFolder(alias), null);
-            if (string.IsNullOrEmpty(thumbnail))
-                return new ApiErrorResult<int>("Không upload được ảnh");
-            var newCategory = new Category
-            {
-                Name = request.Name!,
-                SeoDescription = request.Description ?? "",
-                Other = request.Other!,
-                SeoAlias = alias,
-                SeoImage = thumbnail,
-                SeoKeyword = "mrkatsu, katsu, katsu website, gavl, gatapchoi",
-                SeoTitle = $"MrKatsu - {request.Name}"
-            };
+                if (StringHelper.IsNullOrEmpty(request.Other ?? string.Empty, request.Description ?? string.Empty, request.Name ?? string.Empty))
+                {
+                    return new ApiErrorResult<int>("Vui lòng nhập đầy đủ thông tin");
+                }
+                var alias = StringHelper.GenerateSeoAlias(request.Name!);
+                var thumbnail = await _image.UploadImage(request.Image!, alias, SetFolder(alias), null);
+                if (string.IsNullOrEmpty(thumbnail))
+                    return new ApiErrorResult<int>("Không upload được ảnh");
+                var newCategory = new Category
+                {
+                    Name = request.Name!,
+                    SeoDescription = request.Description ?? "",
+                    Other = request.Other!,
+                    SeoAlias = alias,
+                    SeoImage = thumbnail,
+                    SeoKeyword = "mrkatsu, katsu, katsu website, gavl, gatapchoi",
+                    SeoTitle = $"MrKatsu - {request.Name}"
+                };
 
-            _db.Categories.Add(newCategory);
-            await _db.SaveChangesAsync();
-            return new ApiSuccessResult<int>(newCategory.Id);
+                _db.Categories.Add(newCategory);
+                await _db.SaveChangesAsync();
+                // Remove cache
+                await RemoveCache(SystemConstant.CATEGORY_KEY);
+                return new ApiSuccessResult<int>(newCategory.Id);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception(ex.Message);
+            }
+           
         }
 
         public async Task<ApiResult<List<CategoryViewModel>>> List()
@@ -74,6 +84,7 @@ namespace FN.Application.Catalog.Categories
             category.Status = false;
             _db.Categories.Update(category);
             await _db.SaveChangesAsync();
+            await RemoveCache(SystemConstant.CATEGORY_KEY);
             return new ApiSuccessResult<bool>();
         }
 
@@ -93,6 +104,7 @@ namespace FN.Application.Catalog.Categories
                 await _db.SaveChangesAsync();
 
                 await _db.Database.CommitTransactionAsync();
+                await RemoveCache(SystemConstant.CATEGORY_KEY);
                 return new ApiSuccessResult<bool>();
             }
             catch (Exception ex)
@@ -133,7 +145,13 @@ namespace FN.Application.Catalog.Categories
             }
             _db.Categories.Update(categoryUpdate);
             await _db.SaveChangesAsync();
+            await RemoveCache(SystemConstant.CATEGORY_KEY);
             return new ApiSuccessResult<bool>();
+        }
+        private async Task RemoveCache(string key)
+        {
+            if (await _redis.KeyExist(key))
+                await _redis.RemoveValue(key);
         }
         private string SetFolder(string alias)
         {

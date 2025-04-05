@@ -79,7 +79,7 @@ namespace FN.Application.Catalog.Product.Pattern
                     Username = pd.Item.User.FullName,
                     Version = pd.Version,
                     Prices = pd.ProductPrices
-                        .Where(pp => !pp.ProductDetail.IsDeleted) // Lọc nếu cần
+                        .Where(pp => !pp.ProductDetail.IsDeleted && pp.EndDate > Now()) 
                         .Select(pp => new PriceViewModel
                         {
                             Id = pp.Id,

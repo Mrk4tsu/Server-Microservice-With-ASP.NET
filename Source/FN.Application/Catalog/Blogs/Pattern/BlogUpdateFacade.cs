@@ -35,7 +35,7 @@ namespace FN.Application.Catalog.Blogs.Pattern
 
                     var blogUpdate = new BlogCreateOrUpdateRequest
                     {
-                        Detail = request.Detail
+                        Detail = await ProcessContentImages(request.Detail!, itemId)
                     };
                     var blogResult = await UpdateBlogInternal(blogUpdate, itemResult.Data, blogId);
                     if(!itemResult.Success) return blogResult;                 
@@ -84,11 +84,8 @@ namespace FN.Application.Catalog.Blogs.Pattern
                 .FirstOrDefaultAsync(x => x.Id == blogId && x.ItemId == itemId);
             if (blog == null) return new ApiErrorResult<int>("Không tìm thấy Blog");
 
-            var sanitizer = new HtmlSanitizer();
-            sanitizer.AllowedAttributes.Add("class");
-            sanitizer.AllowedTags.Add("code");
             if (!string.IsNullOrEmpty(request.Detail))
-                blog.Detail = sanitizer.Sanitize(request.Detail);
+                blog.Detail = ProcessSantizer(request.Detail);
 
             _db.Blogs.Update(blog);
             await _db.SaveChangesAsync();

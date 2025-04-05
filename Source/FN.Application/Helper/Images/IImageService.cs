@@ -6,6 +6,7 @@ namespace FN.Application.Helper.Images
     {
         string GenerateId();
         Task<string> UploadImageRegex(string base64Image, string folder);
+        Task<string> UploadStream(MemoryStream base64Image, string folder);
         Task<string?> UploadImage(IFormFile file, string publicId, string folderName, string? root);
         Task<List<string>> UploadImages(List<IFormFile> files, string folderName);
         Task<List<string>> UploadImages(List<IFormFile> files, string folderName, string publicId);

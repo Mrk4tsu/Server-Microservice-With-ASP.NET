@@ -23,7 +23,7 @@ namespace GeminiAIDev.Client
         }
         public async Task<string> GenerateContentAsync(string prompt)
         {
-            string url = $"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={_apiKey}";
+            string url = $"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro-exp-03-25:generateContent?key={_apiKey}";
             var request = new ContentRequest
             {
                 contents = new[]
@@ -157,7 +157,6 @@ namespace GeminiAIDev.Client
 
             return postData;
         }
-
         private string GenerateDescriptionFromContent(string htmlContent)
         {
             // Loại bỏ HTML tags

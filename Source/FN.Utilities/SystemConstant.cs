@@ -8,6 +8,7 @@
         public const string MONGODB_SETTING = "MongoDBSettings";
         public const string SMTP_SETTINGS = "MailJet";
         public const string CLOUDINARY_SETTINGS = "Cloudinary";
+        public const string FIREBASE_SETTINGS = "Firebase";
 
         public const string MESSAGE_PATTERN_EVENT = "myChannel:*";
         public const string MESSAGE_REGISTER_EVENT = "myChannel:RegisterEvent";

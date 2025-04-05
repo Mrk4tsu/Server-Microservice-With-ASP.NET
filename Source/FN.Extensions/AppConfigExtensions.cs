@@ -1,8 +1,12 @@
 ﻿using CloudinaryDotNet;
+using FirebaseAdmin;
 using FN.Application.Helper.Images;
 using FN.Application.Helper.Mail;
 using FN.Utilities;
 using FN.ViewModel.Helper;
+using Google.Api;
+using Google.Apis.Auth.OAuth2;
+using Google.Cloud.Firestore;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.ResponseCompression;
@@ -23,6 +27,7 @@ namespace FN.Extensions
         {
             app.UseCors(options =>
             options.WithOrigins(
+                "http://127.0.0.1:5500",
                 "http://localhost:4200",
                 "https://mrkatsu.io.vn",
                 "https://katsudev.vercel.app",
@@ -40,26 +45,27 @@ namespace FN.Extensions
             app.UseForwardedHeaders();
             return app;
         }
-        public static IApplicationBuilder ConfigureWebSocket(this IApplicationBuilder app, string path)
+        public static IServiceCollection ConfigureFirebase(this IServiceCollection services, IConfiguration config)
         {
-            app.UseWebSockets();
-            app.Use(async (context, next) =>
+            var firebaseSettings = config.GetSection(SystemConstant.FIREBASE_SETTINGS).Get<FirebaseSettings>();
+            if (firebaseSettings == null) throw new System.Exception("Firebase settings not found");
+            
+            //var path = AppDomain.CurrentDomain.BaseDirectory + firebaseSettings.CredentialFile;
+            //Environment.SetEnvironmentVariable("GOOGLE_APPLICATION_CREDENTIALS", path);
+
+            //FirebaseApp.Create(new AppOptions()
+            //{
+            //    ProjectId = firebaseSettings.ProjectId
+            //});
+            //services.AddSingleton(FirestoreDb.Create(firebaseSettings.ProjectId));
+            Environment.SetEnvironmentVariable("GOOGLE_APPLICATION_CREDENTIALS", @$"{firebaseSettings.CredentialFile}");
+            FirebaseApp.Create(new AppOptions()
             {
-                Console.WriteLine($"WebSocket request to: {context.Request.Path}");
-                if (context.Request.Path == path && context.WebSockets.IsWebSocketRequest)
-                {
-                    Console.WriteLine("WebSocket request accepted.");
-                    using var webSocket = await context.WebSockets.AcceptWebSocketAsync();
-                    await HandleOrderWebSocket(webSocket);
-                }
-                else
-                {
-                    Console.WriteLine("WebSocket request failed.");
-                    context.Response.StatusCode = 400;
-                    await next();
-                }
+                Credential = GoogleCredential.GetApplicationDefault(),
+                ProjectId = firebaseSettings.ProjectId
             });
-            return app;
+            services.AddSingleton(FirestoreDb.Create(firebaseSettings.ProjectId));
+            return services;
         }
         public static IServiceCollection ConfigureServiceForwarded(this IServiceCollection services)
         {
@@ -120,26 +126,6 @@ namespace FN.Extensions
 
             app.UseResponseCompression();
             return app;
-        }
-
-        private static async Task HandleOrderWebSocket(WebSocket webSocket)
-        {
-            var buffer = new byte[1024 * 4];
-            var result = await webSocket.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None);
-
-            while (!result.CloseStatus.HasValue)
-            {
-                // Giả lập xử lý order
-                var orderData = Encoding.UTF8.GetString(buffer, 0, result.Count);
-                var orderId = Guid.NewGuid().ToString();
-                var response = new { OrderId = orderId, Total = 20 }; // Payload nhỏ gọn
-                var responseBytes = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(response));
-
-                await webSocket.SendAsync(new ArraySegment<byte>(responseBytes), result.MessageType, true, CancellationToken.None);
-                result = await webSocket.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None);
-            }
-
-            await webSocket.CloseAsync(result.CloseStatus.Value, result.CloseStatusDescription, CancellationToken.None);
         }
     }
 }

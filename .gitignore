@@ -413,3 +413,4 @@ echo "FN.UserService/appsettings.json" >> .gitignore
 git add .gitignore
 git commit -m "Ignore appsettings.json"
 git push origin main
+Source/FN.CatalogService/mrkatsu-firebase-admin.json
