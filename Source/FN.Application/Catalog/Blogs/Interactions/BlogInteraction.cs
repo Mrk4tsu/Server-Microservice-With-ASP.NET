@@ -6,14 +6,14 @@ namespace FN.Application.Catalog.Blogs.Interactions
 {
     public class BlogInteraction
     {
-        private IInteractionState _currentState;
+        private IBlogInteractionState _currentState;
         private AppDbContext _db;
         public BlogInteraction(AppDbContext db)
         {
             _db = db;
-            _currentState = new NoInteractionState(_db);
+            _currentState = new NoInteractionBlogState(_db);
         }
-        public async Task SetState(IInteractionState state, int blogId, int userId)
+        public async Task SetState(IBlogInteractionState state, int blogId, int userId)
         {
             await Init(blogId, GetInteractionTypeFromState(state), userId);
             _currentState = state;
@@ -46,11 +46,11 @@ namespace FN.Application.Catalog.Blogs.Interactions
             }
             await _db.SaveChangesAsync();
         }
-        private InteractionType GetInteractionTypeFromState(IInteractionState state)
+        private InteractionType GetInteractionTypeFromState(IBlogInteractionState state)
         {
-            if (state is LikedState)
+            if (state is LikedBlogState)
                 return InteractionType.Like;
-            if (state is DislikedState)
+            if (state is DislikedBlogState)
                 return InteractionType.Dislike;
             return InteractionType.None;
         }
@@ -62,13 +62,13 @@ namespace FN.Application.Catalog.Blogs.Interactions
                 switch (interaction.Type)
                 {
                     case InteractionType.Like:
-                        _currentState = new LikedState(_db);
+                        _currentState = new LikedBlogState(_db);
                         break;
                     case InteractionType.Dislike:
-                        _currentState = new DislikedState(_db);
+                        _currentState = new DislikedBlogState(_db);
                         break;
                     default:
-                        _currentState = new NoInteractionState(_db);
+                        _currentState = new NoInteractionBlogState(_db);
                         break;
                 }
             }

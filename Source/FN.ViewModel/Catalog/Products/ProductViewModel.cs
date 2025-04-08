@@ -32,6 +32,7 @@ namespace FN.ViewModel.Catalog.Products
         public string Description { get; set; } = string.Empty;
         public string CategoryName { get; set; } = string.Empty;
         public string Author { get; set; } = string.Empty;
+        public InteractionType IsInteractive { get; set; }
         public List<ImageProductViewModel> Images { get; set; } = new();
     }
     public class PriceViewModel

@@ -13,5 +13,6 @@ namespace FN.DataAccess.Entities
         public List<UserOrder> Orders { get; set; }
         public List<Payment> Payments { get; set; }
         public List<FeedBack> FeedBacks { get; set; }
+        public List<UserProductInteraction> UserProductInteractions { get; set; }
     }
 }

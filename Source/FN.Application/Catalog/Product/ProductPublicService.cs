@@ -48,7 +48,10 @@ namespace FN.Application.Catalog.Product
 
 
             var ownerProduct = await _db.ProductOwners.FirstOrDefaultAsync(x => x.ProductId == product.Id && x.UserId == userId);
-            if(ownerProduct != null || product.Item.UserId == userId) flagOwner = true;
+            var interaction = await _db.UserProductInteractions
+               .Where(x => x.ProductId == product.Id && x.UserId == userId)
+               .FirstOrDefaultAsync();
+            if (ownerProduct != null || product.Item.UserId == userId) flagOwner = true;
             var detailVM = new ProductDetailViewModel
             {
                 Id = product.Item.Id,
@@ -90,9 +93,11 @@ namespace FN.Application.Catalog.Product
                     Caption = x.Caption
                 }).ToList()
             };
+            if (interaction != null)
+                detailVM.IsInteractive = interaction.Type;
             return new ApiSuccessResult<ProductDetailViewModel>(detailVM);
         }
-        public async Task<ApiResult<ProductDetailViewModel>> GetProductWithoutLogin(int itemId)       
+        public async Task<ApiResult<ProductDetailViewModel>> GetProductWithoutLogin(int itemId)
         {
             var product = await _db.ProductDetails
                 .Include(x => x.Item)
@@ -125,6 +130,7 @@ namespace FN.Application.Catalog.Product
                 Username = product.Item.User.UserName!,
                 Author = product.Item.User.FullName,
                 ViewCount = product.Item.ViewCount,
+                IsInteractive = DataAccess.Enums.InteractionType.None,
                 Prices = product.ProductPrices
                         .Where(pp => !pp.ProductDetail.IsDeleted && pp.EndDate > DateTime.Now) // Lọc nếu cần
                         .Select(pp => new PriceViewModel
