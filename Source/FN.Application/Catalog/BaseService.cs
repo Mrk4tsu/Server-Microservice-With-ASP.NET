@@ -76,8 +76,12 @@ namespace FN.Application.Catalog
         {
             return await _image.UploadImage(thumbnail, publicId, Folder(itemId.ToString()), null);
         }
-        protected async Task RemoveOldCache()
+        protected async Task RemoveOldCache(string? param = null)
         {
+            if (param != null)
+            {
+                await _dbRedis.RemoveValue(param);
+            }
             switch (ROOT)
             {
                 case "product":

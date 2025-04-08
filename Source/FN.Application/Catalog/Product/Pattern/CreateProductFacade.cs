@@ -4,6 +4,7 @@ using FN.DataAccess;
 using FN.DataAccess.Entities;
 using FN.DataAccess.Enums;
 using FN.Utilities;
+using FN.ViewModel.Catalog.ProductItems;
 using FN.ViewModel.Catalog.Products.Manage;
 using FN.ViewModel.Helper.API;
 using Ganss.Xss;
@@ -58,6 +59,12 @@ namespace FN.Application.Catalog.Product.Pattern
                 var imageResult = await CreateImageInternal(imageCreate, productDetailResult.Data);
                 if (!imageResult.Success) return imageResult;
 
+                var productItemCreate = new ProductItemRequest
+                {
+                    Url = request.Url
+                };
+                var productItemResult = await CreateProductItemInternal(productItemCreate, productDetailResult.Data);
+                if (!productItemResult.Success) return productItemResult;
                 await transaction.CommitAsync();
                 await RemoveOldCache();
                 return new ApiSuccessResult<int>(itemResult.Data);
@@ -205,6 +212,23 @@ namespace FN.Application.Catalog.Product.Pattern
             }
             var result = await _db.SaveChangesAsync();
             return new ApiSuccessResult<int>(result);
+        }
+        private async Task<ApiResult<int>> CreateProductItemInternal(ProductItemRequest request, int productId)
+        {
+            if (request.Url != null)
+            {
+                foreach (var u in request.Url)
+                {
+                    var item = new ProductItem()
+                    {
+                        ProductId = productId,
+                        Url = u,
+                    };
+                    await _db.ProductItems.AddAsync(item).ConfigureAwait(false);
+                }
+            }
+            await _db.SaveChangesAsync().ConfigureAwait(false);
+            return new ApiSuccessResult<int>(productId);
         }
     }
 }

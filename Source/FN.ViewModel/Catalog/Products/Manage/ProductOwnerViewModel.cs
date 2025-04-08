@@ -1,12 +1,13 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace FN.ViewModel.Catalog.Products.Manage
+﻿namespace FN.ViewModel.Catalog.Products.Manage
 {
-    internal class ProductOwnerViewModel
+    public class ProductOwnerViewModel
     {
+        public int Id { get; set; }
+        public int ItemId { get; set; }
+        public string ProductName { get; set; } = string.Empty;
+        public string SeoAlias { get; set; } = string.Empty;
+        public List<string> Url { get; set; }
+        public string Thumbnail { get; set; } = string.Empty;
+        public decimal Price { get; set; }
     }
 }

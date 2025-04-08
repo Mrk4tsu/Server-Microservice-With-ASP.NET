@@ -36,55 +36,103 @@ namespace FN.Application.Systems.User
         }
         public async Task<ApiResult<TokenResponse>> Authenticate(LoginDTO request, HttpContext context)
         {
-            var ipAddress = GetPublicIPAddress(context);
-            if (string.IsNullOrEmpty(ipAddress))
+            try
             {
-                return new ApiErrorResult<TokenResponse>("Đăng nhập bất thường");
+                var ipAddress = GetPublicIPAddress(context);
+                if (string.IsNullOrEmpty(ipAddress)) return new ApiErrorResult<TokenResponse>("Đăng nhập bất thường");
+                var user = await _userManager.FindByNameAsync(request.UserName);
+                if (user == null) return new ApiErrorResult<TokenResponse>("Tài khoản không chính xác");
+
+                var result = await _signInManager.PasswordSignInAsync(user, request.Password, request.RememberMe, true);
+                if (!result.Succeeded) return new ApiErrorResult<TokenResponse>("Tài khoản mật khẩu không chính xác");
+
+                var clientId = string.IsNullOrEmpty(request.ClientId) ? Guid.NewGuid().ToString() : request.ClientId;
+                var tokenReq = new TokenRequest
+                {
+                    UserId = user.Id,
+                    ClientId = clientId
+                };
+                var publishTask = _redisService.Publish(SystemConstant.MESSAGE_LOGIN_EVENT, new LoginResponse
+                {
+                    Email = user.Email!,
+                    Username = user.UserName!,
+                    Token = tokenReq,
+                    IpAddress = ipAddress,
+                    UserAgent = request.UserAgent,
+                });
+                var expires = request.RememberMe ? DateTime.Now.AddDays(14) : DateTime.Now.AddDays(3);
+                var tokenTask = _tokenService.GenerateAccessToken(user);
+                var refreshToken = _tokenService.GenerateRefreshToken();
+
+                await Task.WhenAll(publishTask, tokenTask);
+                var response = new TokenResponse
+                {
+                    AccessToken = await tokenTask,
+                    RefreshToken = refreshToken,
+                    RefreshTokenExpiry = expires,
+                    ClientId = clientId
+                };
+                var expiryDuration = expires - DateTime.Now;
+                await _tokenService.SaveRefreshToken(response.RefreshToken, tokenReq, expiryDuration);
+
+                return new ApiSuccessResult<TokenResponse>(response);
             }
-            var user = await _userManager.FindByNameAsync(request.UserName);
-            if (user == null) return new ApiErrorResult<TokenResponse>("Tài khoản không chính xác");
-
-            var result = await _signInManager.PasswordSignInAsync(user, request.Password, request.RememberMe, true);
-            if (!result.Succeeded) return new ApiErrorResult<TokenResponse>("Tài khoản mật khẩu không chính xác");
-
-            string clientId = "";
-            if (string.IsNullOrEmpty(request.ClientId))
-                clientId = Guid.NewGuid().ToString();
-            else clientId = request.ClientId;
-
-            var tokenReq = new TokenRequest
+            catch (Exception e)
             {
-                UserId = user.Id,
-                ClientId = clientId
-            };
-            var publish = new LoginResponse
-            {
-                Email = user.Email!,
-                Username = user.UserName!,
-                Token = tokenReq,
-                IpAddress = ipAddress,
-                UserAgent = request.UserAgent,
-            };
-            await _redisService.Publish(SystemConstant.MESSAGE_LOGIN_EVENT, publish);
-
-            var expires = request.RememberMe ? DateTime.Now.AddDays(14) : DateTime.Now.AddDays(3);
-            var tokenTask = _tokenService.GenerateAccessToken(user);
-            var refreshToken = _tokenService.GenerateRefreshToken();
-
-            await Task.WhenAll(tokenTask);
-
-            var response = new TokenResponse
-            {
-                AccessToken = tokenTask.Result,
-                RefreshToken = refreshToken,
-                RefreshTokenExpiry = expires,
-                ClientId = clientId
-            };
-
-            await _tokenService.SaveRefreshToken(response.RefreshToken, tokenReq, expires - DateTime.Now);
-
-            return new ApiSuccessResult<TokenResponse>(response);
+                return new ApiErrorResult<TokenResponse>(e.Message);
+            }
         }
+        //public async Task<ApiResult<TokenResponse>> Authenticate(LoginDTO request, HttpContext context)
+        //{
+        //    var ipAddress = GetPublicIPAddress(context);
+        //    if (string.IsNullOrEmpty(ipAddress))
+        //    {
+        //        return new ApiErrorResult<TokenResponse>("Đăng nhập bất thường");
+        //    }
+        //    var user = await _userManager.FindByNameAsync(request.UserName);
+        //    if (user == null) return new ApiErrorResult<TokenResponse>("Tài khoản không chính xác");
+
+        //    var result = await _signInManager.PasswordSignInAsync(user, request.Password, request.RememberMe, true);
+        //    if (!result.Succeeded) return new ApiErrorResult<TokenResponse>("Tài khoản mật khẩu không chính xác");
+
+        //    string clientId = "";
+        //    if (string.IsNullOrEmpty(request.ClientId))
+        //        clientId = Guid.NewGuid().ToString();
+        //    else clientId = request.ClientId;
+
+        //    var tokenReq = new TokenRequest
+        //    {
+        //        UserId = user.Id,
+        //        ClientId = clientId
+        //    };
+        //    var publish = new LoginResponse
+        //    {
+        //        Email = user.Email!,
+        //        Username = user.UserName!,
+        //        Token = tokenReq,
+        //        IpAddress = ipAddress,
+        //        UserAgent = request.UserAgent,
+        //    };
+        //    await _redisService.Publish(SystemConstant.MESSAGE_LOGIN_EVENT, publish);
+
+        //    var expires = request.RememberMe ? DateTime.Now.AddDays(14) : DateTime.Now.AddDays(3);
+        //    var tokenTask = _tokenService.GenerateAccessToken(user);
+        //    var refreshToken = _tokenService.GenerateRefreshToken();
+
+        //    await Task.WhenAll(tokenTask);
+
+        //    var response = new TokenResponse
+        //    {
+        //        AccessToken = tokenTask.Result,
+        //        RefreshToken = refreshToken,
+        //        RefreshTokenExpiry = expires,
+        //        ClientId = clientId
+        //    };
+
+        //    await _tokenService.SaveRefreshToken(response.RefreshToken, tokenReq, expires - DateTime.Now);
+
+        //    return new ApiSuccessResult<TokenResponse>(response);
+        //}
         public async Task<ApiResult<bool>> Register(RegisterDTO request)
         {
             try
@@ -127,26 +175,71 @@ namespace FN.Application.Systems.User
                 return new ApiErrorResult<bool>(ex.Message);
             }
         }
+        //public async Task<ApiResult<TokenResponse>> RefreshToken(RefreshTokenRequest request)
+        //{
+        //    var currentToken = await _tokenService.GetRefreshToken(request);
+        //    if (currentToken == null || currentToken != request.RefreshToken)
+        //        return new ApiErrorResult<TokenResponse>("Refresh token không hợp lệ");
+
+        //    var user = await _userManager.FindByIdAsync(request.UserId.ToString());
+        //    if (user == null) return new ApiErrorResult<TokenResponse>("Tài khoản không tồn tại");
+
+        //    var token = await _tokenService.GenerateAccessToken(user);
+        //    var newRefreshToken = _tokenService.GenerateRefreshToken();
+
+        //    var response = new TokenResponse
+        //    {
+        //        AccessToken = token,
+        //        RefreshToken = newRefreshToken,
+        //        RefreshTokenExpiry = DateTime.Now.AddDays(3),
+        //        ClientId = request.ClientId
+        //    };
+        //    await _tokenService.SaveRefreshToken(newRefreshToken, request, response.RefreshTokenExpiry - DateTime.Now);
+        //    return new ApiSuccessResult<TokenResponse>(response);
+        //}
         public async Task<ApiResult<TokenResponse>> RefreshToken(RefreshTokenRequest request)
         {
-            var currentToken = await _tokenService.GetRefreshToken(request);
-            if (currentToken == null || currentToken != request.RefreshToken)
-                return new ApiErrorResult<TokenResponse>("Refresh token không hợp lệ");
-            var user = await _userManager.FindByIdAsync(request.UserId.ToString());
-            if (user == null) return new ApiErrorResult<TokenResponse>("Tài khoản không tồn tại");
-
-            var token = await _tokenService.GenerateAccessToken(user);
-            var newRefreshToken = _tokenService.GenerateRefreshToken();
-
-            var response = new TokenResponse
+            try
             {
-                AccessToken = token,
-                RefreshToken = newRefreshToken,
-                RefreshTokenExpiry = DateTime.Now.AddDays(3),
-                ClientId = request.ClientId
-            };
-            await _tokenService.SaveRefreshToken(newRefreshToken, request, response.RefreshTokenExpiry - DateTime.Now);
-            return new ApiSuccessResult<TokenResponse>(response);
+                // Kiểm tra refresh token hiện tại
+                var currentToken = await _tokenService.GetRefreshToken(request);
+                if (currentToken == null || currentToken != request.RefreshToken)
+                    return new ApiErrorResult<TokenResponse>("Refresh token không hợp lệ");
+
+                // Lấy thông tin user
+                var user = await _userManager.FindByIdAsync(request.UserId.ToString());
+                if (user == null)
+                    return new ApiErrorResult<TokenResponse>("Tài khoản không tồn tại");
+
+                // Tạo token mới và refresh token mới
+                var tokenTask = _tokenService.GenerateAccessToken(user);
+                var newRefreshToken = _tokenService.GenerateRefreshToken();
+                await tokenTask; // Chờ task hoàn thành
+
+                // Xóa refresh token cũ trước khi lưu mới
+                await _tokenService.RemoveRefreshToken(request);
+
+                var expiryDate = DateTime.Now.AddDays(3);
+                var response = new TokenResponse
+                {
+                    AccessToken = await tokenTask,
+                    RefreshToken = newRefreshToken,
+                    RefreshTokenExpiry = expiryDate,
+                    ClientId = request.ClientId
+                };
+
+                // Lưu refresh token mới
+                await _tokenService.SaveRefreshToken(
+                    newRefreshToken,
+                    request,
+                    expiryDate - DateTime.Now);
+
+                return new ApiSuccessResult<TokenResponse>(response);
+            }
+            catch (Exception ex)
+            {
+                return new ApiErrorResult<TokenResponse>("Lỗi: " + ex.Message);
+            }
         }
         private string GetPublicIPAddress(HttpContext context)
         {

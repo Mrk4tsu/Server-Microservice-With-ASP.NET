@@ -92,7 +92,7 @@ namespace FN.Application.Systems.Orders
                 return new ApiSuccessResult<string>(paymentUrl);
             }
 
-            return new ApiSuccessResult<string>(paymentUrl);
+            return new ApiSuccessResult<string>(data: paymentUrl);
         }
 
         public async Task<ApiResult<PagedResult<OrderViewModel>>> GetOrders(int userId, OrderPagingRequest request)

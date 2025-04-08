@@ -2,7 +2,6 @@
 using FN.Application.Helper.Devices;
 using FN.Application.Helper.Images;
 using FN.Application.Systems.Redis;
-using FN.Application.Systems.Token;
 using FN.DataAccess.Entities;
 using FN.Utilities;
 using FN.ViewModel.Helper.API;
@@ -89,11 +88,17 @@ namespace FN.Application.Systems.User
         {
             var user = await _userManager.Users.FirstOrDefaultAsync(u => u.Id == userId);
             if (user == null) return new ApiErrorResult<bool>("Tài khoản không tồn tại");
+
+            var keyCache = SystemConstant.CACHE_USER_BY_USERNAME + user.UserName;
             var newAvatar = await _imageService.UploadImage(file, user.UserName!, user.UserName!, ROOT);
             if (string.IsNullOrEmpty(newAvatar)) return new ApiErrorResult<bool>("Không thể lấy dữ liệu ảnh tải lên");
             user.Avatar = newAvatar;
             var result = await _userManager.UpdateAsync(user);
-            if (result.Succeeded) return new ApiSuccessResult<bool>();
+            if (result.Succeeded)
+            {
+                await RemoveCache(keyCache);
+                return new ApiSuccessResult<bool>();
+            }
             return new ApiErrorResult<bool>("Cập nhật ảnh đại diện không thành công");
         }
         public async Task<ApiResult<string>> RequestForgotPassword(RequestForgot request)
@@ -145,6 +150,10 @@ namespace FN.Application.Systems.User
             var result = await _userManager.UpdateAsync(user);
             if (result.Succeeded) return new ApiSuccessResult<bool>();
             return new ApiErrorResult<bool>("Thay đổi tên không thành công");
+        }
+        private async Task RemoveCache(string key)
+        {
+            await _redisService.RemoveValue(key);
         }
     }
 }

@@ -38,8 +38,10 @@ namespace FN.Application.Catalog.Blogs.Pattern
                         Detail = await ProcessContentImages(request.Detail!, itemId)
                     };
                     var blogResult = await UpdateBlogInternal(blogUpdate, itemResult.Data, blogId);
-                    if(!itemResult.Success) return blogResult;                 
-                    await RemoveOldCache();
+                    if(!itemResult.Success) return blogResult;
+
+                    var cachePageKey = $"my{SystemConstant.BLOG_KEY}:{userId}";
+                    await RemoveOldCache(cachePageKey);
                     await transaction.CommitAsync();
                     return new ApiSuccessResult<int>(itemId);
                 }

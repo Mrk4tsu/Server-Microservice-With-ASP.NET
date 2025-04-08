@@ -26,6 +26,15 @@ namespace FN.ProductService.Controllers
             this._imageService = imageService;
             _priceService = priceService;
         }
+        [HttpGet("get/{id}")]
+        public async Task<IActionResult> GetProductById(int id)
+        {
+            var userId = GetUserIdFromClaims();
+            if (userId == null) return Unauthorized();
+            var result = await _service.GetProductById(id);
+            if (result == null) return NotFound();
+            return Ok(result);
+        }
         [HttpGet("paging")]
         public async Task<IActionResult> GetProducts([FromQuery] ProductPagingRequest request)
         {
@@ -110,6 +119,14 @@ namespace FN.ProductService.Controllers
             var result = await _priceService.Delete(id);
             if (result.Success) return Ok(result);
             return BadRequest(result.Message);
+        }
+        [HttpGet("my-product")]
+        public async Task<IActionResult> GetMyProducts([FromQuery] ProductPagingRequest request)
+        {
+            var userId = GetUserIdFromClaims();
+            if (userId == null) return Unauthorized();
+            var result = await _service.GetProductsOwner(request, userId.Value);
+            return Ok(result);
         }
     }
 }

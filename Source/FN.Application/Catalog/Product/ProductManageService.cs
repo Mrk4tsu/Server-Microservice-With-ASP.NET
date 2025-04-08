@@ -137,21 +137,25 @@ namespace FN.Application.Catalog.Product
             using var transaction = await _db.Database.BeginTransactionAsync();
             try
             {
-                var imagesToDelete = await _db.ProductImages.Include(x => x.ProductDetail)
-                    .ThenInclude(x => x.Item)
-                    .Where(pi => request.ImageIds.Contains(pi.Id)).ToListAsync();
-                if (imagesToDelete == null || !imagesToDelete.Any()) return new ApiErrorResult<bool>("Không tìm thấy ảnh cần xóa.");
-
-                foreach (var image in imagesToDelete)
+                if (request.ImageIds != null && request.ImageIds.Any())
                 {
-                    await _image.DeleteImageInFolder(image.PublicId, Folder(image.ProductDetail.ItemId.ToString()));
-                    _db.ProductImages.Remove(image);
-                }
+                    var imagesToDelete = await _db.ProductImages.Include(x => x.ProductDetail)
+                        .ThenInclude(x => x.Item)
+                        .Where(pi => request.ImageIds.Contains(pi.Id)).ToListAsync();
+                    if (imagesToDelete == null || !imagesToDelete.Any()) return new ApiErrorResult<bool>("Không tìm thấy ảnh cần xóa.");
 
-                await _db.SaveChangesAsync();
-                await transaction.CommitAsync();
-                await RemoveCacheData();
-                return new ApiSuccessResult<bool>(true);
+                    foreach (var image in imagesToDelete)
+                    {
+                        await _image.DeleteImageInFolder(image.PublicId, Folder(image.ProductDetail.ItemId.ToString()));
+                        _db.ProductImages.Remove(image);
+                    }
+
+                    await _db.SaveChangesAsync();
+                    await transaction.CommitAsync();
+                    await RemoveCacheData();
+                    return new ApiSuccessResult<bool>(true);
+                }
+                return new ApiSuccessResult<bool>();
             }
             catch (Exception ex)
             {
@@ -159,6 +163,7 @@ namespace FN.Application.Catalog.Product
                 return new ApiErrorResult<bool>("Xóa ảnh thất bại: " + ex.Message);
             }
         }
+
         string Folder(string code)
         {
             return $"{SystemConstant.PRODUCT_KEY}/{code}";
@@ -196,6 +201,80 @@ namespace FN.Application.Catalog.Product
             _db.ProductItems.Update(productItem);
             await _db.SaveChangesAsync().ConfigureAwait(false);
             return new ApiSuccessResult<int>(productItem.Id);
+        }
+
+        public async Task<ApiResult<PagedResult<ProductOwnerViewModel>>> GetProductsOwner(ProductPagingRequest request, int userId)
+        {
+            var query = _db.ProductOwners.AsNoTracking().Where(x => x.UserId == userId)
+                .Include(x => x.Product)
+                .ThenInclude(x => x.Item)
+                .ThenInclude(x => x.ProductDetails)
+                .ThenInclude(x => x.ProductItems)
+                .AsQueryable();
+            if (!string.IsNullOrEmpty(request.KeyWord))
+            {
+                query = query.Where(x => x.Product.Item.Title.Contains(request.KeyWord) || x.Product.Item.Code.Contains(request.KeyWord));
+            }
+            var totalRow = await query.CountAsync();
+
+            var data = await query.Select(x => new ProductOwnerViewModel()
+            {
+                Id = x.ProductId,
+                ItemId = x.Product.ItemId,
+                ProductName = x.Product.Item.Title,
+                SeoAlias = x.Product.Item.SeoAlias,
+                Price = x.Product.ProductPrices.FirstOrDefault(x => x.PriceType == DataAccess.Enums.PriceType.BASE)!.Price,
+                Thumbnail = x.Product.Item.Thumbnail,
+                Url = x.Product.ProductItems.Select(x => x.Url).ToList()
+            }).OrderByDescending(x => x.ProductName)
+            .Skip((request.PageIndex - 1) * request.PageSize)
+            .Take(request.PageSize).ToListAsync();
+
+            var result = new PagedResult<ProductOwnerViewModel>
+            {
+                Items = data,
+                TotalRecords = totalRow,
+                PageIndex = request.PageIndex,
+                PageSize = request.PageSize,
+            };
+            return new ApiSuccessResult<PagedResult<ProductOwnerViewModel>>(result);
+        }
+
+        public async Task<ApiResult<ManageProductViewModel>> GetProductById(int id)
+        {
+            var product = await _db.ProductDetails
+                .Include(x => x.Category)
+                .Include(x => x.Item)
+                .ThenInclude(x => x.User)
+                .Include(x => x.ProductPrices)
+                .Include(x => x.ProductImages)
+                .Include(x => x.ProductItems)
+                .FirstOrDefaultAsync(x => x.Id == id);
+            if (product == null) return new ApiErrorResult<ManageProductViewModel>("Không tìm thấy sản phẩm");
+            var productViewModel = new ManageProductViewModel
+            {
+                Id = product.ItemId,
+                Title = product.Item.Title,
+                Description = product.Item.Description,
+                Detail = product.Detail,
+                Version = product.Version,
+                Note = product.Note,
+                Keywords = product.Item.Keywords,
+                CategoryId = product.CategoryId,
+                Thumbnail = product.Item.Thumbnail,
+                Price = product.ProductPrices.FirstOrDefault(x => x.PriceType == DataAccess.Enums.PriceType.BASE)!.Price,
+                Images = product.ProductImages.Select(x => new ImageProductViewModel
+                {
+                    Id = x.Id,
+                    ImageUrl = x.ImageUrl
+                }).ToList(),
+                Url = product.ProductItems.Select(x => new UrlProductViewModel
+                {
+                    Id = x.Id,
+                    Url = x.Url
+                }).ToList()
+            };
+            return new ApiSuccessResult<ManageProductViewModel>(productViewModel);
         }
     }
 }

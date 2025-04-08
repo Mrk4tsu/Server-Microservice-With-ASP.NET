@@ -75,12 +75,12 @@ namespace FN.UserService.Controllers
             var userId = GetUserIdFromClaims();
             if (userId == null) return Unauthorized();
             var requestResult = await _userService.RequestUpdateMail(userId.Value, newEmail);
-            await _redisService.Publish(SystemConstant.MESSAGE_UPDATE_EMAIL_EVENT, new UpdateEmailResponse
-            {
-                UserId = userId.Value,
-                NewEmail = newEmail,
-                Token = requestResult.Data!
-            });
+            //await _redisService.Publish(SystemConstant.MESSAGE_UPDATE_EMAIL_EVENT, new UpdateEmailResponse
+            //{
+            //    UserId = userId.Value,
+            //    NewEmail = newEmail,
+            //    Token = requestResult.Data!
+            //});
             if (!requestResult.Success)
                 return BadRequest(requestResult);
             return Ok(requestResult);
