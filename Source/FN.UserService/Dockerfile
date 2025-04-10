@@ -9,10 +9,7 @@ FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /src
 
 # Sao chép tệp cấu hình dự án và thực hiện restore dependency
-COPY ["Source/FN.Application/FN.Application.csproj", "FN.Application/"]
-COPY ["Source/FN.Extensions/FN.Extensions.csproj", "FN.Extensions/"]
-
-COPY ["/FN.UserService.csproj", "FN.UserService/"]
+COPY ["FN.UserService/FN.UserService.csproj", "FN.UserService/"]
 RUN dotnet restore "FN.UserService/FN.UserService.csproj"
 
 # Sao chép toàn bộ mã nguồn và build ứng dụng
