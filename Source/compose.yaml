@@ -1,36 +1,64 @@
 version: '3.8'
 services:
-  userservice:
-    build:
-      context: .
-      dockerfile: ./FN.UserService/Dockerfile
-    environment:
-      - ASPNETCORE_ENVIRONMENT=Production
-  emailservice:
-    build:
-      context: .
-      dockerfile: ./FN.EmailService/Dockerfile
-    environment:
-      - ASPNETCORE_ENVIRONMENT=Production
-  orderservice:
-    build:
-      context: .
-      dockerfile: ./FN.OrderService/Dockerfile
-    environment:
-      - ASPNETCORE_ENVIRONMENT=Production
-  catalogservice:
-    build:
-      context: .
-      dockerfile: ./FN.CatalogService/Dockerfile
-    environment:
-      - ASPNETCORE_ENVIRONMENT=Production
   apigateway:
     build:
       context: .
       dockerfile: ./FN.APIGateway/Dockerfile
+    ports:
+      - "5000:80"
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
-      - USERSERVICE_URL=http://userservice:80
-      - ORDERSERVICE_URL=http://orderservice:80
-      - CATALOGSERVICE_URL=http://catalogservice:80
-      - EMAILSERVICE_URL=http://emailservice:80
+    volumes:
+      - ./FN.APIGateway/ocelot.json:/app/ocelot.json
+    depends_on:
+      - orderservice
+      - userservice
+      - catalogservice
+      - emailservice
+    networks:
+      - microservices-network
+
+  userservice:
+    build:
+      context: .
+      dockerfile: ./FN.UserService/Dockerfile
+    ports:
+      - "5001:80"
+    networks:
+      - microservices-network
+
+  emailservice:
+    build:
+      context: .
+      dockerfile: ./FN.EmailService/Dockerfile
+    ports:
+      - "5002:80"
+    networks:
+      - microservices-network
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+
+  catalogservice:
+    build:
+      context: .
+      dockerfile: ./FN.CatalogService/Dockerfile
+    ports:
+      - "5003:80"
+    networks:
+      - microservices-network
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+
+  orderservice:
+    build:
+      context: .
+      dockerfile: ./FN.OrderService/Dockerfile
+    ports:
+      - "5004:80"
+    networks:
+      - microservices-network
+
+networks:
+  microservices-network:
+    driver: bridge
+    name: microservices-network
