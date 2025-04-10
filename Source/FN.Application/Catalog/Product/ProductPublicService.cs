@@ -40,10 +40,11 @@ namespace FN.Application.Catalog.Product
             var product = await _db.ProductDetails
                 .Include(x => x.Item)
                 .ThenInclude(x => x.User)
+                .Where(x => x.ItemId == itemId && x.Item.IsDeleted == false)
                 .Include(x => x.Category)
                 .Include(x => x.ProductPrices)
                 .Include(x => x.ProductImages)
-                .FirstOrDefaultAsync(x => x.ItemId == itemId);
+                .FirstOrDefaultAsync();
             if (product == null) return new ApiErrorResult<ProductDetailViewModel>("Không tìm thấy sản phẩm");
 
 
@@ -156,7 +157,6 @@ namespace FN.Application.Catalog.Product
             var facade = new GetProductFacade(_db, _dbRedis!, null!, _mapper);
             return await facade.GetProducts(request, false, false, null);
         }
-
         public Task<ApiResult<PagedResult<ProductViewModel>>> GetProductsOwner(ProductPagingRequest request, int userId)
         {
             throw new NotImplementedException();

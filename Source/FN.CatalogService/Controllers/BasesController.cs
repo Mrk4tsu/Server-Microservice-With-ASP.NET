@@ -1,5 +1,7 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using Mailjet.Client.Resources;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 
 namespace FN.ProductService.Controllers
@@ -11,13 +13,9 @@ namespace FN.ProductService.Controllers
         protected int? GetUserIdFromClaims()
         {
             var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+            if (userIdClaim == null) return null;
 
-            if (int.TryParse(userIdClaim.Value, out int userId))
-            {
-                return userId;
-            }
-
-            return null;
+            return int.Parse(userIdClaim.Value);
         }
         public static IActionResult Success(string? message = null, object? data = null)
         {

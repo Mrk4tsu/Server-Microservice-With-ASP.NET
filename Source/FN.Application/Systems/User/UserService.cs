@@ -9,6 +9,7 @@ using FN.ViewModel.Systems.User;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using MongoDB.Driver;
 using System.Net;
 
@@ -22,57 +23,121 @@ namespace FN.Application.Systems.User
         private readonly IMapper _mapper;
         private readonly IDeviceService _deviceService;
         private readonly IImageService _imageService;
-        public UserService(IRedisService redisService,
-                        IMongoDatabase database,
-                        IDeviceService deviceService,
-                        IMapper mapper,
-                        IImageService imageService,
-                        UserManager<AppUser> userManager,
-            SignInManager<AppUser> signInManager)
+        private readonly ILogger<UserService> _logger;
+        public UserService(
+         IRedisService redisService,
+         UserManager<AppUser> userManager,
+         IMapper mapper,
+         IImageService imageService,
+         IDeviceService deviceService,
+         ILogger<UserService> logger)
         {
             _redisService = redisService;
             _userManager = userManager;
             _mapper = mapper;
             _imageService = imageService;
             _deviceService = deviceService;
+            _logger = logger;
         }
+        #region Helper Methods
+        private async Task<AppUser?> GetUserByIdAsync(int id)
+        {
+            try
+            {
+                return await _userManager.FindByIdAsync(id.ToString());
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting user by ID {UserId}", id);
+                return null;
+            }
+        }
+        private async Task<AppUser?> GetUserByUsernameAsync(string username)
+        {
+            try
+            {
+                return await _userManager.FindByNameAsync(username);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting user by username {Username}", username);
+                return null;
+            }
+        }
+        private async Task InvalidateUserCache(string username)
+        {
+            try
+            {
+                var keyCache = SystemConstant.CACHE_USER_BY_USERNAME + username;
+                await _redisService.RemoveValue(keyCache);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error invalidating cache for user {Username}", username);
+            }
+        }
+        #endregion
         public async Task<ApiResult<UserViewModel>> GetById(int id)
         {
-            var user = await _userManager.FindByIdAsync(id.ToString());
-            if (user == null) return new ApiErrorResult<UserViewModel>("Tài khoản không tồn tại");
-            var userVm = _mapper.Map<UserViewModel>(user);
-            return new ApiSuccessResult<UserViewModel>(userVm);
+            var user = await GetUserByIdAsync(id);
+            if (user == null)
+                return new ApiErrorResult<UserViewModel>("Tài khoản không tồn tại");
+
+            return new ApiSuccessResult<UserViewModel>(_mapper.Map<UserViewModel>(user));
         }
         public async Task<ApiResult<UserViewModel>> GetByUsername(string username)
         {
-            var keyCache = SystemConstant.CACHE_USER_BY_USERNAME + username;
-            UserViewModel? userVM = null;
-            if (await _redisService.KeyExist(keyCache))
+            try
             {
-                userVM = await _redisService.GetValue<UserViewModel>(keyCache);
-                if (userVM != null)
-                    return new ApiSuccessResult<UserViewModel>(userVM!);
+                var keyCache = SystemConstant.CACHE_USER_BY_USERNAME + username;
+                if (await _redisService.KeyExist(keyCache))
+                {
+                    var cachedUser = await _redisService.GetValue<UserViewModel>(keyCache);
+                    if (cachedUser != null)
+                    {
+                        return new ApiSuccessResult<UserViewModel>(cachedUser);
+                    }
+                }
+                var user = await GetUserByUsernameAsync(username);
+                if (user == null)
+                    return new ApiErrorResult<UserViewModel>("Tài khoản không tồn tại");
+                var userVm = _mapper.Map<UserViewModel>(user);
+                await _redisService.SetValue(keyCache, userVm, TimeSpan.FromMinutes(5));
+                return new ApiSuccessResult<UserViewModel>(userVm);
             }
-            var user = await _userManager.FindByNameAsync(username);
-            if (user == null) return new ApiErrorResult<UserViewModel>("Tài khoản không tồn tại");
-            var userVm = _mapper.Map<UserViewModel>(user);
-            await _redisService.SetValue(keyCache, userVm, TimeSpan.FromMinutes(5));
-            return new ApiSuccessResult<UserViewModel>(userVm);
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in GetByUsername for {Username}", username);
+                return new ApiErrorResult<UserViewModel>("Lỗi hệ thống");
+            }
         }
         public async Task<ApiResult<string>> RequestUpdateMail(int userId, string newEmail)
         {
-            var user = await _userManager.FindByIdAsync(userId.ToString());
-            if (user == null) return new ApiErrorResult<string>("Tài khoản không tồn tại");
-            if (newEmail == user.Email)
-                return new ApiErrorResult<string>("Email mới không thể trùng với email hiện tại");
-            var token = await _userManager.GenerateChangeEmailTokenAsync(user, newEmail);
-            await _redisService.Publish(SystemConstant.MESSAGE_UPDATE_EMAIL_EVENT, new UpdateEmailResponse
+            try
             {
-                UserId = userId,
-                NewEmail = newEmail,
-                Token = token
-            });
-            return new ApiSuccessResult<string>(token);
+                var user = await GetUserByIdAsync(userId);
+                if (user == null)
+                    return new ApiErrorResult<string>("Tài khoản không tồn tại");
+
+                if (string.Equals(newEmail, user.Email, StringComparison.OrdinalIgnoreCase))
+                    return new ApiErrorResult<string>("Email mới không thể trùng với email hiện tại");
+
+                var token = await _userManager.GenerateChangeEmailTokenAsync(user, newEmail);
+
+                await _redisService.Publish(SystemConstant.MESSAGE_UPDATE_EMAIL_EVENT, new UpdateEmailResponse
+                {
+                    UserId = userId,
+                    NewEmail = newEmail,
+                    Token = token
+                });
+
+                return new ApiSuccessResult<string>(token);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in RequestUpdateMail for user {UserId}", userId);
+                return new ApiErrorResult<string>("Lỗi hệ thống");
+            }
         }
         public async Task<ApiResult<bool>> ConfirmEmailChange(UpdateEmailResponse response)
         {
@@ -86,21 +151,35 @@ namespace FN.Application.Systems.User
         }
         public async Task<ApiResult<bool>> UpdateAvatar(int userId, IFormFile file)
         {
-            var user = await _userManager.Users.FirstOrDefaultAsync(u => u.Id == userId);
-            if (user == null) return new ApiErrorResult<bool>("Tài khoản không tồn tại");
-
-            var keyCache = SystemConstant.CACHE_USER_BY_USERNAME + user.UserName;
-            var newAvatar = await _imageService.UploadImage(file, user.UserName!, user.UserName!, ROOT);
-            if (string.IsNullOrEmpty(newAvatar)) return new ApiErrorResult<bool>("Không thể lấy dữ liệu ảnh tải lên");
-            user.Avatar = newAvatar;
-            var result = await _userManager.UpdateAsync(user);
-            if (result.Succeeded)
+            try
             {
-                await RemoveCache(keyCache);
-                return new ApiSuccessResult<bool>();
+                var user = await _userManager.Users.FirstOrDefaultAsync(u => u.Id == userId);
+                if (user == null)
+                    return new ApiErrorResult<bool>("Tài khoản không tồn tại");
+
+                var newAvatar = await _imageService.UploadImage(file, user.UserName!, user.UserName!, ROOT);
+                if (string.IsNullOrEmpty(newAvatar))
+                    return new ApiErrorResult<bool>("Không thể lấy dữ liệu ảnh tải lên");
+
+                user.Avatar = newAvatar;
+                var result = await _userManager.UpdateAsync(user);
+
+                if (result.Succeeded)
+                {
+                    await InvalidateUserCache(user.UserName!);
+                    return new ApiSuccessResult<bool>();
+                }
+
+                return new ApiErrorResult<bool>("Cập nhật ảnh đại diện không thành công");
             }
-            return new ApiErrorResult<bool>("Cập nhật ảnh đại diện không thành công");
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in UpdateAvatar for user {UserId}", userId);
+                return new ApiErrorResult<bool>("Lỗi hệ thống");
+            }
         }
+
+        #region[Quên mật khẩu]
         public async Task<ApiResult<string>> RequestForgotPassword(RequestForgot request)
         {
             var user = await _userManager.FindByNameAsync(request.Username);
@@ -128,16 +207,17 @@ namespace FN.Application.Systems.User
             }
             return new ApiErrorResult<bool>(result.Errors.First().Description);
         }
-        public async Task<ApiResult<bool>> ChangePassword(ChangePasswordRequest request)
+        #endregion
+        public async Task<ApiResult<bool>> ChangePassword(ChangePasswordRequest request, int userId)
         {
-            var user = await _userManager.FindByIdAsync(request.UserId.ToString());
+            var user = await _userManager.FindByIdAsync(userId.ToString());
             if (user == null) return new ApiErrorResult<bool>("User không tồn tại");
 
             var result = await _userManager.ChangePasswordAsync(user, request.CurrentPassword, request.NewPassword);
             if (result.Succeeded)
             {
                 if (request.LogoutEverywhere)
-                    await _deviceService.RemoveAllDevice(request.UserId);
+                    await _deviceService.RemoveAllDevice(userId);
                 return new ApiSuccessResult<bool>();
             }
             return new ApiErrorResult<bool>(result.Errors.First().Description);

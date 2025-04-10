@@ -1,6 +1,5 @@
 ﻿using FN.Application.Systems.Redis;
 using FN.Application.Systems.User;
-using FN.Utilities;
 using FN.ViewModel.Systems.User;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -12,10 +11,8 @@ namespace FN.UserService.Controllers
     public class UsersController : BasesController
     {
         private readonly IUserService _userService;
-        private readonly IRedisService _redisService;
-        public UsersController(IUserService userService, IRedisService redisService)
+        public UsersController(IUserService userService)
         {
-            _redisService = redisService;
             _userService = userService;
         }
         [HttpGet("{userId}"), AllowAnonymous]
@@ -39,8 +36,7 @@ namespace FN.UserService.Controllers
         {
             var userId = GetUserIdFromClaims();
             if (userId == null) return Unauthorized();
-            request.UserId = userId.Value;
-            var result = await _userService.ChangePassword(request);
+            var result = await _userService.ChangePassword(request, userId.Value);
             if (result.Success)
                 return Ok(result);
             return BadRequest(result);

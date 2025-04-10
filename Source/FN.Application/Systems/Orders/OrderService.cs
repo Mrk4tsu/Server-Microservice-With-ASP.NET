@@ -5,6 +5,7 @@ using FN.DataAccess.Enums;
 using FN.ViewModel.Helper.API;
 using FN.ViewModel.Helper.Paging;
 using FN.ViewModel.Systems.Order;
+using Google.Api;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -31,8 +32,23 @@ namespace FN.Application.Systems.Orders
         {
             try
             {
+                //var user = await _db.Users.FindAsync(userId);
+                //if(!user!.EmailConfirmed) return new ApiErrorResult<int>("Tài khoản chưa xác thực email");
                 var product = await _db.ProductDetails.Include(x => x.ProductPrices).FirstOrDefaultAsync(x => x.Id == request.ProductId);
                 if (product == null) return new ApiErrorResult<int>("Product not found");
+                if (request.Amount <= 0)
+                {
+                    var owner = new ProductOwner
+                    {
+                        ProductId = request.ProductId,
+                        UserId = userId,
+                    };
+                    await _db.ProductOwners.AddAsync(owner).ConfigureAwait(false);
+                    product!.DownloadCount += 1;
+                    await _db.SaveChangesAsync();
+                    return new ApiSuccessResult<int>();
+                }
+
                 var basePrice = product.ProductPrices.FirstOrDefault(x => x.PriceType == PriceType.BASE)?.Price;
                 var order = new UserOrder
                 {
@@ -223,6 +239,8 @@ namespace FN.Application.Systems.Orders
                             UserId = userId,
                         };
                         await dbContext.ProductOwners.AddAsync(owner).ConfigureAwait(false);
+                        var product = await dbContext.ProductDetails.FindAsync(productId);
+                        product!.DownloadCount += 1;
                     }
 
                     await dbContext.SaveChangesAsync().ConfigureAwait(false);

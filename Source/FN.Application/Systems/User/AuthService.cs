@@ -82,57 +82,6 @@ namespace FN.Application.Systems.User
                 return new ApiErrorResult<TokenResponse>(e.Message);
             }
         }
-        //public async Task<ApiResult<TokenResponse>> Authenticate(LoginDTO request, HttpContext context)
-        //{
-        //    var ipAddress = GetPublicIPAddress(context);
-        //    if (string.IsNullOrEmpty(ipAddress))
-        //    {
-        //        return new ApiErrorResult<TokenResponse>("Đăng nhập bất thường");
-        //    }
-        //    var user = await _userManager.FindByNameAsync(request.UserName);
-        //    if (user == null) return new ApiErrorResult<TokenResponse>("Tài khoản không chính xác");
-
-        //    var result = await _signInManager.PasswordSignInAsync(user, request.Password, request.RememberMe, true);
-        //    if (!result.Succeeded) return new ApiErrorResult<TokenResponse>("Tài khoản mật khẩu không chính xác");
-
-        //    string clientId = "";
-        //    if (string.IsNullOrEmpty(request.ClientId))
-        //        clientId = Guid.NewGuid().ToString();
-        //    else clientId = request.ClientId;
-
-        //    var tokenReq = new TokenRequest
-        //    {
-        //        UserId = user.Id,
-        //        ClientId = clientId
-        //    };
-        //    var publish = new LoginResponse
-        //    {
-        //        Email = user.Email!,
-        //        Username = user.UserName!,
-        //        Token = tokenReq,
-        //        IpAddress = ipAddress,
-        //        UserAgent = request.UserAgent,
-        //    };
-        //    await _redisService.Publish(SystemConstant.MESSAGE_LOGIN_EVENT, publish);
-
-        //    var expires = request.RememberMe ? DateTime.Now.AddDays(14) : DateTime.Now.AddDays(3);
-        //    var tokenTask = _tokenService.GenerateAccessToken(user);
-        //    var refreshToken = _tokenService.GenerateRefreshToken();
-
-        //    await Task.WhenAll(tokenTask);
-
-        //    var response = new TokenResponse
-        //    {
-        //        AccessToken = tokenTask.Result,
-        //        RefreshToken = refreshToken,
-        //        RefreshTokenExpiry = expires,
-        //        ClientId = clientId
-        //    };
-
-        //    await _tokenService.SaveRefreshToken(response.RefreshToken, tokenReq, expires - DateTime.Now);
-
-        //    return new ApiSuccessResult<TokenResponse>(response);
-        //}
         public async Task<ApiResult<bool>> Register(RegisterDTO request)
         {
             try
@@ -175,28 +124,6 @@ namespace FN.Application.Systems.User
                 return new ApiErrorResult<bool>(ex.Message);
             }
         }
-        //public async Task<ApiResult<TokenResponse>> RefreshToken(RefreshTokenRequest request)
-        //{
-        //    var currentToken = await _tokenService.GetRefreshToken(request);
-        //    if (currentToken == null || currentToken != request.RefreshToken)
-        //        return new ApiErrorResult<TokenResponse>("Refresh token không hợp lệ");
-
-        //    var user = await _userManager.FindByIdAsync(request.UserId.ToString());
-        //    if (user == null) return new ApiErrorResult<TokenResponse>("Tài khoản không tồn tại");
-
-        //    var token = await _tokenService.GenerateAccessToken(user);
-        //    var newRefreshToken = _tokenService.GenerateRefreshToken();
-
-        //    var response = new TokenResponse
-        //    {
-        //        AccessToken = token,
-        //        RefreshToken = newRefreshToken,
-        //        RefreshTokenExpiry = DateTime.Now.AddDays(3),
-        //        ClientId = request.ClientId
-        //    };
-        //    await _tokenService.SaveRefreshToken(newRefreshToken, request, response.RefreshTokenExpiry - DateTime.Now);
-        //    return new ApiSuccessResult<TokenResponse>(response);
-        //}
         public async Task<ApiResult<TokenResponse>> RefreshToken(RefreshTokenRequest request)
         {
             try
@@ -243,45 +170,45 @@ namespace FN.Application.Systems.User
         }
         private string GetPublicIPAddress(HttpContext context)
         {
-            //try
-            //{
-            //    // Tạo client và yêu cầu
-            //    var client = new RestClient("https://api.ipify.org");
-            //    var request = new RestRequest("", Method.Get);
-
-            //    // Thực hiện yêu cầu và lấy kết quả
-            //    var response = client.Execute(request);
-            //    return response.Content ?? string.Empty;
-            //}
-            //catch (Exception ex)
-            //{
-            //    Console.WriteLine("Lỗi khi lấy địa chỉ IP public: " + ex.Message);
-            //    return string.Empty;
-            //}
-            var ipHeaders = new[] { "X-Forwarded-For", "Forwarded", "X-Real-IP" };
-            foreach (var header in ipHeaders)
+            try
             {
-                if (context.Request.Headers.TryGetValue(header, out var headerValue))
-                {
-                    var ip = headerValue.ToString().Split(',')[0].Trim();
-                    if (!string.IsNullOrEmpty(ip))
-                        return ip;
-                }
-            }
+                // Tạo client và yêu cầu
+                var client = new RestClient("https://api.ipify.org");
+                var request = new RestRequest("", Method.Get);
 
-            var remoteIp = context.Connection.RemoteIpAddress;
-            if (remoteIp != null)
+                // Thực hiện yêu cầu và lấy kết quả
+                var response = client.Execute(request);
+                return response.Content ?? string.Empty;
+            }
+            catch (Exception ex)
             {
-                if (remoteIp.Equals(IPAddress.IPv6Loopback))
-                    return "127.0.0.1";
-
-                if (remoteIp.IsIPv4MappedToIPv6)
-                    return remoteIp.MapToIPv4().ToString();
-
-                return remoteIp.ToString();
+                Console.WriteLine("Lỗi khi lấy địa chỉ IP public: " + ex.Message);
+                return string.Empty;
             }
+            //var ipHeaders = new[] { "X-Forwarded-For", "Forwarded", "X-Real-IP" };
+            //foreach (var header in ipHeaders)
+            //{
+            //    if (context.Request.Headers.TryGetValue(header, out var headerValue))
+            //    {
+            //        var ip = headerValue.ToString().Split(',')[0].Trim();
+            //        if (!string.IsNullOrEmpty(ip))
+            //            return ip;
+            //    }
+            //}
 
-            return "Unknown";
+            //var remoteIp = context.Connection.RemoteIpAddress;
+            //if (remoteIp != null)
+            //{
+            //    if (remoteIp.Equals(IPAddress.IPv6Loopback))
+            //        return "127.0.0.1";
+
+            //    if (remoteIp.IsIPv4MappedToIPv6)
+            //        return remoteIp.MapToIPv4().ToString();
+
+            //    return remoteIp.ToString();
+            //}
+
+            //return "Unknown";
         }
     }
 }
