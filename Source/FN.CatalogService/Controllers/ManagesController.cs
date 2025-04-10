@@ -1,6 +1,7 @@
 ﻿using FN.Application.Catalog.Product;
 using FN.Application.Catalog.Product.Prices;
 using FN.Application.Helper.Images;
+using FN.ViewModel.Catalog.ProductItems;
 using FN.ViewModel.Catalog.Products.Manage;
 using FN.ViewModel.Catalog.Products.Prices;
 using Microsoft.AspNetCore.Authorization;
@@ -24,6 +25,15 @@ namespace FN.ProductService.Controllers
             this._service = service;
             this._imageService = imageService;
             _priceService = priceService;
+        }
+        [HttpGet("get/{id}")]
+        public async Task<IActionResult> GetProductById(int id)
+        {
+            var userId = GetUserIdFromClaims();
+            if (userId == null) return Unauthorized();
+            var result = await _service.GetProductById(id);
+            if (result == null) return NotFound();
+            return Ok(result);
         }
         [HttpGet("paging")]
         public async Task<IActionResult> GetProducts([FromQuery] ProductPagingRequest request)
@@ -80,6 +90,18 @@ namespace FN.ProductService.Controllers
             var result = await _priceService.Create(request);
             return Ok(result);
         }
+        [HttpPost("add-item/{productId}")]
+        public async Task<IActionResult> AddItem([FromForm] ProductItemRequest request, int productId)
+        {
+            var result = await _service.AddItemProduct(request, productId);
+            return Ok(result);
+        }
+        [HttpPut("edit-item/{itemProductID}")]
+        public async Task<IActionResult> EditItem([FromForm] ProductItemSingleRequest request, int itemProductID)
+        {
+            var result = await _service.EditItemProduct(request, itemProductID);
+            return Ok(result);
+        }
         [HttpPut("update-price")]
         public async Task<IActionResult> UpdatePrice(PriceRequest request)
         {
@@ -97,6 +119,14 @@ namespace FN.ProductService.Controllers
             var result = await _priceService.Delete(id);
             if (result.Success) return Ok(result);
             return BadRequest(result.Message);
+        }
+        [HttpGet("my-product")]
+        public async Task<IActionResult> GetMyProducts([FromQuery] ProductPagingRequest request)
+        {
+            var userId = GetUserIdFromClaims();
+            if (userId == null) return Unauthorized();
+            var result = await _service.GetProductsOwner(request, userId.Value);
+            return Ok(result);
         }
     }
 }

@@ -3,6 +3,7 @@ using FN.Application.Catalog.Blogs.Pattern;
 using FN.Application.Helper.Images;
 using FN.Application.Systems.Redis;
 using FN.DataAccess;
+using FN.DataAccess.Enums;
 using FN.Utilities;
 using FN.ViewModel.Catalog.Blogs;
 using FN.ViewModel.Helper.API;
@@ -41,20 +42,47 @@ namespace FN.Application.Catalog.Blogs
             var facade = new BlogUpdateFacade(_db, _redis, _image, SystemConstant.BLOG_KEY);
             return await facade.Update(request, itemId, blogId, userId);
         }
-        public async Task<ApiResult<PagedResult<BlogViewModel>>> GetBlogs(BlogPagingRequest request)
+        public async Task<ApiResult<List<BlogViewModel>>> GetLatestBlogs()
         {
-            var cachePageKey = SystemConstant.BLOG_KEY;
+            var cacheKey = SystemConstant.BLOG_KEY + "new";
+            if (await _redis.KeyExist(cacheKey))
+            {
+                var cachedData = await _redis.GetValue<List<BlogViewModel>>(cacheKey);
+                if (cachedData != null) return new ApiSuccessResult<List<BlogViewModel>>(cachedData);
+            }
+            var query = _db.Blogs.AsNoTracking()
+                .Where(x => !x.Item.IsDeleted)
+                .Include(x => x.Item)
+                .ThenInclude(x => x.User);
+            var blogs = await query
+                .OrderByDescending(x => x.Item.CreatedDate)
+                .Take(2)
+                .ToListAsync();
+            var data = _mapper.Map<List<BlogViewModel>>(blogs);
+            await _redis.SetValue(cacheKey, data, TimeSpan.FromHours(12));
+            return new ApiSuccessResult<List<BlogViewModel>>(data);
+        }
+        public async Task<ApiResult<PagedResult<BlogViewModel>>> GetMyBlogs(BlogPagingRequest request, int userId)
+        {
+            var cachePageKey = $"my{SystemConstant.BLOG_KEY}:{userId}";
 
             // Kiểm tra cache
             if (await _redis.KeyExist(cachePageKey))
             {
-                var cachedData = await _redis.GetValue<PagedResult<BlogViewModel>>(cachePageKey);
-                if (cachedData != null) return new ApiSuccessResult<PagedResult<BlogViewModel>>(cachedData);
+                var cachedData = await _redis.GetValue<List<BlogViewModel>>(cachePageKey);
+                var resultCache = new PagedResult<BlogViewModel>
+                {
+                    TotalRecords = cachedData.Count,
+                    PageIndex = request.PageIndex,
+                    PageSize = request.PageSize,
+                    Items = cachedData
+                };
+                if (cachedData != null) return new ApiSuccessResult<PagedResult<BlogViewModel>>(resultCache);
             }
 
             // Truy vấn tổng số blog trước khi phân trang
             var query = _db.Blogs.AsNoTracking()
-                .Where(x => !x.Item.IsDeleted)
+                .Where(x => !x.Item.IsDeleted && x.Item.UserId == userId)
                 .Include(x => x.Item)
                 .ThenInclude(x => x.User);
 
@@ -69,6 +97,8 @@ namespace FN.Application.Catalog.Blogs
 
             // Ánh xạ dữ liệu bằng AutoMapper
             var data = _mapper.Map<List<BlogViewModel>>(blogs);
+            // Lưu cache
+            await _redis.SetValue(cachePageKey, data);
 
             var result = new PagedResult<BlogViewModel>
             {
@@ -78,36 +108,109 @@ namespace FN.Application.Catalog.Blogs
                 Items = data
             };
 
+            return new ApiSuccessResult<PagedResult<BlogViewModel>>(result);
+        }
+        public async Task<ApiResult<PagedResult<BlogViewModel>>> GetBlogs(BlogPagingRequest request)
+        {
+            //var cachePageKey = SystemConstant.BLOG_KEY;
+
+            //// Kiểm tra cache
+            //if (await _redis.KeyExist(cachePageKey))
+            //{
+            //    var cachedData = await _redis.GetValue<List<BlogViewModel>>(cachePageKey);
+            //    var resultCache = new PagedResult<BlogViewModel>
+            //    {
+            //        TotalRecords = cachedData!.Count,
+            //        PageIndex = request.PageIndex,
+            //        PageSize = request.PageSize,
+            //        Items = cachedData
+            //    };
+            //    if (cachedData != null) return new ApiSuccessResult<PagedResult<BlogViewModel>>(resultCache);
+            //}
+
+            // Truy vấn tổng số blog trước khi phân trang
+            var query = _db.Blogs.AsNoTracking()
+                .Where(x => !x.Item.IsDeleted)
+                .Include(x => x.Item)
+                .ThenInclude(x => x.User)
+                .AsQueryable();
+            if (!string.IsNullOrEmpty(request.KeyWord))
+                query = query.Where(x => x.Item.Title.Contains(request.KeyWord) 
+                || x.Item.NormalizedTitle.Contains(request.KeyWord)
+                || x.Item.User.FullName.Contains(request.KeyWord));
+
+            var totalRecords = await query.Select(x => x.Id).CountAsync();
+
+            // Truy vấn danh sách blog đã phân trang
+            var blogs = await query
+                .OrderByDescending(x => x.Item.CreatedDate)
+                .Skip((request.PageIndex - 1) * request.PageSize)
+                .Take(request.PageSize)
+                .ToListAsync();
+
+            // Ánh xạ dữ liệu bằng AutoMapper
+            var data = _mapper.Map<List<BlogViewModel>>(blogs);
+
             // Lưu cache
-            await _redis.SetValue(cachePageKey, result);
+            //await _redis.SetValue(cachePageKey, data);
+
+            var result = new PagedResult<BlogViewModel>
+            {
+                TotalRecords = totalRecords,
+                PageIndex = request.PageIndex,
+                PageSize = request.PageSize,
+                Items = data
+            };
 
             return new ApiSuccessResult<PagedResult<BlogViewModel>>(result);
         }
-        public async Task<ApiResult<BlogDetailViewModel>> GetDetail(int id)
+        public async Task<ApiResult<BlogDetailViewModel>> GetDetail(int id, int userId)
         {
-            var cacheKey = $"{SystemConstant.BLOG_DETAIL_KEY}:{id}";
+            //var cacheKey = $"{SystemConstant.BLOG_DETAIL_KEY}:{id}";
 
-            // Kiểm tra cache
-            if (await _redis.KeyExist(cacheKey))
-            {
-                var cachedData = await _redis.GetValue<BlogDetailViewModel>(cacheKey);
-                if (cachedData != null) return new ApiSuccessResult<BlogDetailViewModel>(cachedData);
-            }
+            //// Kiểm tra cache
+            //if (await _redis.KeyExist(cacheKey))
+            //{
+            //    var cachedData = await _redis.GetValue<BlogDetailViewModel>(cacheKey);
+            //    if (cachedData != null) return new ApiSuccessResult<BlogDetailViewModel>(cachedData);
+            //}
 
             var blog = await _db.Blogs
                 .Include(x => x.Item)
                 .ThenInclude(x => x.User)
-                .FirstOrDefaultAsync(x => x.ItemId == id);
+                .FirstOrDefaultAsync(x => x.Id == id);
+
 
             if (blog == null || blog.Item == null || blog.Item.User == null)
                 return new ApiErrorResult<BlogDetailViewModel>("Blog not found");
 
             var data = _mapper.Map<BlogDetailViewModel>(blog);
-            await _redis.SetValue(cacheKey, data, TimeSpan.FromMinutes(15));
+            var interaction = await _db.UserBlogInteractions
+                .Where(x => x.BlogId == id && x.UserId == userId)
+                .FirstOrDefaultAsync();
+            if (interaction != null)
+            {
+                data.IsInteractive = interaction.Type;
+            }
 
             return new ApiSuccessResult<BlogDetailViewModel>(data);
         }
+        public async Task<ApiResult<BlogDetailViewModel>> GetDetailWithoutLogin(int id)
+        {
+            var blog = await _db.Blogs
+                .Include(x => x.Item)
+                .ThenInclude(x => x.User)
+                .FirstOrDefaultAsync(x => x.Id == id);
 
+
+            if (blog == null || blog.Item == null || blog.Item.User == null)
+                return new ApiErrorResult<BlogDetailViewModel>("Blog not found");
+
+            var data = _mapper.Map<BlogDetailViewModel>(blog);
+            data.IsInteractive = InteractionType.None;
+
+            return new ApiSuccessResult<BlogDetailViewModel>(data);
+        }
         public async Task<ApiResult<bool>> Delete(int itemId, int userId)
         {
             var item = await _db.Items.FirstOrDefaultAsync(x => x.Id == itemId && x.UserId == userId);

@@ -17,6 +17,14 @@ namespace FN.CatalogService.Controllers
         {
             _blogService = blogService;
         }
+        [HttpGet("my-blog")]
+        public async Task<IActionResult> GetAll([FromQuery] BlogPagingRequest request)
+        {
+            var userId = GetUserIdFromClaims();
+            if (userId == null) return Unauthorized();
+            var blogs = await _blogService.GetMyBlogs(request, userId.Value);
+            return Ok(blogs);
+        }
         [HttpGet("get/{id}")]
         public async Task<IActionResult> Get(int id)
         {

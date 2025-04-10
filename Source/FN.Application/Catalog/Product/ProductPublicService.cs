@@ -1,5 +1,4 @@
 ﻿using AutoMapper;
-using AutoMapper.QueryableExtensions;
 using FN.Application.Catalog.Product.Pattern;
 using FN.Application.Systems.Redis;
 using FN.DataAccess;
@@ -41,15 +40,19 @@ namespace FN.Application.Catalog.Product
             var product = await _db.ProductDetails
                 .Include(x => x.Item)
                 .ThenInclude(x => x.User)
+                .Where(x => x.ItemId == itemId && x.Item.IsDeleted == false)
                 .Include(x => x.Category)
                 .Include(x => x.ProductPrices)
                 .Include(x => x.ProductImages)
-                .FirstOrDefaultAsync(x => x.ItemId == itemId);
+                .FirstOrDefaultAsync();
             if (product == null) return new ApiErrorResult<ProductDetailViewModel>("Không tìm thấy sản phẩm");
 
 
-            var ownerProduct = await _db.ProductOwners.FirstOrDefaultAsync(x => x.ProductId == itemId && x.UserId == userId);
-            if(ownerProduct != null || product.Item.UserId == userId) flagOwner = true;
+            var ownerProduct = await _db.ProductOwners.FirstOrDefaultAsync(x => x.ProductId == product.Id && x.UserId == userId);
+            var interaction = await _db.UserProductInteractions
+               .Where(x => x.ProductId == product.Id && x.UserId == userId)
+               .FirstOrDefaultAsync();
+            if (ownerProduct != null || product.Item.UserId == userId) flagOwner = true;
             var detailVM = new ProductDetailViewModel
             {
                 Id = product.Item.Id,
@@ -91,9 +94,11 @@ namespace FN.Application.Catalog.Product
                     Caption = x.Caption
                 }).ToList()
             };
+            if (interaction != null)
+                detailVM.IsInteractive = interaction.Type;
             return new ApiSuccessResult<ProductDetailViewModel>(detailVM);
         }
-        public async Task<ApiResult<ProductDetailViewModel>> GetProductWithoutLogin(int itemId)       
+        public async Task<ApiResult<ProductDetailViewModel>> GetProductWithoutLogin(int itemId)
         {
             var product = await _db.ProductDetails
                 .Include(x => x.Item)
@@ -126,6 +131,7 @@ namespace FN.Application.Catalog.Product
                 Username = product.Item.User.UserName!,
                 Author = product.Item.User.FullName,
                 ViewCount = product.Item.ViewCount,
+                IsInteractive = DataAccess.Enums.InteractionType.None,
                 Prices = product.ProductPrices
                         .Where(pp => !pp.ProductDetail.IsDeleted && pp.EndDate > DateTime.Now) // Lọc nếu cần
                         .Select(pp => new PriceViewModel
@@ -151,7 +157,6 @@ namespace FN.Application.Catalog.Product
             var facade = new GetProductFacade(_db, _dbRedis!, null!, _mapper);
             return await facade.GetProducts(request, false, false, null);
         }
-
         public Task<ApiResult<PagedResult<ProductViewModel>>> GetProductsOwner(ProductPagingRequest request, int userId)
         {
             throw new NotImplementedException();

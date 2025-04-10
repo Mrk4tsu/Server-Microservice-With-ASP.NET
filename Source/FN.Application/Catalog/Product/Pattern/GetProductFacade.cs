@@ -66,6 +66,7 @@ namespace FN.Application.Catalog.Product.Pattern
                 .Select(pd => new ProductViewModel
                 {
                     Id = pd.Item.Id,
+                    ProductId = pd.Id,
                     UserId = pd.Item.UserId,
                     Title = pd.Item.Title,
                     NormalizeTitle = pd.Item.NormalizedTitle,
@@ -79,7 +80,7 @@ namespace FN.Application.Catalog.Product.Pattern
                     Username = pd.Item.User.FullName,
                     Version = pd.Version,
                     Prices = pd.ProductPrices
-                        .Where(pp => !pp.ProductDetail.IsDeleted) // Lọc nếu cần
+                        .Where(pp => !pp.ProductDetail.IsDeleted && pp.EndDate > Now()) 
                         .Select(pp => new PriceViewModel
                         {
                             Id = pp.Id,

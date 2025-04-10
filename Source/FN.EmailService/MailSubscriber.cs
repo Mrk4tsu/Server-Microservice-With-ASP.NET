@@ -92,9 +92,9 @@ namespace FN.EmailService
                         {
                             var url = UrlCallback(request.Token, request.Username, baseDomain ?? "https://mrkatsu.io.vn");
                             var objects = new JObject
-                    {
-                        {"plink", url}
-                    };
+                            {
+                                {"plink", url}
+                            };
                             await _mailService.SendMail(request.Email, $"Xác nhận khôi phục mật khẩu", SystemConstant.TEMPLATE_RESET_PASSWORD_ID, objects);
                         }
                         break;

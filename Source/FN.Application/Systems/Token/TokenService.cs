@@ -16,6 +16,12 @@ namespace FN.Application.Systems.Token
         private readonly UserManager<AppUser> _userManager;
         private readonly IRedisService _redisService;
         private readonly IConfiguration _configuration;
+
+        private readonly SymmetricSecurityKey _securityKey;
+        private readonly SigningCredentials _signingCredentials;
+        private readonly string _issuer;
+        private readonly string _audience;
+        private readonly double _expiryMinutes;
         public TokenService(IConfiguration configuration,
             UserManager<AppUser> userManager,
             IRedisService redisService)
@@ -23,33 +29,36 @@ namespace FN.Application.Systems.Token
             _configuration = configuration;
             _userManager = userManager;
             _redisService = redisService;
+
+            var keyString = _configuration["Tokens:Key"] ?? throw new ArgumentNullException("Tokens:Key", "Token key must be configured.");
+            _securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(keyString));
+            _signingCredentials = new SigningCredentials(_securityKey, SecurityAlgorithms.HmacSha256);
+            _issuer = _configuration["Tokens:Issuer"]!;
+            _audience = _configuration["Tokens:Audience"]!;
+            if (!double.TryParse(_configuration["Tokens:AccessTokenExpiryMinutes"], out _expiryMinutes))
+            {
+                _expiryMinutes = 30;
+            }
         }
         public async Task<string> GenerateAccessToken(AppUser user)
         {
-            var keyString = _configuration["Tokens:Key"] ?? throw new ArgumentNullException("Tokens:Key", "Token key must be configured.");
-            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(keyString));
-            var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
-
-            var role = await _userManager.GetRolesAsync(user);
+            var roles = await _userManager.GetRolesAsync(user);
             var claims = new List<Claim>
             {
-                new Claim("UserId", user.Id.ToString()),
-                new Claim("Username", user.UserName!),
-                new Claim("FullName", user.FullName),
+                new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
+                new Claim(JwtRegisteredClaimNames.UniqueName, user.UserName!),
+                new Claim(JwtRegisteredClaimNames.Name, user.FullName),
                 new Claim("Avatar", user.Avatar),
-                new Claim("Role", string.Join(';', role))
+                new Claim("Role", string.Join(';', roles))
             };
 
-            var expiryMinutesString = _configuration["Tokens:AccessTokenExpiryMinutes"];
-            if (!double.TryParse(expiryMinutesString, out double expiryMinutes)) expiryMinutes = 30;
-
             var token = new JwtSecurityToken(
-                        issuer: _configuration["Tokens:Issuer"],
-                        audience: _configuration["Tokens:Audience"],
-                        claims: claims,
-                        expires: DateTime.Now.AddMinutes(expiryMinutes),
-                        signingCredentials: creds
-                    );
+              issuer: _issuer,
+              audience: _audience,
+              claims: claims,
+              expires: DateTime.Now.AddMinutes(_expiryMinutes),
+              signingCredentials: _signingCredentials
+          );
             return new JwtSecurityTokenHandler().WriteToken(token);
         }
         public string GenerateRefreshToken() => Guid.NewGuid().ToString();

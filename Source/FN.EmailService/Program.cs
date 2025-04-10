@@ -5,6 +5,8 @@ using FN.Extensions;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.WebHost.ConfigureKestrelServer(80);
+
 builder.Services
     .InjectDbContext(builder.Configuration)
     .AddIdentityHandlersAndStores()

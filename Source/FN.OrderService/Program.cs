@@ -1,10 +1,9 @@
 ﻿using FN.Application.Systems.Orders;
 using FN.Extensions;
-using System.Net.WebSockets;
-using System.Text;
-using System.Text.Json;
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.WebHost.ConfigureKestrelServer(80);
 
 builder.Services.AddSwaggerExplorer()
         .InjectDbContextPool(builder.Configuration)

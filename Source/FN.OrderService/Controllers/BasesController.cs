@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace FN.OrderService.Controllers
 {
@@ -9,11 +10,14 @@ namespace FN.OrderService.Controllers
     {
         protected int? GetUserIdFromClaims()
         {
-            var userId = User.Claims.FirstOrDefault(c => c.Type == "UserId")?.Value;
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
 
-            if (userId == null) return null;
+            if (int.TryParse(userIdClaim.Value, out int userId))
+            {
+                return userId;
+            }
 
-            return int.Parse(userId);
+            return null;
         }
         public static IActionResult Success(string? message = null, object? data = null)
         {

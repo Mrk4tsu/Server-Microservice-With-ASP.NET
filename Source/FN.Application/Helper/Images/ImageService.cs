@@ -3,6 +3,7 @@ using CloudinaryDotNet;
 using CloudinaryDotNet.Actions;
 using System.Net;
 using System.Text.RegularExpressions;
+using System.IO;
 
 namespace FN.Application.Helper.Images
 {
@@ -123,6 +124,20 @@ namespace FN.Application.Helper.Images
                 uploadResults.Add(uploadResult.SecureUrl.AbsoluteUri);
             }
             return uploadResults;
+        }
+
+        public async Task<string> UploadStream(MemoryStream stream, string folderName)
+        {
+            var folder = $"{Root}/{folderName}";
+            var uploadParams = new ImageUploadParams
+            {
+                File = new FileDescription(Guid.NewGuid().ToString(), stream),
+                Folder = folder,
+                UseFilename = true,
+                UniqueFilename = false,
+            };
+            var uploadResult = await _cloudinary.UploadAsync(uploadParams);
+            return uploadResult.SecureUrl.ToString();
         }
     }
 }
