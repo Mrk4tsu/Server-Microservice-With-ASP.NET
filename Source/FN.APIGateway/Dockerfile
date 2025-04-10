@@ -9,12 +9,12 @@ FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /src
 
 # Sao chép file cấu hình dự án và khôi phục dependency
-COPY ["FN.EmailService/FN.EmailService.csproj", "FN.EmailService/"]
-RUN dotnet restore "FN.EmailService/FN.EmailService.csproj"
+COPY ["FN.APIGateway/FN.APIGateway.csproj", "FN.APIGateway/"]
+RUN dotnet restore "FN.APIGateway/FN.APIGateway.csproj"
 
 # Sao chép toàn bộ mã nguồn và build ứng dụng
 COPY . .
-WORKDIR "/src/FN.EmailService"
+WORKDIR "/src/FN.APIGateway"
 RUN dotnet build -c Release -o /app/build
 
 # Publish ứng dụng
@@ -25,4 +25,4 @@ RUN dotnet publish -c Release -o /app/publish
 FROM base AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
-ENTRYPOINT ["dotnet", "FN.EmailService.dll"]
+ENTRYPOINT ["dotnet", "FN.APIGateway.dll"]

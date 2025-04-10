@@ -9,6 +9,8 @@ using FN.Extensions;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.WebHost.ConfigureKestrelServer(80);
+
 builder.Services.AddControllers();
 builder.Services.AddSwaggerExplorer()
     .InjectDbContext(builder.Configuration)

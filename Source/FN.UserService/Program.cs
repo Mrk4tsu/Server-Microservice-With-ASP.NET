@@ -6,6 +6,8 @@ using System.Data;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.WebHost.ConfigureKestrelServer();
+
 builder.Services.AddControllers();
 builder.Services.AddSwaggerExplorer()
     .InjectDbContextPool(builder.Configuration)
