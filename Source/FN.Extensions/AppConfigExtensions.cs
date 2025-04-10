@@ -4,20 +4,15 @@ using FN.Application.Helper.Images;
 using FN.Application.Helper.Mail;
 using FN.Utilities;
 using FN.ViewModel.Helper;
-using Google.Api;
 using Google.Apis.Auth.OAuth2;
 using Google.Cloud.Firestore;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.ResponseCompression;
+using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Options;
-using Ocelot.Values;
 using System.IO.Compression;
-using System.Net.WebSockets;
-using System.Text;
-using System.Text.Json;
 
 namespace FN.Extensions
 {
@@ -97,6 +92,16 @@ namespace FN.Extensions
         }
         public static IServiceCollection ConfigureServicePayload(this IServiceCollection services)
         {
+            services.Configure<IISServerOptions>(options =>
+            {
+                options.MaxRequestBodySize = int.MaxValue;
+            });
+
+            services.Configure<KestrelServerOptions>(options =>
+            {
+                options.Limits.MaxRequestBodySize = int.MaxValue;
+            });
+
             services.AddResponseCompression(options =>
             {
                 options.EnableForHttps = true; // Cho phép nén trên HTTPS

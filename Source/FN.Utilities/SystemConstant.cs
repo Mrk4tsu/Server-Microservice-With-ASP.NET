@@ -15,12 +15,14 @@
         public const string MESSAGE_LOGIN_EVENT = "myChannel:LoginEvent";
         public const string MESSAGE_UPDATE_EMAIL_EVENT = "myChannel:EmailEvent";
         public const string MESSAGE_FORGOT_PASSWORD_EVENT = "myChannel:ForgotPasswordEvent";
+        public const string MESSAGE_CONFIRM_ACCOUNT_EVENT = "myChannel:ConfirmAccountEvent";
 
         public const string TEMPLATE_ORDER_ID = "6705985";
         public const string TEMPLATE_WELCOME_ID = "6710966";
         public const string TEMPLATE_WARNING_ID = "6710973";
         public const string TEMPLATE_UPDATE_MAIL_ID = "6716002";
         public const string TEMPLATE_RESET_PASSWORD_ID = "6718673";
+        public const string TEMPLATE_CONFIRM_ACCOUNT = "6890902";
 
         public const string PRODUCT_KEY = "product";
         public const string CATEGORY_KEY = "category";

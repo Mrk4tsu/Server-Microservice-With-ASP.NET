@@ -66,6 +66,7 @@ namespace FN.Application.Catalog.Product.Pattern
                 .Select(pd => new ProductViewModel
                 {
                     Id = pd.Item.Id,
+                    ProductId = pd.Id,
                     UserId = pd.Item.UserId,
                     Title = pd.Item.Title,
                     NormalizeTitle = pd.Item.NormalizedTitle,

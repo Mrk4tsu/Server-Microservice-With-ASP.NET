@@ -6,6 +6,7 @@ namespace FN.ViewModel.Catalog.Products
     public class ProductViewModel
     {
         public int Id { get; set; }
+        public int ProductId { get; set; }
         public int UserId { get; set; }
         public string Title { get; set; } = string.Empty;
         public string NormalizeTitle { get; set; } = string.Empty;
@@ -23,7 +24,6 @@ namespace FN.ViewModel.Catalog.Products
     }
     public class ProductDetailViewModel : ProductViewModel
     {
-        public int ProductId { get; set; }
         public string Detail { get; set; } = string.Empty;
         public string Note { get; set; } = string.Empty;
         public int ViewCount { get; set; }
@@ -32,6 +32,7 @@ namespace FN.ViewModel.Catalog.Products
         public string Description { get; set; } = string.Empty;
         public string CategoryName { get; set; } = string.Empty;
         public string Author { get; set; } = string.Empty;
+        public InteractionType IsInteractive { get; set; }
         public List<ImageProductViewModel> Images { get; set; } = new();
     }
     public class PriceViewModel
@@ -47,5 +48,10 @@ namespace FN.ViewModel.Catalog.Products
         public int Id { get; set; }
         public string ImageUrl { get; set; } = string.Empty;
         public string Caption { get; set; } = string.Empty;
+    }
+    public class UrlProductViewModel
+    {
+        public int Id { get; set; }
+        public string Url { get; set; } = string.Empty;
     }
 }

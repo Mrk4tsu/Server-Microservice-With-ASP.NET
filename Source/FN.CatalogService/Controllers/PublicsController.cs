@@ -1,4 +1,6 @@
-﻿using FN.Application.Catalog.Product;
+﻿using FN.Application.Catalog.Blogs.Interactions;
+using FN.Application.Catalog.Product;
+using FN.Application.Catalog.Product.Interactions;
 using FN.ViewModel.Catalog.Products.Manage;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -11,9 +13,11 @@ namespace FN.ProductService.Controllers
     public class PublicsController : BasesController
     {
         private readonly IProductPublicService _service;
-        public PublicsController(IProductPublicService service)
+        private readonly ProductInteraction _productInteraction;
+        public PublicsController(IProductPublicService service, ProductInteraction interaction)
         {
             _service = service;
+            _productInteraction = interaction;
         }
         [HttpGet("list")]
         public async Task<IActionResult> GetProducts([FromQuery] ProductPagingRequest request)
@@ -38,6 +42,25 @@ namespace FN.ProductService.Controllers
             if (userId == null) return Unauthorized();
             var product = await _service.GetProduct(id, userId.Value);
             return Ok(product);
+        }
+        [HttpPost("like/{productId}")]
+        public async Task<IActionResult> LikeProduct(int productId)
+        {
+            var userId = GetUserIdFromClaims();
+            if (userId == null) return Unauthorized();
+            await _productInteraction.RestoreState(productId, userId.Value);
+            await _productInteraction.PressLike(productId, userId.Value);
+            return Success(true);
+        }
+
+        [HttpPost("dislike/{productId}")]
+        public async Task<IActionResult> DislikeProduct(int productId)
+        {
+            var userId = GetUserIdFromClaims();
+            if (userId == null) return Unauthorized();
+            await _productInteraction.RestoreState(productId, userId.Value);
+            await _productInteraction.PressDislike(productId, userId.Value);
+            return Success(true);
         }
     }
 }

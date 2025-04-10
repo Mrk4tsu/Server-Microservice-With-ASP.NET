@@ -3,10 +3,13 @@ using FN.Application.Catalog.Blogs.BlogComments;
 using FN.Application.Catalog.Blogs.Interactions;
 using FN.Application.Catalog.Categories;
 using FN.Application.Catalog.Product;
+using FN.Application.Catalog.Product.Interactions;
 using FN.Application.Catalog.Product.Prices;
 using FN.Extensions;
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.WebHost.ConfigureKestrelServer(80);
 
 builder.Services.AddControllers();
 builder.Services.AddSwaggerExplorer()
@@ -29,14 +32,20 @@ builder.Services.AddScoped<IBlogCommentRepository, BlogCommentRepository>();
 
 // Đăng ký BlogInteraction như một dịch vụ scoped
 builder.Services.AddScoped<BlogInteraction>();
+builder.Services.AddScoped<ProductInteraction>();
 
 // Đăng ký các trạng thái như các dịch vụ scoped
-builder.Services.AddScoped<NoInteractionState>();
-builder.Services.AddScoped<LikedState>();
-builder.Services.AddScoped<DislikedState>();
+builder.Services.AddScoped<NoInteractionBlogState>();
+builder.Services.AddScoped<LikedBlogState>();
+builder.Services.AddScoped<DislikedBlogState>();
+
+builder.Services.AddScoped<NoInteractionProductState>();
+builder.Services.AddScoped<LikedProductState>();
+builder.Services.AddScoped<DislikedProductState>();
 
 // Đăng ký IInteractionState để inject vào BlogInteraction
-builder.Services.AddScoped<IInteractionState, NoInteractionState>(); // Mặc định là NoInteractionState
+builder.Services.AddScoped<IBlogInteractionState, NoInteractionBlogState>(); // Mặc định là NoInteractionState
+builder.Services.AddScoped<IProductInteractionState, NoInteractionProductState>(); // Mặc định là NoInteractionState
 
 var app = builder.Build();
 

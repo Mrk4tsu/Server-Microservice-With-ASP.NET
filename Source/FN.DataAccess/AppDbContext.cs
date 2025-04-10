@@ -26,6 +26,7 @@ namespace FN.DataAccess
         public DbSet<Item> Items { get; set; }
         public DbSet<Category> Categories { get; set; }
         public DbSet<ProductDetail> ProductDetails { get; set; }
+        public DbSet<ProductItem> ProductItems { get; set; }
         public DbSet<ProductPrice> ProductPrices { get; set; }
         public DbSet<ProductImage> ProductImages { get; set; }
         public DbSet<Blog> Blogs { get; set; }
@@ -34,5 +35,7 @@ namespace FN.DataAccess
         public DbSet<UserBlogInteraction> UserBlogInteractions { get; set; }
         public DbSet<UserOrder> Orders { get; set; }
         public DbSet<Payment> Payments { get; set; }
+        public DbSet<UserProductInteraction> UserProductInteractions { get; set; }
+        public DbSet<FeedBack> FeedBacks { get; set; }
     }
 }

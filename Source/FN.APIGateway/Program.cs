@@ -4,6 +4,8 @@ using Ocelot.Middleware;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.WebHost.ConfigureKestrelServer(80);
+
 var evn = builder.Environment;
 Console.WriteLine(evn.EnvironmentName);
 builder.Configuration.AddJsonFile($"ocelot.{evn.EnvironmentName}.json", optional: false, reloadOnChange: true);
