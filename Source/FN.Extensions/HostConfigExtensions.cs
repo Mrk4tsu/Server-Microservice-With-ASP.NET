@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Hosting;
+using Microsoft.Extensions.Hosting;
 
 namespace FN.Extensions
 {
@@ -6,10 +7,23 @@ namespace FN.Extensions
     {
         public static IWebHostBuilder ConfigureKestrelServer(this IWebHostBuilder webHostBuilder, int port = 80)
         {
-            return webHostBuilder.ConfigureKestrel(options =>
+            webHostBuilder.ConfigureServices((context, services) =>
             {
-                options.ListenAnyIP(port);
+                var env = context.HostingEnvironment;
+                if (!env.IsDevelopment())
+                {
+                    webHostBuilder.ConfigureKestrel(options =>
+                    {
+                        options.ListenAnyIP(port);
+                    });
+                }
             });
+
+            return webHostBuilder;
+            //return webHostBuilder.ConfigureKestrel(options =>
+            //{
+            //    options.ListenAnyIP(port);
+            //});
         }
     }
 }

@@ -4,7 +4,7 @@ using Ocelot.Middleware;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.WebHost.ConfigureKestrelServer(80);
+builder.WebHost.ConfigureKestrelServer();
 
 var evn = builder.Environment;
 Console.WriteLine(evn.EnvironmentName);

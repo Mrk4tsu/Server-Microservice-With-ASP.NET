@@ -1,7 +1,9 @@
 ﻿using FN.Application.Catalog.Blogs.Interactions;
 using FN.Application.Catalog.Product;
 using FN.Application.Catalog.Product.Interactions;
+using FN.ViewModel.Catalog.Products.FeedbackProduct;
 using FN.ViewModel.Catalog.Products.Manage;
+using FN.ViewModel.Helper.Paging;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Diagnostics;
@@ -61,6 +63,20 @@ namespace FN.ProductService.Controllers
             await _productInteraction.RestoreState(productId, userId.Value);
             await _productInteraction.PressDislike(productId, userId.Value);
             return Success(true);
+        }
+        [HttpGet("list-feedback")]
+        public async Task<IActionResult> GetFeedbacks([FromQuery] PagedList request, int productId)
+        {
+            var result = await _service.GetFeedbackProduct(request, productId);
+            return Ok(result);
+        }
+        [HttpPost("add-feedback")]
+        public async Task<IActionResult> AddFeedback([FromBody] FeedbackRequest request)
+        {
+            var userId = GetUserIdFromClaims();
+            if (userId == null) return Unauthorized();
+            var result = await _service.AddProductFeedback(request, userId.Value);
+            return Ok(result);
         }
     }
 }

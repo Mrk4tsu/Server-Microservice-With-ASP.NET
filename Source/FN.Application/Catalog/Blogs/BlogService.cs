@@ -166,20 +166,10 @@ namespace FN.Application.Catalog.Blogs
         }
         public async Task<ApiResult<BlogDetailViewModel>> GetDetail(int id, int userId)
         {
-            //var cacheKey = $"{SystemConstant.BLOG_DETAIL_KEY}:{id}";
-
-            //// Kiểm tra cache
-            //if (await _redis.KeyExist(cacheKey))
-            //{
-            //    var cachedData = await _redis.GetValue<BlogDetailViewModel>(cacheKey);
-            //    if (cachedData != null) return new ApiSuccessResult<BlogDetailViewModel>(cachedData);
-            //}
-
             var blog = await _db.Blogs
                 .Include(x => x.Item)
                 .ThenInclude(x => x.User)
                 .FirstOrDefaultAsync(x => x.Id == id);
-
 
             if (blog == null || blog.Item == null || blog.Item.User == null)
                 return new ApiErrorResult<BlogDetailViewModel>("Blog not found");
