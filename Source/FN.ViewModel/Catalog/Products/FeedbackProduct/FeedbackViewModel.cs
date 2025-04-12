@@ -8,7 +8,7 @@
         public string FullName { get; set; } = string.Empty;
         public string Content { get; set; } = string.Empty;
         public byte Rate { get; set; }
-        public DateTime CreatedDate { get; set; }
+        public DateTime TimeCreated { get; set; }
         public string Avatar { get; set; } = string.Empty;
     }
     public class FeedbackRequest
