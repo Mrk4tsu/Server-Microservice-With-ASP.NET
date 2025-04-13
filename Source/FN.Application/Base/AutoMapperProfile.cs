@@ -46,6 +46,7 @@ namespace FN.Application.Base
                 .ForMember(dest => dest.Thumbnail, opt => opt.MapFrom(src => src.Item.Thumbnail))
                 .ForMember(dest => dest.SeoAlias, opt => opt.MapFrom(src => src.Item.SeoAlias))
                 .ForMember(dest => dest.Username, opt => opt.MapFrom(src => src.Item.User.UserName))
+                .ForMember(dest => dest.Author, opt => opt.MapFrom(src => src.Item.User.FullName))
                 .ForMember(dest => dest.Version, opt => opt.MapFrom(src => src.Version))
                 .ForMember(dest => dest.DownloadCount, opt => opt.MapFrom(src => src.DownloadCount))
                 .ForMember(dest => dest.CategoryIcon, opt => opt.MapFrom(src => src.Category.SeoImage))
@@ -53,7 +54,7 @@ namespace FN.Application.Base
                 .ForMember(dest => dest.TimeCreates, opt => opt.MapFrom(src => src.Item.CreatedDate))
                 .ForMember(dest => dest.TimeUpdates, opt => opt.MapFrom(src => src.Item.ModifiedDate))
                 .ForMember(dest => dest.Prices, opt => opt.MapFrom(src => src.ProductPrices
-                    .Where(pp => !src.IsDeleted && pp.EndDate > DateTime.Now)));
+                    .Where(pp => !src.Item.IsDeleted && pp.EndDate > DateTime.Now)));
             // ProductDetail to ProductDetailViewModel (kế thừa từ ProductViewModel)
             CreateMap<ProductDetail, ProductDetailViewModel>()
                 .IncludeBase<ProductDetail, ProductViewModel>()
@@ -64,7 +65,6 @@ namespace FN.Application.Base
                 .ForMember(dest => dest.DisLikeCount, opt => opt.MapFrom(src => src.DislikeCount))
                 .ForMember(dest => dest.Description, opt => opt.MapFrom(src => src.Item.Description))
                 .ForMember(dest => dest.CategoryName, opt => opt.MapFrom(src => src.Category.Name))
-                .ForMember(dest => dest.Author, opt => opt.MapFrom(src => src.Item.User.FullName))
                 .ForMember(dest => dest.Images, opt => opt.MapFrom(src => src.ProductImages));
             // ProductPrice to PriceViewModel
             CreateMap<ProductPrice, PriceViewModel>();

@@ -11,7 +11,7 @@ namespace FN.Application.Catalog.Product
         Task<ApiResult<PagedResult<ProductViewModel>>> GetProducts(ProductPagingRequest request);
         Task<ApiResult<ProductDetailViewModel>> GetProduct(int productId, int userId);
         Task<ApiResult<ProductDetailViewModel>> GetProductWithoutLogin(int productId);
-        Task<ApiResult<PagedResult<ProductViewModel>>> GetProductsOwner(ProductPagingRequest request, int userId);
+        Task<ApiResult<List<ProductViewModel>>> GetProducts(string type, int take);
         Task<ApiResult<int>> AddProductFeedback(FeedbackRequest request, int userId);
         Task<ApiSuccessResult<PagedResult<FeedbackViewModel>>> GetFeedbackProduct(PagedList request, int productId);
     }

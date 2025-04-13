@@ -4,6 +4,7 @@ using FN.Application.Catalog.Blogs.Interactions;
 using FN.Application.Catalog.Categories;
 using FN.Application.Catalog.Product;
 using FN.Application.Catalog.Product.Interactions;
+using FN.Application.Catalog.Product.Pattern;
 using FN.Application.Catalog.Product.Prices;
 using FN.Extensions;
 
@@ -29,6 +30,13 @@ builder.Services.AddScoped<ICategoryService, CategoryService>();
 builder.Services.AddScoped<IPriceProductService, PriceProductService>();
 builder.Services.AddScoped<IBlogService, BlogService>();
 builder.Services.AddScoped<IBlogCommentRepository, BlogCommentRepository>();
+
+// Đăng ký các chiến lược sản phẩm
+builder.Services.AddScoped<NewProductsStrategy>();
+builder.Services.AddScoped<FeaturedProductsStrategy>();
+builder.Services.AddScoped<RecommendProductsStrategy>();
+builder.Services.AddScoped<ProductContext>();
+builder.Services.AddScoped<IProductStrategyFactory, ProductStrategyFactory>();
 
 // Đăng ký BlogInteraction như một dịch vụ scoped
 builder.Services.AddScoped<BlogInteraction>();

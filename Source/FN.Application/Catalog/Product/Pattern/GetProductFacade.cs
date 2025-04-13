@@ -55,7 +55,7 @@ namespace FN.Application.Catalog.Product.Pattern
         {
             return _db.ProductDetails
                 .AsNoTracking()
-                .Where(pd => pd.Item.IsDeleted == isDeleted && pd.IsDeleted == isDeleted)
+                .Where(pd => pd.Item.IsDeleted == isDeleted && pd.Item.IsDeleted == isDeleted)
                 .ProjectTo<ProductViewModel>(_mapper.ConfigurationProvider);
         }
         //private IQueryable<ProductViewModel> BuildBaseQuery(bool isDeleted)

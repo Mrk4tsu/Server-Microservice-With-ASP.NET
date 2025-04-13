@@ -78,5 +78,11 @@ namespace FN.ProductService.Controllers
             var result = await _service.AddProductFeedback(request, userId.Value);
             return Ok(result);
         }
+        [HttpGet("selection")]
+        public async Task<IActionResult> GetProductsSelection([FromQuery] string type, int take)
+        {
+            var result = await _service.GetProducts(type, take);
+            return Ok(result);
+        }
     }
 }

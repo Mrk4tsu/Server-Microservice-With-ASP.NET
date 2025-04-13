@@ -19,11 +19,20 @@ namespace FN.Application.Catalog.Product
         private readonly AppDbContext _db;
         private readonly IMapper _mapper;
         private readonly IRedisService _dbRedis;
-        public ProductPublicService(AppDbContext db, IMapper mapper, IRedisService redis)
+        private readonly ProductContext _context;
+        private readonly IProductStrategyFactory _strategyFactory;
+        public ProductPublicService(
+            AppDbContext db, 
+            IMapper mapper,
+            ProductContext context,
+            IProductStrategyFactory strategyFactory,
+            IRedisService redis)
         {
             _mapper = mapper;
             _db = db;
             _dbRedis = redis;
+            _context = context;
+            _strategyFactory = strategyFactory;
         }
         public async Task<ApiResult<ProductDetailViewModel>> GetProduct(int productId, int userId)
         {
@@ -36,7 +45,7 @@ namespace FN.Application.Catalog.Product
                     User = product.Item.User,
                     Category = product.Category,
                     ProductPrices = product.ProductPrices
-                        .Where(pp => !product.IsDeleted && pp.EndDate > DateTime.Now),
+                        .Where(pp => !product.Item.IsDeleted && pp.EndDate > DateTime.Now),
                     ProductImages = product.ProductImages,
                     IsOwner = product.Item.UserId == userId ||
                              product.ProductOwners.Any(po => po.UserId == userId),
@@ -66,7 +75,7 @@ namespace FN.Application.Catalog.Product
                     User = product.Item.User,
                     Category = product.Category,
                     ProductPrices = product.ProductPrices
-                        .Where(pp => !product.IsDeleted && pp.EndDate > DateTime.Now),
+                        .Where(pp => !product.Item.IsDeleted && pp.EndDate > DateTime.Now),
                     ProductImages = product.ProductImages
                 });
             var result = await query.FirstOrDefaultAsync();
@@ -82,10 +91,6 @@ namespace FN.Application.Catalog.Product
         {
             var facade = new GetProductFacade(_db, _dbRedis!, null!, _mapper);
             return await facade.GetProducts(request, false, false, null);
-        }
-        public Task<ApiResult<PagedResult<ProductViewModel>>> GetProductsOwner(ProductPagingRequest request, int userId)
-        {
-            throw new NotImplementedException();
         }
 
         public async Task<ApiResult<int>> AddProductFeedback(FeedbackRequest request, int userId)
@@ -187,6 +192,14 @@ namespace FN.Application.Catalog.Product
             };
 
             return new ApiSuccessResult<PagedResult<FeedbackViewModel>>(pagedResult);
+        }
+
+        public async Task<ApiResult<List<ProductViewModel>>> GetProducts(string type, int take)
+        {
+            var strategy =  _strategyFactory.GetStrategy(type);
+            _context.SetStrategy(strategy);
+            var result = await _context.GetProductsSelection(take);
+            return new ApiSuccessResult<List<ProductViewModel>>(result);
         }
     }
 }

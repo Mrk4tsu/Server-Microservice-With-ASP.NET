@@ -12,6 +12,7 @@ namespace FN.ViewModel.Catalog.Products
         public string NormalizeTitle { get; set; } = string.Empty;
         public string Thumbnail { get; set; } = string.Empty;
         public string SeoAlias { get; set; } = string.Empty;
+        public string Author { get; set; } = string.Empty;
         public string Username { get; set; } = string.Empty;
         public string Version { get; set; } = string.Empty;
         public int DownloadCount { get; set; }
@@ -31,7 +32,6 @@ namespace FN.ViewModel.Catalog.Products
         public int DisLikeCount { get; set; }
         public string Description { get; set; } = string.Empty;
         public string CategoryName { get; set; } = string.Empty;
-        public string Author { get; set; } = string.Empty;
         public InteractionType IsInteractive { get; set; }
         public List<ImageProductViewModel> Images { get; set; } = new();
     }
