@@ -14,6 +14,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using System.IO.Compression;
 
+
 namespace FN.Extensions
 {
     public static class AppConfigExtensions
@@ -21,18 +22,23 @@ namespace FN.Extensions
         public static IApplicationBuilder ConfigureCORS(this IApplicationBuilder app, IConfiguration config)
         {
             app.UseCors(options =>
-            options.WithOrigins(
-                "http://127.0.0.1:5500",
-                "http://localhost:4200",
-                "https://mrkatsu.io.vn",
-                "https://katsudev.vercel.app",
-                "https://katsudev.netlify.app")
-            .AllowAnyMethod()
-            .AllowAnyHeader());
+                options
+                    .AllowAnyMethod()
+                    .AllowAnyHeader()
+                    .AllowAnyOrigin()
+                    .AllowCredentials()
+                    .WithOrigins(
+                    "http://127.0.0.1:5500",
+                    "http://localhost:4200",
+                    "https://mrkatsu.io.vn",
+                    "https://katsudev.vercel.app",
+                    "https://katsudev.netlify.app")
+                );
             app.UseForwardedHeaders(new ForwardedHeadersOptions
             {
                 ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
             });
+           
             return app;
         }
         public static IApplicationBuilder ConfigureAppForwarded(this IApplicationBuilder app)
@@ -45,14 +51,6 @@ namespace FN.Extensions
             var firebaseSettings = config.GetSection(SystemConstant.FIREBASE_SETTINGS).Get<FirebaseSettings>();
             if (firebaseSettings == null) throw new System.Exception("Firebase settings not found");
             
-            //var path = AppDomain.CurrentDomain.BaseDirectory + firebaseSettings.CredentialFile;
-            //Environment.SetEnvironmentVariable("GOOGLE_APPLICATION_CREDENTIALS", path);
-
-            //FirebaseApp.Create(new AppOptions()
-            //{
-            //    ProjectId = firebaseSettings.ProjectId
-            //});
-            //services.AddSingleton(FirestoreDb.Create(firebaseSettings.ProjectId));
             Environment.SetEnvironmentVariable("GOOGLE_APPLICATION_CREDENTIALS", @$"{firebaseSettings.CredentialFile}");
             FirebaseApp.Create(new AppOptions()
             {

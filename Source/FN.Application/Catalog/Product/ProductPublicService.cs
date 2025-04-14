@@ -1,5 +1,7 @@
 ﻿using AutoMapper;
 using AutoMapper.QueryableExtensions;
+using FirebaseAdmin.Messaging;
+using FN.Application.Catalog.Product.Notifications;
 using FN.Application.Catalog.Product.Pattern;
 using FN.Application.Systems.Redis;
 using FN.DataAccess;
@@ -10,6 +12,7 @@ using FN.ViewModel.Catalog.Products.Manage;
 using FN.ViewModel.Helper.API;
 using FN.ViewModel.Helper.Paging;
 using Mailjet.Client.Resources;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 
 namespace FN.Application.Catalog.Product
@@ -21,18 +24,24 @@ namespace FN.Application.Catalog.Product
         private readonly IRedisService _dbRedis;
         private readonly ProductContext _context;
         private readonly IProductStrategyFactory _strategyFactory;
+        private IHubContext<NotifyHub, ITypedHubClient> _hubContext;
+        private readonly INotifyService _notifyService;
         public ProductPublicService(
-            AppDbContext db, 
+            INotifyService notifyService,
+            AppDbContext db,
             IMapper mapper,
             ProductContext context,
             IProductStrategyFactory strategyFactory,
-            IRedisService redis)
+            IHubContext<NotifyHub, ITypedHubClient> hubContext,
+        IRedisService redis)
         {
             _mapper = mapper;
             _db = db;
             _dbRedis = redis;
             _context = context;
             _strategyFactory = strategyFactory;
+            _hubContext = hubContext;
+            _notifyService = notifyService;
         }
         public async Task<ApiResult<ProductDetailViewModel>> GetProduct(int productId, int userId)
         {
@@ -95,10 +104,10 @@ namespace FN.Application.Catalog.Product
 
         public async Task<ApiResult<int>> AddProductFeedback(FeedbackRequest request, int userId)
         {
-            var check = await _db.FeedBacks
-                .FirstOrDefaultAsync(x => x.ProductId == request.ProductId && x.UserId == userId);
-            if (check != null)
-                return new ApiErrorResult<int>("Bạn đã đánh giá sản phẩm này rồi");
+            //var check = await _db.FeedBacks
+            //    .FirstOrDefaultAsync(x => x.ProductId == request.ProductId && x.UserId == userId);
+            //if (check != null)
+            //    return new ApiErrorResult<int>("Bạn đã đánh giá sản phẩm này rồi");
             var product = await _db.ProductDetails
                 .Include(x => x.Item)
                 .ThenInclude(x => x.User)
@@ -119,6 +128,31 @@ namespace FN.Application.Catalog.Product
             };
             _db.FeedBacks.Add(feedback);
             await _db.SaveChangesAsync();
+
+            // Gửi thông báo chỉ cho chủ sở hữu sản phẩm
+            var user = await _db.Users.FindAsync(userId);
+            var ownerUserId = product.Item.UserId.ToString();
+            var ownerConnections = NotifyHub.GetUserConnections(ownerUserId);
+
+            if (ownerConnections.Any())
+            {
+                var notifyString = $"Sản phẩm {product.Item.Title} vừa có đánh giá mới từ {user.FullName}";
+                var info = new Notifications.Notification
+                {
+                    Content = notifyString,
+                    Title = "Đánh giá sản phẩm",
+                    Time = DateTime.Now,
+                    Url = $"/product/{product.Item.SeoAlias}-{product.Id}",
+                };
+                var message = new Notifications.Message()
+                {
+                    Type = "product",
+                    Information = info
+                };
+                await _hubContext.Clients.Clients(ownerConnections).SendMessage(message);
+                await _notifyService.SaveNotify(ownerUserId, info);
+            }
+
             return new ApiSuccessResult<int>(feedback.Id);
         }
 
@@ -196,7 +230,7 @@ namespace FN.Application.Catalog.Product
 
         public async Task<ApiResult<List<ProductViewModel>>> GetProducts(string type, int take)
         {
-            var strategy =  _strategyFactory.GetStrategy(type);
+            var strategy = _strategyFactory.GetStrategy(type);
             _context.SetStrategy(strategy);
             var result = await _context.GetProductsSelection(take);
             return new ApiSuccessResult<List<ProductViewModel>>(result);

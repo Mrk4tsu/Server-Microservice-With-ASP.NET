@@ -4,6 +4,7 @@ using FN.Application.Catalog.Blogs.Interactions;
 using FN.Application.Catalog.Categories;
 using FN.Application.Catalog.Product;
 using FN.Application.Catalog.Product.Interactions;
+using FN.Application.Catalog.Product.Notifications;
 using FN.Application.Catalog.Product.Pattern;
 using FN.Application.Catalog.Product.Prices;
 using FN.Extensions;
@@ -23,6 +24,10 @@ builder.Services.AddSwaggerExplorer()
     .ConfigureServicePayload()
     .ConfigureFirebase(builder.Configuration)
     .AddImageConfig(builder.Configuration);
+
+builder.Services.AddSignalR();
+
+builder.Services.AddScoped<INotifyService, NotifyService>();
 
 builder.Services.AddScoped<IProductPublicService, ProductPublicService>();
 builder.Services.AddScoped<IProductManageService, ProductManageService>();
@@ -55,14 +60,21 @@ builder.Services.AddScoped<DislikedProductState>();
 builder.Services.AddScoped<IBlogInteractionState, NoInteractionBlogState>(); // Mặc định là NoInteractionState
 builder.Services.AddScoped<IProductInteractionState, NoInteractionProductState>(); // Mặc định là NoInteractionState
 
+builder.Logging.AddConsole();
+
 var app = builder.Build();
 
-app.ConfigureSwaggerExplorer()
-    .ConfigureCORS(builder.Configuration)
+app.ConfigureCORS(builder.Configuration)
+    .ConfigureSwaggerExplorer()
     .ConfigureAppForwarded()
     .ConfigureAppPayLoad()
     .AddIdentityAuthMiddlewares();
 
+app.UseWebSockets();
+
 app.MapControllers();
+
+app.MapHub<NotifyHub>("/notify").RequireAuthorization();
+
 
 app.Run();

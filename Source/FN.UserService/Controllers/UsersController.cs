@@ -1,4 +1,5 @@
-﻿using FN.Application.Systems.Redis;
+﻿using FN.Application.Catalog.Product.Notifications;
+using FN.Application.Systems.Redis;
 using FN.Application.Systems.User;
 using FN.ViewModel.Systems.User;
 using Microsoft.AspNetCore.Authorization;
@@ -11,9 +12,11 @@ namespace FN.UserService.Controllers
     public class UsersController : BasesController
     {
         private readonly IUserService _userService;
-        public UsersController(IUserService userService)
+        private readonly INotifyService _notifyService;
+        public UsersController(IUserService userService, INotifyService notifyService)
         {
             _userService = userService;
+            _notifyService = notifyService;
         }
         [HttpGet("{userId}"), AllowAnonymous]
         public async Task<IActionResult> Get(int userId)
@@ -100,6 +103,14 @@ namespace FN.UserService.Controllers
             if (result.Success)
                 return Ok(result);
             return BadRequest(result);
+        }
+        [HttpGet("notify")]
+        public async Task<IActionResult> GetNotify()
+        {
+            var userId = GetUserIdFromClaims();
+            if (userId == null) return Unauthorized();
+            var result = await _notifyService.ListNotify(userId.Value);
+            return Ok(result);
         }
     }
 }
