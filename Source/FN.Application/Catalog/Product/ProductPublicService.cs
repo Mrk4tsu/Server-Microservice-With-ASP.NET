@@ -1,11 +1,16 @@
 ﻿using AutoMapper;
+using CloudinaryDotNet.Actions;
+using FN.Application.Catalog.Product.Notifications;
 using FN.Application.Catalog.Product.Pattern;
 using FN.Application.Systems.Redis;
 using FN.DataAccess;
+using FN.DataAccess.Entities;
 using FN.ViewModel.Catalog.Products;
+using FN.ViewModel.Catalog.Products.FeedbackProduct;
 using FN.ViewModel.Catalog.Products.Manage;
 using FN.ViewModel.Helper.API;
 using FN.ViewModel.Helper.Paging;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 
 namespace FN.Application.Catalog.Product
@@ -15,141 +20,78 @@ namespace FN.Application.Catalog.Product
         private readonly AppDbContext _db;
         private readonly IMapper _mapper;
         private readonly IRedisService _dbRedis;
-        public ProductPublicService(AppDbContext db, IMapper mapper, IRedisService redis)
+        private readonly ProductContext _context;
+        private readonly IProductStrategyFactory _strategyFactory;
+        private IHubContext<NotifyHub, ITypedHubClient> _hubContext;
+        private readonly INotifyService _notifyService;
+        public ProductPublicService(
+            INotifyService notifyService,
+            AppDbContext db,
+            IMapper mapper,
+            ProductContext context,
+            IProductStrategyFactory strategyFactory,
+            IHubContext<NotifyHub, ITypedHubClient> hubContext,
+        IRedisService redis)
         {
             _mapper = mapper;
             _db = db;
             _dbRedis = redis;
+            _context = context;
+            _strategyFactory = strategyFactory;
+            _hubContext = hubContext;
+            _notifyService = notifyService;
         }
-        //public async Task<ApiResult<ProductDetailViewModel>> GetProduct(int itemId)
-        //{
-        //    var product = await _db.ProductDetails
-        //        .Where(x => x.ItemId == itemId)
-        //        .ProjectTo<ProductDetailViewModel>(_mapper.ConfigurationProvider)
-        //        .FirstOrDefaultAsync();
-
-        //    if (product == null)
-        //        return new ApiErrorResult<ProductDetailViewModel>("Không tìm thấy sản phẩm");
-
-        //    return new ApiSuccessResult<ProductDetailViewModel>(product);
-        //}
-        public async Task<ApiResult<ProductDetailViewModel>> GetProduct(int itemId, int userId)
+        public async Task<ApiResult<ProductDetailViewModel>> GetProduct(int productId, int userId)
         {
-            bool flagOwner = false;
-
-            var product = await _db.ProductDetails
-                .Include(x => x.Item)
-                .ThenInclude(x => x.User)
-                .Where(x => x.ItemId == itemId && x.Item.IsDeleted == false)
-                .Include(x => x.Category)
-                .Include(x => x.ProductPrices)
-                .Include(x => x.ProductImages)
-                .FirstOrDefaultAsync();
-            if (product == null) return new ApiErrorResult<ProductDetailViewModel>("Không tìm thấy sản phẩm");
-
-
-            var ownerProduct = await _db.ProductOwners.FirstOrDefaultAsync(x => x.ProductId == product.Id && x.UserId == userId);
-            var interaction = await _db.UserProductInteractions
-               .Where(x => x.ProductId == product.Id && x.UserId == userId)
-               .FirstOrDefaultAsync();
-            if (ownerProduct != null || product.Item.UserId == userId) flagOwner = true;
-            var detailVM = new ProductDetailViewModel
-            {
-                Id = product.Item.Id,
-                ProductId = product.Id,
-                CategoryIcon = product.Category.SeoImage,
-                Title = product.Item.Title,
-                Detail = product.Detail,
-                LikeCount = product.LikeCount,
-                DisLikeCount = product.DislikeCount,
-                DownloadCount = product.DownloadCount,
-                Version = product.Version,
-                Note = product.Note,
-                IsOwned = flagOwner,
-                CategoryName = product.Category.Name,
-                SeoAlias = product.Item.SeoAlias,
-                TimeCreates = product.Item.CreatedDate,
-                TimeUpdates = product.Item.ModifiedDate,
-                CategorySeoAlias = product.Category.SeoAlias,
-                Description = product.Item.Description,
-                Thumbnail = product.Item.Thumbnail,
-                Username = product.Item.User.UserName!,
-                Author = product.Item.User.FullName,
-                ViewCount = product.Item.ViewCount,
-                Prices = product.ProductPrices
-                        .Where(pp => !pp.ProductDetail.IsDeleted && pp.EndDate > DateTime.Now) // Lọc nếu cần
-                        .Select(pp => new PriceViewModel
-                        {
-                            Id = pp.Id,
-                            Price = pp.Price,
-                            PriceType = pp.PriceType,
-                            StartDate = pp.StartDate,
-                            EndDate = pp.EndDate
-                        })
-                        .ToList(),
-                Images = product.ProductImages.Select(x => new ImageProductViewModel
+            var query = _db.ProductDetails
+                .Where(x => x.Id == productId && x.Item.IsDeleted == false)
+                .Select(product => new
                 {
-                    Id = x.Id,
-                    ImageUrl = x.ImageUrl,
-                    Caption = x.Caption
-                }).ToList()
-            };
-            if (interaction != null)
-                detailVM.IsInteractive = interaction.Type;
+                    Product = product,
+                    Item = product.Item,
+                    User = product.Item.User,
+                    Category = product.Category,
+                    ProductPrices = product.ProductPrices
+                        .Where(pp => !product.Item.IsDeleted && pp.EndDate > DateTime.Now),
+                    ProductImages = product.ProductImages,
+                    IsOwner = product.Item.UserId == userId ||
+                             product.ProductOwners.Any(po => po.UserId == userId),
+                    Interaction = product.UserProductInteractions
+                        .FirstOrDefault(upi => upi.UserId == userId)
+                });
+
+            var result = await query.FirstOrDefaultAsync();
+
+            if (result == null)
+                return new ApiErrorResult<ProductDetailViewModel>("Không tìm thấy sản phẩm");
+
+            var detailVM = _mapper.Map<ProductDetailViewModel>(result.Product);
+            detailVM.IsOwned = result.IsOwner;
+            detailVM.IsInteractive = result.Interaction?.Type ?? DataAccess.Enums.InteractionType.None;
+
             return new ApiSuccessResult<ProductDetailViewModel>(detailVM);
         }
-        public async Task<ApiResult<ProductDetailViewModel>> GetProductWithoutLogin(int itemId)
+        public async Task<ApiResult<ProductDetailViewModel>> GetProductWithoutLogin(int productId)
         {
-            var product = await _db.ProductDetails
-                .Include(x => x.Item)
-                .ThenInclude(x => x.User)
-                .Include(x => x.Category)
-                .Include(x => x.ProductPrices)
-                .Include(x => x.ProductImages)
-                .FirstOrDefaultAsync(x => x.ItemId == itemId);
-            if (product == null) return new ApiErrorResult<ProductDetailViewModel>("Không tìm thấy sản phẩm");
-            var detailVM = new ProductDetailViewModel
-            {
-                Id = product.Item.Id,
-                ProductId = product.Id,
-                CategoryIcon = product.Category.SeoImage,
-                Title = product.Item.Title,
-                Detail = product.Detail,
-                LikeCount = product.LikeCount,
-                DisLikeCount = product.DislikeCount,
-                DownloadCount = product.DownloadCount,
-                Version = product.Version,
-                Note = product.Note,
-                IsOwned = false,
-                CategoryName = product.Category.Name,
-                SeoAlias = product.Item.SeoAlias,
-                TimeCreates = product.Item.CreatedDate,
-                TimeUpdates = product.Item.ModifiedDate,
-                CategorySeoAlias = product.Category.SeoAlias,
-                Description = product.Item.Description,
-                Thumbnail = product.Item.Thumbnail,
-                Username = product.Item.User.UserName!,
-                Author = product.Item.User.FullName,
-                ViewCount = product.Item.ViewCount,
-                IsInteractive = DataAccess.Enums.InteractionType.None,
-                Prices = product.ProductPrices
-                        .Where(pp => !pp.ProductDetail.IsDeleted && pp.EndDate > DateTime.Now) // Lọc nếu cần
-                        .Select(pp => new PriceViewModel
-                        {
-                            Id = pp.Id,
-                            Price = pp.Price,
-                            PriceType = pp.PriceType,
-                            StartDate = pp.StartDate,
-                            EndDate = pp.EndDate
-                        })
-                        .ToList(),
-                Images = product.ProductImages.Select(x => new ImageProductViewModel
+            var query = _db.ProductDetails
+                .Where(x => x.Id == productId && x.Item.IsDeleted == false)
+                .Select(product => new
                 {
-                    Id = x.Id,
-                    ImageUrl = x.ImageUrl,
-                    Caption = x.Caption
-                }).ToList()
-            };
+                    Product = product,
+                    Item = product.Item,
+                    User = product.Item.User,
+                    Category = product.Category,
+                    ProductPrices = product.ProductPrices
+                        .Where(pp => !product.Item.IsDeleted && pp.EndDate > DateTime.Now),
+                    ProductImages = product.ProductImages
+                });
+            var result = await query.FirstOrDefaultAsync();
+            if (result == null)
+                return new ApiErrorResult<ProductDetailViewModel>("Không tìm thấy sản phẩm");
+            var detailVM = _mapper.Map<ProductDetailViewModel>(result.Product);
+            detailVM.IsOwned = false;
+            detailVM.IsInteractive = DataAccess.Enums.InteractionType.None;
+
             return new ApiSuccessResult<ProductDetailViewModel>(detailVM);
         }
         public async Task<ApiResult<PagedResult<ProductViewModel>>> GetProducts(ProductPagingRequest request)
@@ -157,9 +99,107 @@ namespace FN.Application.Catalog.Product
             var facade = new GetProductFacade(_db, _dbRedis!, null!, _mapper);
             return await facade.GetProducts(request, false, false, null);
         }
-        public Task<ApiResult<PagedResult<ProductViewModel>>> GetProductsOwner(ProductPagingRequest request, int userId)
+
+        public async Task<ApiResult<int>> AddProductFeedback(FeedbackRequest request, int userId)
         {
-            throw new NotImplementedException();
+            var check = await _db.FeedBacks
+                .FirstOrDefaultAsync(x => x.ProductId == request.ProductId && x.UserId == userId);
+            if (check != null)
+                return new ApiErrorResult<int>("Bạn đã đánh giá sản phẩm này rồi");
+            var product = await _db.ProductDetails
+                .Include(x => x.Item)
+                .ThenInclude(x => x.User)
+                .FirstOrDefaultAsync(x => x.Id == request.ProductId && x.Item.IsDeleted == false);
+            var ownerProduct = await _db.ProductOwners
+                .FirstOrDefaultAsync(x => x.ProductId == request.ProductId && x.UserId == userId);
+            if (ownerProduct == null && product.Item.UserId != userId)
+                return new ApiErrorResult<int>("Bạn chưa sở hữu sản phẩm này");
+
+            var feedback = new FeedBack
+            {
+                ProductId = request.ProductId,
+                UserId = userId,
+                Content = request.Content,
+                Rate = request.Rate,
+                Status = true,
+                TimeCreated = DateTime.Now
+            };
+            _db.FeedBacks.Add(feedback);
+            await _db.SaveChangesAsync();
+
+            // Gửi thông báo chỉ cho chủ sở hữu sản phẩm
+            var user = await _db.Users.FindAsync(userId);
+            var ownerUserId = product.Item.UserId.ToString();
+            var ownerConnections = NotifyHub.GetUserConnections(ownerUserId);
+            var notifyString = $"Sản phẩm {product.Item.Title} vừa có đánh giá mới từ {user.FullName}";
+            var info = new Notifications.Notification
+            {
+                Content = notifyString,
+                Title = "Đánh giá sản phẩm",
+                Time = DateTime.Now,
+                Url = $"/product/{product.Item.SeoAlias}-{product.Id}",
+            };
+            if (ownerConnections.Any())
+            {            
+                var message = new Notifications.Message()
+                {
+                    Type = "product",
+                    Information = info
+                };
+                await _hubContext.Clients.Clients(ownerConnections).SendMessage(message);
+            }
+            await _notifyService.SaveNotify(ownerUserId, info);
+            return new ApiSuccessResult<int>(feedback.Id);
+        }
+
+        public async Task<ApiSuccessResult<PagedResult<FeedbackViewModel>>> GetFeedbackProduct(PagedList request, int productId)
+        {
+            var query = _db.FeedBacks
+                .Where(f => f.ProductId == productId && f.Status == true)
+                .Select(f => new
+                {
+                    Feedback = f,
+                    UserName = f.User.UserName,
+                    FullName = f.User.FullName,
+                    Avatar = f.User.Avatar
+                })
+                .OrderByDescending(x => x.Feedback.TimeCreated);
+
+            var totalRow = await query.CountAsync();
+
+            var feedbacks = await query
+                .Skip((request.PageIndex - 1) * request.PageSize)
+                .Take(request.PageSize)
+                .Select(x => new FeedbackViewModel
+                {
+                    Id = x.Feedback.Id,
+                    UserId = x.Feedback.UserId,
+                    UserName = x.UserName,
+                    FullName = x.FullName,
+                    Content = x.Feedback.Content,
+                    Rate = x.Feedback.Rate,
+                    TimeCreated = x.Feedback.TimeCreated,
+                    Avatar = x.Avatar
+                })
+                .ToListAsync();
+
+            var pagedResult = new PagedResult<FeedbackViewModel>
+            {
+                TotalRecords = totalRow,
+                PageIndex = request.PageIndex,
+                PageSize = request.PageSize,
+                Items = feedbacks
+            };
+
+            return new ApiSuccessResult<PagedResult<FeedbackViewModel>>(pagedResult);
+        }
+
+        public async Task<ApiResult<List<ProductViewModel>>> GetProducts(string type, int take)
+        {
+            var strategy = _strategyFactory.GetStrategy(type);
+            _context.SetStrategy(strategy);
+            var result = await _context.GetProductsSelection(take);
+            return new ApiSuccessResult<List<ProductViewModel>>(result);
         }
     }
 }

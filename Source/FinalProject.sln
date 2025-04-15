@@ -35,6 +35,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FN.CatalogService", "FN.Cat
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FN.OrderService", "FN.OrderService\FN.OrderService.csproj", "{61BE70CF-BA63-45E0-B023-3ABD610EED47}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FN.AppHost", "FN.AppHost\FN.AppHost.csproj", "{BD03235F-1936-4816-8106-5C87FDC8C847}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -85,6 +87,10 @@ Global
 		{61BE70CF-BA63-45E0-B023-3ABD610EED47}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{61BE70CF-BA63-45E0-B023-3ABD610EED47}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{61BE70CF-BA63-45E0-B023-3ABD610EED47}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BD03235F-1936-4816-8106-5C87FDC8C847}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BD03235F-1936-4816-8106-5C87FDC8C847}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BD03235F-1936-4816-8106-5C87FDC8C847}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BD03235F-1936-4816-8106-5C87FDC8C847}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -102,5 +108,9 @@ Global
 		{38B759FC-DFD1-4AA0-B243-553C09820355} = {C2B5161A-7EFE-4111-8EDA-A4001C236681}
 		{C7247AD2-94A0-4057-8E61-1F535D5055BC} = {C2B5161A-7EFE-4111-8EDA-A4001C236681}
 		{61BE70CF-BA63-45E0-B023-3ABD610EED47} = {C2B5161A-7EFE-4111-8EDA-A4001C236681}
+		{BD03235F-1936-4816-8106-5C87FDC8C847} = {C2B5161A-7EFE-4111-8EDA-A4001C236681}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {8781503D-0E0F-457F-A3AA-C983E25CD6A4}
 	EndGlobalSection
 EndGlobal

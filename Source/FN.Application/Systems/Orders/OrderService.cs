@@ -1,4 +1,6 @@
-﻿using FN.Application.Systems.Orders.Lib;
+﻿using FirebaseAdmin.Messaging;
+using FN.Application.Catalog.Product.Notifications;
+using FN.Application.Systems.Orders.Lib;
 using FN.DataAccess;
 using FN.DataAccess.Entities;
 using FN.DataAccess.Enums;
@@ -7,6 +9,7 @@ using FN.ViewModel.Helper.Paging;
 using FN.ViewModel.Systems.Order;
 using Google.Api;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -32,8 +35,8 @@ namespace FN.Application.Systems.Orders
         {
             try
             {
-                //var user = await _db.Users.FindAsync(userId);
-                //if(!user!.EmailConfirmed) return new ApiErrorResult<int>("Tài khoản chưa xác thực email");
+                var user = await _db.Users.FindAsync(userId);
+                if (!user!.EmailConfirmed) return new ApiErrorResult<int>("Tài khoản chưa xác thực email");
                 var product = await _db.ProductDetails.Include(x => x.ProductPrices).FirstOrDefaultAsync(x => x.Id == request.ProductId);
                 if (product == null) return new ApiErrorResult<int>("Product not found");
                 if (request.Amount <= 0)
@@ -81,7 +84,7 @@ namespace FN.Application.Systems.Orders
             string clientIpAddress = Dns.GetHostAddresses(hostName).GetValue(0)!.ToString()!;
 
             //var urlCallBack = _configuration["PaymentCallBack:ReturnUrl"];
-            var urlCallBack = "http://localhost:4200/payment-callback";
+            var urlCallBack = "https://mrkatsu.io.vn/payment-callback";
             pay.AddRequestData("vnp_Version", _configuration["Vnpay:Version"]!);
             pay.AddRequestData("vnp_Command", _configuration["Vnpay:Command"]!);
             pay.AddRequestData("vnp_TmnCode", _configuration["Vnpay:TmnCode"]!);
@@ -109,6 +112,62 @@ namespace FN.Application.Systems.Orders
             }
 
             return new ApiSuccessResult<string>(data: paymentUrl);
+        }
+
+        public async Task<ApiResult<PaymentResponseModel>> PaymentExecute(IQueryCollection collections, int userId)
+        {
+            try
+            {
+                using (var scope = _scopeFactory.CreateScope())
+                {
+                    var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+                    var pay = new VnPayLibrary();
+                    var response = pay.GetFullResponseData(collections, _configuration["Vnpay:HashSecret"]!);
+                    var amount = long.Parse(collections["vnp_Amount"]!);
+                    string[] part = response.OrderDescription.Split(" ");
+                    string title = string.Join(" ", part.Take(part.Length - 2));
+                    int orderId = int.Parse(part[part.Length - 2]);
+                    int productId = int.Parse(part.Last());
+
+                    var order = await dbContext.Orders.FindAsync(orderId);
+                    order!.OrderStatus = response.Success ? OrderStatus.COMPLETED : OrderStatus.PAYMENT_FAILED;
+
+                    var payment = new Payment
+                    {
+                        OrderId = orderId,
+                        UserId = userId,
+                        TransactionId = response.TransactionId,
+                        PaymentStatus = response.Success ? PaymentStatus.SUCCESS : PaymentStatus.FAILED,
+                        PaymentDate = DateTime.Now,
+                        PaymentFee = amount / 100,
+                        Description = title,
+                        ProductId = productId,
+                    };
+
+                    await dbContext.Payments.AddAsync(payment).ConfigureAwait(false);
+
+                    if (response.Success)
+                    {
+                        var owner = new ProductOwner
+                        {
+                            ProductId = productId,
+                            UserId = userId,
+                        };
+                        await dbContext.ProductOwners.AddAsync(owner).ConfigureAwait(false);
+                        var product = await dbContext.ProductDetails.FindAsync(productId);
+                        product!.DownloadCount += 1;
+                    }
+
+
+                    await dbContext.SaveChangesAsync().ConfigureAwait(false);
+                    return new ApiSuccessResult<PaymentResponseModel>(response, "Đang xử lý");
+                }
+            }
+            catch (Exception ex)
+            {
+                return new ApiErrorResult<PaymentResponseModel>(ex.Message);
+            }
         }
 
         public async Task<ApiResult<PagedResult<OrderViewModel>>> GetOrders(int userId, OrderPagingRequest request)
@@ -188,69 +247,6 @@ namespace FN.Application.Systems.Orders
                 TotalRecords = totalRecord,
             };
             return new ApiSuccessResult<PagedResult<PaymentViewModel>>(result);
-        }
-
-        public async Task<ApiResult<PaymentResponseModel>> PaymentExecute(IQueryCollection collections, int userId)
-        {
-            try
-            {
-                using (var scope = _scopeFactory.CreateScope())
-                {
-                    var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-
-                    var pay = new VnPayLibrary();
-                    var response = pay.GetFullResponseData(collections, _configuration["Vnpay:HashSecret"]!);
-                    var amount = long.Parse(collections["vnp_Amount"]!);
-                    string[] part = response.OrderDescription.Split(" ");
-                    string title = string.Join(" ", part.Take(part.Length - 2));
-                    int orderId = int.Parse(part[part.Length - 2]);
-                    int productId = int.Parse(part.Last());
-
-                    var existedOwner = await dbContext.ProductOwners
-                        .FirstOrDefaultAsync(x => x.ProductId == productId && x.UserId == userId)
-                        .ConfigureAwait(false);
-
-                    if (existedOwner != null)
-                    {
-                        return new ApiErrorResult<PaymentResponseModel>("Bạn đã mua sản phẩm này rồi");
-                    }
-                    var order = await dbContext.Orders.FindAsync(orderId);
-                    order!.OrderStatus = response.Success ? OrderStatus.COMPLETED : OrderStatus.PAYMENT_FAILED;
-
-                    var payment = new Payment
-                    {
-                        OrderId = orderId,
-                        UserId = userId,
-                        TransactionId = response.TransactionId,
-                        PaymentStatus = response.Success ? PaymentStatus.SUCCESS : PaymentStatus.FAILED,
-                        PaymentDate = DateTime.Now,
-                        PaymentFee = amount / 100,
-                        Description = title,
-                        ProductId = productId,
-                    };
-
-                    await dbContext.Payments.AddAsync(payment).ConfigureAwait(false);
-
-                    if (response.Success)
-                    {
-                        var owner = new ProductOwner
-                        {
-                            ProductId = productId,
-                            UserId = userId,
-                        };
-                        await dbContext.ProductOwners.AddAsync(owner).ConfigureAwait(false);
-                        var product = await dbContext.ProductDetails.FindAsync(productId);
-                        product!.DownloadCount += 1;
-                    }
-
-                    await dbContext.SaveChangesAsync().ConfigureAwait(false);
-                    return new ApiSuccessResult<PaymentResponseModel>(response, "Đang xử lý");
-                }
-            }
-            catch (Exception ex)
-            {
-                return new ApiErrorResult<PaymentResponseModel>(ex.Message);
-            }
         }
     }
 }

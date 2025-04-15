@@ -96,6 +96,9 @@ namespace FN.Application.Catalog
                 default:
                     break;
             }
+            await _dbRedis.RemoveCache(SystemConstant.PRODUCT_KEY + "_recommend");
+            await _dbRedis.RemoveCache(SystemConstant.PRODUCT_KEY + "_new");
+            await _dbRedis.RemoveCache(SystemConstant.PRODUCT_KEY + "_feature");
         }
         protected DateTime Now()
         {

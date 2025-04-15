@@ -14,7 +14,6 @@ namespace FN.DataAccess.Entities
         public int ItemId { get; set; }
         public byte CategoryId { get; set; }
         public ProductType Status { get; set; }
-        public bool IsDeleted { get; set; }
         public Item Item { get; set; }
         public Category Category { get; set; }
         public List<ProductPrice> ProductPrices { get; set; }

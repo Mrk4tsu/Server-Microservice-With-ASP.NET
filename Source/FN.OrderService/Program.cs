@@ -1,4 +1,5 @@
-﻿using FN.Application.Systems.Orders;
+﻿using FN.Application.Catalog.Product.Notifications;
+using FN.Application.Systems.Orders;
 using FN.Extensions;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -17,8 +18,8 @@ builder.Services.AddControllers();
 
 var app = builder.Build();
 
-app.ConfigureSwaggerExplorer()
-    .ConfigureCORS(app.Configuration)
+app.ConfigureCORS(app.Configuration)
+    .ConfigureSwaggerExplorer()
     .AddIdentityAuthMiddlewares();
 
 app.UseHttpsRedirection();
