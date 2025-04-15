@@ -1,6 +1,5 @@
 ﻿using AutoMapper;
-using AutoMapper.QueryableExtensions;
-using FirebaseAdmin.Messaging;
+using CloudinaryDotNet.Actions;
 using FN.Application.Catalog.Product.Notifications;
 using FN.Application.Catalog.Product.Pattern;
 using FN.Application.Systems.Redis;
@@ -11,7 +10,6 @@ using FN.ViewModel.Catalog.Products.FeedbackProduct;
 using FN.ViewModel.Catalog.Products.Manage;
 using FN.ViewModel.Helper.API;
 using FN.ViewModel.Helper.Paging;
-using Mailjet.Client.Resources;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 
@@ -104,10 +102,10 @@ namespace FN.Application.Catalog.Product
 
         public async Task<ApiResult<int>> AddProductFeedback(FeedbackRequest request, int userId)
         {
-            //var check = await _db.FeedBacks
-            //    .FirstOrDefaultAsync(x => x.ProductId == request.ProductId && x.UserId == userId);
-            //if (check != null)
-            //    return new ApiErrorResult<int>("Bạn đã đánh giá sản phẩm này rồi");
+            var check = await _db.FeedBacks
+                .FirstOrDefaultAsync(x => x.ProductId == request.ProductId && x.UserId == userId);
+            if (check != null)
+                return new ApiErrorResult<int>("Bạn đã đánh giá sản phẩm này rồi");
             var product = await _db.ProductDetails
                 .Include(x => x.Item)
                 .ThenInclude(x => x.User)
@@ -133,59 +131,27 @@ namespace FN.Application.Catalog.Product
             var user = await _db.Users.FindAsync(userId);
             var ownerUserId = product.Item.UserId.ToString();
             var ownerConnections = NotifyHub.GetUserConnections(ownerUserId);
-
-            if (ownerConnections.Any())
+            var notifyString = $"Sản phẩm {product.Item.Title} vừa có đánh giá mới từ {user.FullName}";
+            var info = new Notifications.Notification
             {
-                var notifyString = $"Sản phẩm {product.Item.Title} vừa có đánh giá mới từ {user.FullName}";
-                var info = new Notifications.Notification
-                {
-                    Content = notifyString,
-                    Title = "Đánh giá sản phẩm",
-                    Time = DateTime.Now,
-                    Url = $"/product/{product.Item.SeoAlias}-{product.Id}",
-                };
+                Content = notifyString,
+                Title = "Đánh giá sản phẩm",
+                Time = DateTime.Now,
+                Url = $"/product/{product.Item.SeoAlias}-{product.Id}",
+            };
+            if (ownerConnections.Any())
+            {            
                 var message = new Notifications.Message()
                 {
                     Type = "product",
                     Information = info
                 };
                 await _hubContext.Clients.Clients(ownerConnections).SendMessage(message);
-                await _notifyService.SaveNotify(ownerUserId, info);
             }
-
+            await _notifyService.SaveNotify(ownerUserId, info);
             return new ApiSuccessResult<int>(feedback.Id);
         }
 
-        //public async Task<ApiSuccessResult<PagedResult<FeedbackViewModel>>> GetFeedbackProduct(PagedList request, int productId)
-        //{
-        //    var query = from f in _db.FeedBacks
-        //                join u in _db.Users on f.UserId equals u.Id
-        //                where f.ProductId == productId && f.Status == true
-        //                select new FeedbackViewModel
-        //                {
-        //                    Id = f.Id,
-        //                    Content = f.Content,
-        //                    Rate = f.Rate,
-        //                    TimeCreated = f.TimeCreated,
-        //                    UserName = u.UserName!,
-        //                    FullName = u.FullName!,
-        //                    UserId = f.UserId,
-        //                    Avatar = u.Avatar!
-        //                };
-        //    var totalRow = await query.CountAsync();
-        //    var feedbacks = await query.OrderByDescending(x => x.TimeCreated)
-        //        .Skip((request.PageIndex - 1) * request.PageSize)
-        //        .Take(request.PageSize)
-        //        .ToListAsync();
-        //    var pagedResult = new PagedResult<FeedbackViewModel>
-        //    {
-        //        TotalRecords = totalRow,
-        //        PageIndex = request.PageIndex,
-        //        PageSize = request.PageSize,
-        //        Items = feedbacks
-        //    };
-        //    return new ApiSuccessResult<PagedResult<FeedbackViewModel>>(pagedResult);
-        //}
         public async Task<ApiSuccessResult<PagedResult<FeedbackViewModel>>> GetFeedbackProduct(PagedList request, int productId)
         {
             var query = _db.FeedBacks

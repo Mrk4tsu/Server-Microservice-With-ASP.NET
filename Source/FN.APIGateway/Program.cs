@@ -13,7 +13,10 @@ builder.Services.AddOcelot(builder.Configuration);
 
 builder.Services.AddControllers();
 builder.Services.ConfigureServicePayload()
+    .AddIdentityAuth(builder.Configuration)
     .ConfigureServiceForwarded();
+
+builder.Services.AddSignalR();
 
 var app = builder.Build();
 
@@ -21,13 +24,11 @@ app.ConfigureCORS(builder.Configuration)
     .ConfigureAppForwarded()
     .ConfigureAppPayLoad();
 
-//app.UseHttpsRedirection();
+app.UseWebSockets();
 
 app.UseAuthorization();
 
 app.MapControllers();
-
-app.UseWebSockets();
 
 await app.UseOcelot();
 

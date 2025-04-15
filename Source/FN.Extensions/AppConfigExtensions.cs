@@ -21,24 +21,21 @@ namespace FN.Extensions
     {
         public static IApplicationBuilder ConfigureCORS(this IApplicationBuilder app, IConfiguration config)
         {
-            app.UseCors(options =>
-                options
-                    .AllowAnyMethod()
-                    .AllowAnyHeader()
-                    .AllowAnyOrigin()
-                    .AllowCredentials()
-                    .WithOrigins(
-                    "http://127.0.0.1:5500",
-                    "http://localhost:4200",
-                    "https://mrkatsu.io.vn",
-                    "https://katsudev.vercel.app",
-                    "https://katsudev.netlify.app")
-                );
             app.UseForwardedHeaders(new ForwardedHeadersOptions
             {
                 ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
             });
-           
+            app.UseCors(options =>
+                options
+                    .AllowAnyMethod()
+                    .AllowAnyHeader()
+                    .AllowCredentials()
+                    .WithOrigins(
+                        "http://localhost:4200", 
+                        "https://mrkatsu.io.vn", 
+                        "https://katsudev.vercel.app", 
+                        "https://katsudev.netlify.app"));
+
             return app;
         }
         public static IApplicationBuilder ConfigureAppForwarded(this IApplicationBuilder app)

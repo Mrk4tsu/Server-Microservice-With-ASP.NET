@@ -40,40 +40,28 @@ namespace FN.Application.Systems.User
             {
                 var ipAddress = GetPublicIPAddress(context);
                 if (string.IsNullOrEmpty(ipAddress)) return new ApiErrorResult<TokenResponse>("Đăng nhập bất thường");
-                var user = await _userManager.FindByNameAsync(request.UserName);
+                var user = await _userManager.FindByNameAsync(request.UserName).ConfigureAwait(false);
                 if (user == null) return new ApiErrorResult<TokenResponse>("Tài khoản không chính xác");
 
-                var result = await _signInManager.PasswordSignInAsync(user, request.Password, request.RememberMe, true);
+                var result = await _signInManager.PasswordSignInAsync(user, request.Password, request.RememberMe, true).ConfigureAwait(false);
                 if (!result.Succeeded) return new ApiErrorResult<TokenResponse>("Tài khoản mật khẩu không chính xác");
 
+                // Tạo token và refresh token
                 var clientId = string.IsNullOrEmpty(request.ClientId) ? Guid.NewGuid().ToString() : request.ClientId;
-                var tokenReq = new TokenRequest
-                {
-                    UserId = user.Id,
-                    ClientId = clientId
-                };
-                var publishTask = _redisService.Publish(SystemConstant.MESSAGE_LOGIN_EVENT, new LoginResponse
-                {
-                    Email = user.Email!,
-                    Username = user.UserName!,
-                    Token = tokenReq,
-                    IpAddress = ipAddress,
-                    UserAgent = request.UserAgent,
-                });
-                var expires = request.RememberMe ? DateTime.Now.AddDays(14) : DateTime.Now.AddDays(3);
-                var tokenTask = _tokenService.GenerateAccessToken(user);
-                var refreshToken = _tokenService.GenerateRefreshToken();
 
-                await Task.WhenAll(publishTask, tokenTask);
+                var expires = request.RememberMe ? DateTime.Now.AddDays(14) : DateTime.Now.AddDays(3);
+                var (accessToken, refreshToken) = await GenerateTokensAsync(user, clientId, expires).ConfigureAwait(false);
+
+                // Publish message async (fire-and-forget)
+                _ = PublishLoginEventAsync(user, ipAddress, request.UserAgent, clientId);
+
                 var response = new TokenResponse
                 {
-                    AccessToken = await tokenTask,
+                    AccessToken = accessToken,
                     RefreshToken = refreshToken,
                     RefreshTokenExpiry = expires,
                     ClientId = clientId
                 };
-                var expiryDuration = expires - DateTime.Now;
-                await _tokenService.SaveRefreshToken(response.RefreshToken, tokenReq, expiryDuration);
 
                 return new ApiSuccessResult<TokenResponse>(response);
             }
@@ -81,6 +69,27 @@ namespace FN.Application.Systems.User
             {
                 return new ApiErrorResult<TokenResponse>(e.Message);
             }
+        }
+        private async Task<(string AccessToken, string RefreshToken)> GenerateTokensAsync(AppUser user, string clientId, DateTime expires)
+        {
+            var accessTokenTask = _tokenService.GenerateAccessToken(user);
+            var refreshToken = _tokenService.GenerateRefreshToken();
+            var tokenReq = new TokenRequest { UserId = user.Id, ClientId = clientId };
+            var expiryDuration = expires - DateTime.Now;
+
+            await _tokenService.SaveRefreshToken(refreshToken, tokenReq, expiryDuration).ConfigureAwait(false);
+            return (await accessTokenTask.ConfigureAwait(false), refreshToken);
+        }
+        private async Task PublishLoginEventAsync(AppUser user, string ipAddress, string userAgent, string clientId)
+        {
+            await _redisService.Publish(SystemConstant.MESSAGE_LOGIN_EVENT, new LoginResponse
+            {
+                Email = user.Email!,
+                Username = user.UserName!,
+                Token = new TokenRequest { UserId = user.Id, ClientId = clientId },
+                IpAddress = ipAddress,
+                UserAgent = userAgent,
+            }).ConfigureAwait(false);
         }
         public async Task<ApiResult<bool>> Register(RegisterDTO request)
         {
@@ -170,45 +179,45 @@ namespace FN.Application.Systems.User
         }
         private string GetPublicIPAddress(HttpContext context)
         {
-            try
-            {
-                // Tạo client và yêu cầu
-                var client = new RestClient("https://api.ipify.org");
-                var request = new RestRequest("", Method.Get);
-
-                // Thực hiện yêu cầu và lấy kết quả
-                var response = client.Execute(request);
-                return response.Content ?? string.Empty;
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine("Lỗi khi lấy địa chỉ IP public: " + ex.Message);
-                return string.Empty;
-            }
-            //var ipHeaders = new[] { "X-Forwarded-For", "Forwarded", "X-Real-IP" };
-            //foreach (var header in ipHeaders)
+            //try
             //{
-            //    if (context.Request.Headers.TryGetValue(header, out var headerValue))
-            //    {
-            //        var ip = headerValue.ToString().Split(',')[0].Trim();
-            //        if (!string.IsNullOrEmpty(ip))
-            //            return ip;
-            //    }
-            //}
+            //    // Tạo client và yêu cầu
+            //    var client = new RestClient("https://api.ipify.org");
+            //    var request = new RestRequest("", Method.Get);
 
-            //var remoteIp = context.Connection.RemoteIpAddress;
-            //if (remoteIp != null)
+            //    // Thực hiện yêu cầu và lấy kết quả
+            //    var response = client.Execute(request);
+            //    return response.Content ?? string.Empty;
+            //}
+            //catch (Exception ex)
             //{
-            //    if (remoteIp.Equals(IPAddress.IPv6Loopback))
-            //        return "127.0.0.1";
-
-            //    if (remoteIp.IsIPv4MappedToIPv6)
-            //        return remoteIp.MapToIPv4().ToString();
-
-            //    return remoteIp.ToString();
+            //    Console.WriteLine("Lỗi khi lấy địa chỉ IP public: " + ex.Message);
+            //    return string.Empty;
             //}
+            var ipHeaders = new[] { "X-Forwarded-For", "Forwarded", "X-Real-IP" };
+            foreach (var header in ipHeaders)
+            {
+                if (context.Request.Headers.TryGetValue(header, out var headerValue))
+                {
+                    var ip = headerValue.ToString().Split(',')[0].Trim();
+                    if (!string.IsNullOrEmpty(ip))
+                        return ip;
+                }
+            }
 
-            //return "Unknown";
+            var remoteIp = context.Connection.RemoteIpAddress;
+            if (remoteIp != null)
+            {
+                if (remoteIp.Equals(IPAddress.IPv6Loopback))
+                    return "127.0.0.1";
+
+                if (remoteIp.IsIPv4MappedToIPv6)
+                    return remoteIp.MapToIPv4().ToString();
+
+                return remoteIp.ToString();
+            }
+
+            return string.Empty;
         }
     }
 }
