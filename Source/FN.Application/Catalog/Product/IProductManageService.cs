@@ -15,7 +15,7 @@ namespace FN.Application.Catalog.Product
         Task<ApiResult<int>> Create(CombinedCreateOrUpdateRequest request, int userId);
         Task<ApiResult<bool>> Update(CombinedCreateOrUpdateRequest request, int itemId, int productId, int userId);
         Task<ApiResult<bool>> DeletePermanently(int itemId, int userId);
-        Task<ApiResult<bool>> Delete(int itemId, int userId);
+        Task<ApiResult<bool>> DeleteOrRoleback(int itemId, int userId);
         Task<ApiResult<bool>> DeleteImage(DeleteProductImagesRequest request);
         Task<ApiResult<int>> AddItemProduct(ProductItemRequest request, int productId);
         Task<ApiResult<int>> EditItemProduct(ProductItemSingleRequest request, int itemProductId);

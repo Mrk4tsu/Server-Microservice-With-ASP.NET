@@ -1,4 +1,5 @@
-﻿using FN.Application.Helper.Devices;
+﻿using FN.Application.Catalog.Product.Notifications;
+using FN.Application.Helper.Devices;
 using FN.Application.Systems.Token;
 using FN.Application.Systems.User;
 using FN.Extensions;
@@ -18,6 +19,8 @@ builder.Services.AddSwaggerExplorer()
     .ConfigureIdentityOptions()
     .ConfigureServicePayload()
     .AddImageConfig(builder.Configuration);
+
+builder.Services.AddScoped<INotifyService, NotifyService>();
 
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IUserService, UserService>();

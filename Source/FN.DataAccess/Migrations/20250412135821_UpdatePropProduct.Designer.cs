@@ -4,6 +4,7 @@ using FN.DataAccess;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace FN.DataAccess.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250412135821_UpdatePropProduct")]
+    partial class UpdatePropProduct
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -129,7 +132,7 @@ namespace FN.DataAccess.Migrations
                     b.Property<DateTime>("TimeCreated")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime(6)")
-                        .HasDefaultValue(new DateTime(2025, 4, 14, 0, 48, 9, 37, DateTimeKind.Local).AddTicks(4508));
+                        .HasDefaultValue(new DateTime(2025, 4, 12, 20, 58, 18, 129, DateTimeKind.Local).AddTicks(9709));
 
                     b.Property<bool>("TwoFactorEnabled")
                         .HasColumnType("tinyint(1)");
@@ -277,8 +280,8 @@ namespace FN.DataAccess.Migrations
 
                     b.Property<string>("Content")
                         .IsRequired()
-                        .HasMaxLength(1500)
-                        .HasColumnType("varchar(1500)");
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)");
 
                     b.Property<int>("ProductId")
                         .HasColumnType("int");
@@ -296,7 +299,7 @@ namespace FN.DataAccess.Migrations
                     b.Property<DateTime>("TimeCreated")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime(6)")
-                        .HasDefaultValue(new DateTime(2025, 4, 14, 0, 48, 9, 39, DateTimeKind.Local).AddTicks(1362));
+                        .HasDefaultValue(new DateTime(2025, 4, 12, 20, 58, 18, 131, DateTimeKind.Local).AddTicks(3469));
 
                     b.Property<int>("UserId")
                         .HasColumnType("int");
@@ -325,7 +328,7 @@ namespace FN.DataAccess.Migrations
                     b.Property<DateTime>("CreatedDate")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime(6)")
-                        .HasDefaultValue(new DateTime(2025, 4, 14, 0, 48, 9, 40, DateTimeKind.Local).AddTicks(4084));
+                        .HasDefaultValue(new DateTime(2025, 4, 12, 20, 58, 18, 132, DateTimeKind.Local).AddTicks(2182));
 
                     b.Property<string>("Description")
                         .IsRequired()
@@ -345,7 +348,7 @@ namespace FN.DataAccess.Migrations
                     b.Property<DateTime>("ModifiedDate")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime(6)")
-                        .HasDefaultValue(new DateTime(2025, 4, 14, 0, 48, 9, 40, DateTimeKind.Local).AddTicks(4736));
+                        .HasDefaultValue(new DateTime(2025, 4, 12, 20, 58, 18, 132, DateTimeKind.Local).AddTicks(2795));
 
                     b.Property<string>("NormalizedTitle")
                         .IsRequired()
@@ -404,7 +407,7 @@ namespace FN.DataAccess.Migrations
                     b.Property<DateTime>("PaymentDate")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime(6)")
-                        .HasDefaultValue(new DateTime(2025, 4, 14, 0, 48, 9, 41, DateTimeKind.Local).AddTicks(9299));
+                        .HasDefaultValue(new DateTime(2025, 4, 12, 20, 58, 18, 133, DateTimeKind.Local).AddTicks(6814));
 
                     b.Property<decimal>("PaymentFee")
                         .ValueGeneratedOnAdd()
@@ -576,7 +579,7 @@ namespace FN.DataAccess.Migrations
                     b.Property<DateTime>("CreatedDate")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime(6)")
-                        .HasDefaultValue(new DateTime(2025, 4, 13, 17, 48, 9, 45, DateTimeKind.Utc).AddTicks(147));
+                        .HasDefaultValue(new DateTime(2025, 4, 12, 13, 58, 18, 136, DateTimeKind.Utc).AddTicks(3137));
 
                     b.Property<DateTime>("EndDate")
                         .HasColumnType("datetime(6)");
@@ -614,7 +617,7 @@ namespace FN.DataAccess.Migrations
                     b.Property<DateTime>("InteractionDate")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime(6)")
-                        .HasDefaultValue(new DateTime(2025, 4, 14, 0, 48, 9, 45, DateTimeKind.Local).AddTicks(4980));
+                        .HasDefaultValue(new DateTime(2025, 4, 12, 20, 58, 18, 136, DateTimeKind.Local).AddTicks(7794));
 
                     b.Property<int>("Type")
                         .HasColumnType("int");
@@ -637,7 +640,7 @@ namespace FN.DataAccess.Migrations
                     b.Property<DateTime>("OrderDate")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime(6)")
-                        .HasDefaultValue(new DateTime(2025, 4, 14, 0, 48, 9, 41, DateTimeKind.Local).AddTicks(744));
+                        .HasDefaultValue(new DateTime(2025, 4, 12, 20, 58, 18, 132, DateTimeKind.Local).AddTicks(8574));
 
                     b.Property<int>("OrderStatus")
                         .HasColumnType("int");
@@ -680,7 +683,7 @@ namespace FN.DataAccess.Migrations
                     b.Property<DateTime>("InteractionDate")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime(6)")
-                        .HasDefaultValue(new DateTime(2025, 4, 13, 17, 48, 9, 46, DateTimeKind.Utc).AddTicks(701));
+                        .HasDefaultValue(new DateTime(2025, 4, 12, 13, 58, 18, 137, DateTimeKind.Utc).AddTicks(3579));
 
                     b.Property<int>("Type")
                         .HasColumnType("int");

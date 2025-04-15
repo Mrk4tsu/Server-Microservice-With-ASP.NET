@@ -15,9 +15,14 @@ namespace FN.Application.Systems.Redis
             _cache = cache;
             _subscriber = connectionMultiplexer.GetSubscriber();
         }
+        private readonly JsonSerializerOptions _jsonOptions = new()
+        {
+            PropertyNameCaseInsensitive = true,
+            WriteIndented = false // Tắt format để tăng tốc
+        };
         public async Task ListPush<T>(string key, T value)
         {
-            await _database.ListRightPushAsync(key, JsonSerializer.Serialize(value));
+            await _database.ListRightPushAsync(key, JsonSerializer.Serialize(value, _jsonOptions));
         }
         public async Task ListTrim(string key, long start, long stop)
         {
@@ -49,6 +54,20 @@ namespace FN.Application.Systems.Redis
         {
             await _database.SetRemoveAsync(key, value);
         }
+        //public List<string> GetKeysByPattern(string pattern)
+        //{
+        //    var keys = new List<string>();
+        //    var endpoints = _database.Multiplexer.GetEndPoints();
+        //    foreach (var endpoint in endpoints)
+        //    {
+        //        var server = _database.Multiplexer.GetServer(endpoint);
+        //        foreach (var key in server.Keys(pattern: pattern))
+        //        {
+        //            keys.Add(key.ToString());
+        //        }
+        //    }
+        //    return keys;
+        //}
         public List<string> GetKeysByPattern(string pattern)
         {
             var keys = new List<string>();
@@ -56,7 +75,8 @@ namespace FN.Application.Systems.Redis
             foreach (var endpoint in endpoints)
             {
                 var server = _database.Multiplexer.GetServer(endpoint);
-                foreach (var key in server.Keys(pattern: pattern))
+                var cursor = server.Keys(pattern: pattern, pageSize: 1000);
+                foreach (var key in cursor)
                 {
                     keys.Add(key.ToString());
                 }
@@ -70,11 +90,11 @@ namespace FN.Application.Systems.Redis
             {
                 return default!;
             }
-            return JsonSerializer.Deserialize<T>(json.ToString());
+            return JsonSerializer.Deserialize<T>(json.ToString(), _jsonOptions);
         }
         public async Task SetValue<T>(string key, T value, TimeSpan? expiry = null)
         {
-            await _database.StringSetAsync(key, JsonSerializer.Serialize(value), expiry);
+            await _database.StringSetAsync(key, JsonSerializer.Serialize(value, _jsonOptions), expiry);
         }
         public async Task<bool> SetContains(string key, string value)
         {
@@ -86,7 +106,7 @@ namespace FN.Application.Systems.Redis
         }
         public async Task Publish<T>(string channel, T message)
         {
-            var serializedMessage = JsonSerializer.Serialize(message);
+            var serializedMessage = JsonSerializer.Serialize(message, _jsonOptions);
             await _subscriber.PublishAsync(new RedisChannel(channel, RedisChannel.PatternMode.Auto), serializedMessage);
         }
         public async Task Subscribe(string channel, Func<RedisChannel, RedisValue, Task> handler)

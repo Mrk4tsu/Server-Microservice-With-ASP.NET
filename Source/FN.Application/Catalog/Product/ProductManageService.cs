@@ -120,12 +120,12 @@ namespace FN.Application.Catalog.Product
                 throw new Exception("Xóa sản phẩm thất bại", ex);
             }
         }
-        public async Task<ApiResult<bool>> Delete(int itemId, int userId)
+        public async Task<ApiResult<bool>> DeleteOrRoleback(int itemId, int userId)
         {
             var item = await _db.Items.FirstOrDefaultAsync(x => x.Id == itemId && x.UserId == userId);
             if (item == null) return new ApiErrorResult<bool>("Không tìm thấy sản phẩm");
 
-            item.IsDeleted = true;
+            item.IsDeleted = !item.IsDeleted;
 
             _db.Items.Update(item);
             await _db.SaveChangesAsync();

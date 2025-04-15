@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <Sdk Name="Aspire.AppHost.Sdk" Version="9.0.0" />
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsAspireHost>true</IsAspireHost>
+    <UserSecretsId>ab27bb09-68dd-4b17-b4da-4c8356ccd2dc</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Aspire.Hosting.AppHost" Version="9.2.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\FN.AIService\FN.AIService.csproj" />
+    <ProjectReference Include="..\FN.APIGateway\FN.APIGateway.csproj" />
+    <ProjectReference Include="..\FN.CatalogService\FN.CatalogService.csproj" />
+    <ProjectReference Include="..\FN.EmailService\FN.EmailService.csproj" />
+    <ProjectReference Include="..\FN.OrderService\FN.OrderService.csproj" />
+    <ProjectReference Include="..\FN.UserService\FN.UserService.csproj" />
+  </ItemGroup>
+
+</Project>

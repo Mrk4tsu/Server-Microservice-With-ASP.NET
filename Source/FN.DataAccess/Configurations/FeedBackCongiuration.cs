@@ -14,7 +14,7 @@ namespace FN.DataAccess.Configurations
 
             builder.Property(x => x.Content)
                 .IsRequired()
-                .HasMaxLength(500);
+                .HasMaxLength(1500);
             builder.Property(x => x.Rate).HasDefaultValue(5);
             builder.Property(x => x.TimeCreated)
                 .HasDefaultValue(DateTime.Now);
