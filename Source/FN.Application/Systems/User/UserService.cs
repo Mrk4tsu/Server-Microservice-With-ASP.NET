@@ -6,6 +6,7 @@ using FN.DataAccess.Entities;
 using FN.Utilities;
 using FN.ViewModel.Helper.API;
 using FN.ViewModel.Systems.User;
+using Mailjet.Client.Resources;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -180,18 +181,18 @@ namespace FN.Application.Systems.User
         }
 
         #region[Quên mật khẩu]
-        public async Task<ApiResult<string>> RequestForgotPassword(RequestForgot request)
+        public async Task<ApiResult<string>> RequestForgotPassword(MailRequest request)
         {
             var user = await _userManager.FindByNameAsync(request.Username);
             if (user == null) return new ApiErrorResult<string>("User không tồn tại");
             if (request.Email != user.Email) return new ApiErrorResult<string>("Email yêu cầu khôi phục không chính xác");
             var token = await _userManager.GeneratePasswordResetTokenAsync(user);
-            await _redisService.Publish(SystemConstant.MESSAGE_FORGOT_PASSWORD_EVENT, new ForgotPasswordResponse
+            await _redisService.Publish(SystemConstant.MESSAGE_FORGOT_PASSWORD_EVENT, new UserMailTokenResponse
             {
                 Username = user.UserName!,
                 Email = user.Email!,
                 Token = token
-            });
+            }).ConfigureAwait(false);
             return new ApiSuccessResult<string>(token);
         }
         public async Task<ApiResult<bool>> ResetPassword(ForgotPasswordRequest request)
@@ -228,12 +229,58 @@ namespace FN.Application.Systems.User
             if (user == null) return new ApiErrorResult<bool>("User không tồn tại");
             user.FullName = newName;
             var result = await _userManager.UpdateAsync(user);
-            if (result.Succeeded) return new ApiSuccessResult<bool>();
+            if (result.Succeeded)
+            {
+                var keyCache = SystemConstant.CACHE_USER_BY_USERNAME + user.UserName;
+                await _redisService.RemoveValue(keyCache).ConfigureAwait(false);
+                return new ApiSuccessResult<bool>();
+            }
             return new ApiErrorResult<bool>("Thay đổi tên không thành công");
         }
         private async Task RemoveCache(string key)
         {
             await _redisService.RemoveValue(key);
+        }
+
+        public async Task<ApiResult<string>> RequestVerifyEmail(int userId)
+        {
+            var user = await _userManager.FindByIdAsync(userId.ToString());
+            var token = await _userManager.GenerateEmailConfirmationTokenAsync(user);
+
+            string email = user.Email;
+
+            if (string.IsNullOrEmpty(email))
+                return new ApiErrorResult<string>("Không thể tìm thấy email");
+
+            var request = new UserMailTokenResponse
+            {
+                Username = user.UserName!,
+                Email = email,
+                Token = token
+            };
+
+            await _redisService.Publish(SystemConstant.MESSAGE_CONFIRM_ACCOUNT_EVENT, request).ConfigureAwait(false);
+            return new ApiSuccessResult<string>(token);
+        }
+
+        public async Task<ApiResult<bool>> ConfirmVerifyEmail(VerifyRequest response)
+        {
+            var user = await _userManager.FindByNameAsync(response.Username);
+            var decodedToken = WebUtility.UrlDecode(response.Token);
+            var result = await _userManager.ConfirmEmailAsync(user, decodedToken);
+            if (result.Succeeded)
+            {
+                var keyCache = SystemConstant.CACHE_USER_BY_USERNAME + user.UserName;
+                await _redisService.RemoveValue(keyCache).ConfigureAwait(false);
+                return new ApiSuccessResult<bool>();
+            }
+            else
+            {
+                var errors = result.Errors.Select(e => e.Description).ToList();
+                if (errors.Any(e => e.Contains("Invalid token")))
+                    return new ApiErrorResult<bool>("Token đã hết hạn hoặc không hợp lệ.");
+                return new ApiErrorResult<bool>("Xác thực thất bại.");
+            }
         }
     }
 }

@@ -29,11 +29,11 @@ builder.Services.AddScoped<IDeviceService, DeviceService>();
 
 var app = builder.Build();
 
-app.ConfigureSwaggerExplorer()
-    .ConfigureCORS(builder.Configuration)
-    .ConfigureAppForwarded()
-    .AddIdentityAuthMiddlewares()
-    .ConfigureAppPayLoad();
+app.ConfigureCORS(builder.Configuration)
+   .ConfigureAppForwarded()
+   .ConfigureSwaggerExplorer()
+   .AddIdentityAuthMiddlewares()
+   .ConfigureAppPayLoad();
 
 app.MapControllers();
 

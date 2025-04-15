@@ -24,5 +24,6 @@ namespace FN.DataAccess.Entities
         public List<ProductItem> ProductItems { get; set; }
         public List<FeedBack> FeedBacks { get; set; }
         public List<UserProductInteraction> UserProductInteractions { get; set; }
+        public List<SaleEventProduct> SaleEventProducts { get; set; }
     }
 }

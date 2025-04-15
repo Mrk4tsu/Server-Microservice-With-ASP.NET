@@ -6,11 +6,13 @@ namespace FN.DataAccess.Entities
     {
         public int Id { get; set; }
         public int ProductDetailId { get; set; }
+        public int? SaleEventId { get; set; }
         public decimal Price { get; set; }
         public PriceType PriceType { get; set; }
         public DateTime CreatedDate { get; set; }
         public DateTime StartDate { get; set; }
         public DateTime EndDate { get; set; }
+        public SaleEvent SaleEvent { get; set; }
         public ProductDetail ProductDetail { get; set; }
     }
 }
