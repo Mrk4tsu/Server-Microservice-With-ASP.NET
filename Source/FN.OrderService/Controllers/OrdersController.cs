@@ -1,4 +1,6 @@
-﻿using FN.Application.Systems.Orders;
+﻿using FN.Application.Systems.Events;
+using FN.Application.Systems.Orders;
+using FN.ViewModel.Systems.Events;
 using FN.ViewModel.Systems.Order;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
@@ -11,8 +13,14 @@ namespace FN.OrderService.Controllers
     public class OrdersController : BasesController
     {
         private readonly IOrderService _service;
-        public OrdersController(IOrderService service)
+        private readonly ISaleEventService _eventService;
+        private readonly ISeasonalEventScheduler _seasonalEvent;
+        public OrdersController(IOrderService service,
+            ISeasonalEventScheduler seasonalEvent,
+            ISaleEventService eventService)
         {
+            _eventService = eventService;
+            _seasonalEvent = seasonalEvent;
             _service = service;
         }
         [HttpGet("hello")]
@@ -34,6 +42,36 @@ namespace FN.OrderService.Controllers
             var userId = GetUserIdFromClaims();
             if (userId == null) return Unauthorized();
             var result = await _service.GetPayments(userId.Value, request);
+            return Ok(result);
+        }
+        [HttpGet("current-event"), AllowAnonymous]
+        public async Task<IActionResult> GetCurrentEvent()
+        {
+            var result = await _seasonalEvent.GetCurrentSeasonalEvent();
+            return Ok(result);
+        }
+        [HttpPost("create-event")]
+        public async Task<IActionResult> CreateEvent([FromBody] EventCreateOrUpdateRequest request)
+        {
+            var result = await _eventService.CreateEvent(request);
+            return Ok(result);
+        }
+        [HttpPost("add-product-event")]
+        public async Task<IActionResult> AddProductToEvent([FromBody] EventProductRequest request)
+        {
+            var result = await _eventService.AddProductToEvent(request);
+            return Ok(result);
+        }
+        [HttpPost("add-product-event-2"), AllowAnonymous]
+        public async Task<IActionResult> AddProductsToEvent([FromBody] AddProductsToEventRequest request, int eventId)
+        {
+            var result = await _eventService.AddProductToEvent(request, eventId);
+            return Ok(result);
+        }
+        [HttpGet("list-product-event"), AllowAnonymous]
+        public async Task<IActionResult> GetProductsInEvent()
+        {
+            var result = await _eventService.GetActiveEventProducts();
             return Ok(result);
         }
         [HttpPost("request-order")]

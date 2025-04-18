@@ -21,16 +21,13 @@ namespace FN.Application.Catalog.Product
         private readonly IMapper _mapper;
         private readonly IImageService _image;
         private readonly IRedisService _dbRedis;
-        private readonly IConfiguration _config;
         public ProductManageService(AppDbContext db,
-            IConfiguration configuration,
             IRedisService redisService, IMapper mapper, IImageService image)
         {
             _dbRedis = redisService;
             _db = db;
             _mapper = mapper;
             _image = image;
-            _config = configuration;
         }
 
         public async Task<ApiResult<int>> Create(CombinedCreateOrUpdateRequest request, int userId)

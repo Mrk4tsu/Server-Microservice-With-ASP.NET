@@ -1,5 +1,4 @@
-﻿using FirebaseAdmin.Messaging;
-using FN.Application.Catalog.Product.Notifications;
+﻿using FN.Application.Systems.Events;
 using FN.Application.Systems.Orders.Lib;
 using FN.DataAccess;
 using FN.DataAccess.Entities;
@@ -7,13 +6,10 @@ using FN.DataAccess.Enums;
 using FN.ViewModel.Helper.API;
 using FN.ViewModel.Helper.Paging;
 using FN.ViewModel.Systems.Order;
-using Google.Api;
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using StackExchange.Redis;
 using System.Net;
 
 namespace FN.Application.Systems.Orders
@@ -23,23 +19,45 @@ namespace FN.Application.Systems.Orders
         private readonly IConfiguration _configuration;
         private readonly AppDbContext _db;
         private readonly IServiceScopeFactory _scopeFactory;
+        private readonly ISaleEventService _saleEvent;
         public OrderService(IConfiguration configuration,
+            ISaleEventService saleEvent,
             IServiceScopeFactory scopeFactory,
             AppDbContext db)
         {
             _configuration = configuration;
             _db = db;
             _scopeFactory = scopeFactory;
+            _saleEvent = saleEvent;
         }
+
         public async Task<ApiResult<int>> CreateOrder(int userId, OrderCreateRequest request)
         {
+            var user = await _db.Users.FindAsync(userId);
+            if (!user!.EmailConfirmed) return new ApiErrorResult<int>("Tài khoản chưa xác thực email");
+
+            var eventPrice = await _saleEvent.GetCurrentEventPrice(request.ProductId);
+            decimal finalPrice = 0;
+            using var transaction = await _db.Database.BeginTransactionAsync();
             try
             {
-                var user = await _db.Users.FindAsync(userId);
-                if (!user!.EmailConfirmed) return new ApiErrorResult<int>("Tài khoản chưa xác thực email");
-                var product = await _db.ProductDetails.Include(x => x.ProductPrices).FirstOrDefaultAsync(x => x.Id == request.ProductId);
-                if (product == null) return new ApiErrorResult<int>("Product not found");
-                if (request.Amount <= 0)
+                if (eventPrice != null)
+                {
+                    finalPrice = eventPrice.Price;
+
+                    var eventProduct = await _db.SaleEventProducts
+                    .FirstOrDefaultAsync(ep => ep.ProductDetailId == request.ProductId
+                                           && ep.SaleEventId == eventPrice.SaleEventId);
+
+                    if (eventProduct != null) await _saleEvent.ProcessEventPurchase(eventProduct.Id, userId);
+                }
+                else
+                {
+                    var regularPrice = await _db.ProductPrices.Where(pp => pp.ProductDetailId == request.ProductId
+                           && pp.PriceType == PriceType.BASE).OrderByDescending(pp => pp.CreatedDate).FirstOrDefaultAsync();
+                    if (regularPrice != null) finalPrice = regularPrice.Price;
+                }
+                if (finalPrice == 0)
                 {
                     var owner = new ProductOwner
                     {
@@ -47,12 +65,15 @@ namespace FN.Application.Systems.Orders
                         UserId = userId,
                     };
                     await _db.ProductOwners.AddAsync(owner).ConfigureAwait(false);
+                    var product = await _db.ProductDetails.FindAsync(request.ProductId);
                     product!.DownloadCount += 1;
+
                     await _db.SaveChangesAsync();
+                    await transaction.CommitAsync();
+
                     return new ApiSuccessResult<int>();
                 }
 
-                var basePrice = product.ProductPrices.FirstOrDefault(x => x.PriceType == PriceType.BASE)?.Price;
                 var order = new UserOrder
                 {
                     UserId = userId,
@@ -60,19 +81,22 @@ namespace FN.Application.Systems.Orders
                     TotalAmount = request.Amount,
                     OrderDate = DateTime.Now,
                     OrderStatus = OrderStatus.PENDING,
-                    UnitPrice = basePrice ?? 0,
+                    UnitPrice = finalPrice,
 
                 };
                 _db.Orders.Add(order);
                 await _db.SaveChangesAsync();
+                await transaction.CommitAsync();
                 return new ApiSuccessResult<int>(order.Id);
             }
             catch (Exception e)
             {
+                await transaction.RollbackAsync();
                 return new ApiErrorResult<int>(e.Message);
             }
 
         }
+
         public async Task<ApiResult<string>> CreatePaymentUrl(PaymentInformationModel model, HttpContext context, int orderId)
         {
             var timeZoneById = TimeZoneInfo.FindSystemTimeZoneById(_configuration["TimeZoneId"]!);

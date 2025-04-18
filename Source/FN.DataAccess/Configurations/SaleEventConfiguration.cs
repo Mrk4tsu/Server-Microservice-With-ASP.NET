@@ -15,10 +15,6 @@ namespace FN.DataAccess.Configurations
             builder.Property(x => x.StartDate).HasDefaultValue(DateTime.UtcNow);
             builder.Property(x => x.EndDate).HasDefaultValue(DateTime.UtcNow.AddDays(7));
             builder.Property(x => x.IsActive).HasDefaultValue(true);
-
-            builder.HasMany(x => x.ProductPrices)
-                .WithOne(x => x.SaleEvent)
-                .HasForeignKey(x => x.Id);
         }
     }
 }

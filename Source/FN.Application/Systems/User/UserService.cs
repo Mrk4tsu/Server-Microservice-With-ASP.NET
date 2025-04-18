@@ -224,8 +224,10 @@ namespace FN.Application.Systems.User
             return new ApiErrorResult<bool>(result.Errors.First().Description);
         }
         public async Task<ApiResult<bool>> ChangeName(int userId, string newName)
-        {
+        {           
             var user = await _userManager.FindByIdAsync(userId.ToString());
+            var cacheKeyTimestamp = "user-rename: " + user.UserName;
+            if(await _redisService.KeyExist(cacheKeyTimestamp)) return new ApiErrorResult<bool>("Chỉ có thể đổi tên mới sau lần đổi cuối là 7 ngày");
             if (user == null) return new ApiErrorResult<bool>("User không tồn tại");
             user.FullName = newName;
             var result = await _userManager.UpdateAsync(user);
@@ -233,6 +235,7 @@ namespace FN.Application.Systems.User
             {
                 var keyCache = SystemConstant.CACHE_USER_BY_USERNAME + user.UserName;
                 await _redisService.RemoveValue(keyCache).ConfigureAwait(false);
+                await _redisService.AddValue(cacheKeyTimestamp, "true", TimeSpan.FromDays(7)).ConfigureAwait(false);
                 return new ApiSuccessResult<bool>();
             }
             return new ApiErrorResult<bool>("Thay đổi tên không thành công");

@@ -37,5 +37,7 @@ namespace FN.DataAccess
         public DbSet<Payment> Payments { get; set; }
         public DbSet<UserProductInteraction> UserProductInteractions { get; set; }
         public DbSet<FeedBack> FeedBacks { get; set; }
+        public DbSet<SaleEvent> SaleEvents { get; set; }
+        public DbSet<SaleEventProduct> SaleEventProducts { get; set; }
     }
 }

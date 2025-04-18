@@ -1,5 +1,4 @@
 ﻿using AutoMapper;
-using CloudinaryDotNet.Actions;
 using FN.Application.Catalog.Product.Notifications;
 using FN.Application.Catalog.Product.Pattern;
 using FN.Application.Systems.Redis;
@@ -24,6 +23,7 @@ namespace FN.Application.Catalog.Product
         private readonly IProductStrategyFactory _strategyFactory;
         private IHubContext<NotifyHub, ITypedHubClient> _hubContext;
         private readonly INotifyService _notifyService;
+        private DateTime _now;
         public ProductPublicService(
             INotifyService notifyService,
             AppDbContext db,
@@ -40,6 +40,9 @@ namespace FN.Application.Catalog.Product
             _strategyFactory = strategyFactory;
             _hubContext = hubContext;
             _notifyService = notifyService;
+            _now = new TimeHelper.Builder()
+               .SetTimestamp(DateTime.UtcNow)
+               .SetTimeZone("SE Asia Standard Time").Build();
         }
         public async Task<ApiResult<ProductDetailViewModel>> GetProduct(int productId, int userId)
         {
@@ -52,7 +55,7 @@ namespace FN.Application.Catalog.Product
                     User = product.Item.User,
                     Category = product.Category,
                     ProductPrices = product.ProductPrices
-                        .Where(pp => !product.Item.IsDeleted && pp.EndDate > DateTime.Now),
+                        .Where(pp => !product.Item.IsDeleted && pp.EndDate > _now),
                     ProductImages = product.ProductImages,
                     IsOwner = product.Item.UserId == userId ||
                              product.ProductOwners.Any(po => po.UserId == userId),
@@ -82,7 +85,7 @@ namespace FN.Application.Catalog.Product
                     User = product.Item.User,
                     Category = product.Category,
                     ProductPrices = product.ProductPrices
-                        .Where(pp => !product.Item.IsDeleted && pp.EndDate > DateTime.Now),
+                        .Where(pp => !product.Item.IsDeleted && pp.EndDate > _now),
                     ProductImages = product.ProductImages
                 });
             var result = await query.FirstOrDefaultAsync();
@@ -122,7 +125,7 @@ namespace FN.Application.Catalog.Product
                 Content = request.Content,
                 Rate = request.Rate,
                 Status = true,
-                TimeCreated = DateTime.Now
+                TimeCreated = _now
             };
             _db.FeedBacks.Add(feedback);
             await _db.SaveChangesAsync();
@@ -136,7 +139,7 @@ namespace FN.Application.Catalog.Product
             {
                 Content = notifyString,
                 Title = "Đánh giá sản phẩm",
-                Time = DateTime.Now,
+                Time = _now,
                 Url = $"/product/{product.Item.SeoAlias}-{product.Id}",
             };
             if (ownerConnections.Any())
@@ -200,6 +203,17 @@ namespace FN.Application.Catalog.Product
             _context.SetStrategy(strategy);
             var result = await _context.GetProductsSelection(take);
             return new ApiSuccessResult<List<ProductViewModel>>(result);
+        }
+
+        public async Task<ApiResult<int>> UpdateView(int productId)
+        {
+            var product = await _db.Items.FirstOrDefaultAsync(x => x.Id == productId && !x.IsDeleted);
+            if (product == null)
+                return new ApiErrorResult<int>("Không tìm thấy sản phẩm");
+            product.ViewCount += 1;
+            _db.Items.Update(product);
+            await _db.SaveChangesAsync();
+            return new ApiSuccessResult<int>(product.ViewCount);
         }
     }
 }
