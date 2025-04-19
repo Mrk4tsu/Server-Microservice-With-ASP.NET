@@ -10,10 +10,14 @@ namespace FN.Application.Catalog.Product.Prices
     {
         private readonly AppDbContext _db;
         private readonly IProductManageService _productManageService;
+        private DateTime _now;
         public PriceProductService(AppDbContext db, IProductManageService productManageService)
         {
             _db = db;
             _productManageService = productManageService;
+            _now = new TimeHelper.Builder()
+                .SetTimestamp(DateTime.UtcNow)
+                .SetTimeZone("SE Asia Standard Time").Build();
         }
         public async Task<ApiResult<int>> Create(PriceRequest request)
         {
@@ -26,7 +30,7 @@ namespace FN.Application.Catalog.Product.Prices
                 PriceType = request.PriceType!.Value,
                 StartDate = request.FromDate!.Value,
                 EndDate = request.ToDate!.Value,
-                CreatedDate = DateTime.Now
+                CreatedDate = _now
             };
             _db.ProductPrices.Add(newPrice);
 

@@ -103,6 +103,7 @@ namespace FN.Application.Catalog.Product.Pattern
                 query = query.Where(x =>
                     x.NormalizeTitle.Contains(kw) ||
                     x.Title.Contains(request.KeyWord, StringComparison.OrdinalIgnoreCase) ||
+                    x.Author.Contains(request.KeyWord, StringComparison.OrdinalIgnoreCase) ||
                     x.Username.Contains(request.KeyWord, StringComparison.OrdinalIgnoreCase));
             }
             return query
@@ -127,6 +128,7 @@ namespace FN.Application.Catalog.Product.Pattern
                 query = query.Where(x =>
                     x.NormalizeTitle.Contains(kw) ||
                     EF.Functions.Like(x.Title, $"%{request.KeyWord}%") ||
+                    EF.Functions.Like(x.Author, $"%{request.KeyWord}%") ||
                     EF.Functions.Like(x.Username, $"%{request.KeyWord}%"));
             }
 

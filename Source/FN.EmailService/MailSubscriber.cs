@@ -87,16 +87,28 @@ namespace FN.EmailService
                         await _mailService.SendMail(req!.NewEmail, $"Xác nhận thay đổi email", SystemConstant.TEMPLATE_UPDATE_MAIL_ID, obj);
                         break;
                     case SystemConstant.MESSAGE_FORGOT_PASSWORD_EVENT:
-                        var request = JsonSerializer.Deserialize<ForgotPasswordResponse>(message!);
+                        var request = JsonSerializer.Deserialize<UserMailTokenResponse>(message!);
                         if (request != null)
                         {
-                            var url = UrlCallback(request.Token, request.Username, baseDomain ?? "https://mrkatsu.io.vn");
+                            var url = UrlCallback(request.Token, request.Username, baseDomain ?? "https://mrkatsu.io.vn", "confirm-password");
                             var objects = new JObject
                             {
                                 {"plink", url}
                             };
                             await _mailService.SendMail(request.Email, $"Xác nhận khôi phục mật khẩu", SystemConstant.TEMPLATE_RESET_PASSWORD_ID, objects);
                         }
+                        break;
+                    case SystemConstant.MESSAGE_CONFIRM_ACCOUNT_EVENT:
+                        var confirmRequest = JsonSerializer.Deserialize<UserMailTokenResponse>(message!);
+                        if(confirmRequest != null)
+                        {
+                            var url = UrlCallback(confirmRequest.Token, confirmRequest.Username, baseDomain ?? "https://mrkatsu.io.vn", "verify");
+                            var objects = new JObject
+                            {
+                                {"plink", url}
+                            };
+                            await _mailService.SendMail(confirmRequest.Email, $"Xác nhận tài khoản", SystemConstant.TEMPLATE_CONFIRM_ACCOUNT, objects);
+                        }   
                         break;
                     default:
                         break;
@@ -116,10 +128,10 @@ namespace FN.EmailService
             var encodedToken = WebUtility.UrlEncode(token);
             return $"{domain}/confirm-email?userId={userId}&newEmail={newEmail}&token={encodedToken}";
         }
-        private string UrlCallback(string token, string username, string domain)
+        private string UrlCallback(string token, string username, string domain, string page)
         {
             var encodedToken = WebUtility.UrlEncode(token);
-            return $"{domain}/confirm-password?username={username}&token={encodedToken}";
+            return $"{domain}/{page}?username={username}&token={encodedToken}";
         }
     }
 }

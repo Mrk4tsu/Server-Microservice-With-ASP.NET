@@ -129,7 +129,7 @@ namespace FN.DataAccess.Migrations
                     b.Property<DateTime>("TimeCreated")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime(6)")
-                        .HasDefaultValue(new DateTime(2025, 4, 14, 0, 48, 9, 37, DateTimeKind.Local).AddTicks(4508));
+                        .HasDefaultValue(new DateTime(2025, 4, 16, 17, 31, 5, 784, DateTimeKind.Local).AddTicks(4079));
 
                     b.Property<bool>("TwoFactorEnabled")
                         .HasColumnType("tinyint(1)");
@@ -296,7 +296,7 @@ namespace FN.DataAccess.Migrations
                     b.Property<DateTime>("TimeCreated")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime(6)")
-                        .HasDefaultValue(new DateTime(2025, 4, 14, 0, 48, 9, 39, DateTimeKind.Local).AddTicks(1362));
+                        .HasDefaultValue(new DateTime(2025, 4, 16, 17, 31, 5, 785, DateTimeKind.Local).AddTicks(8329));
 
                     b.Property<int>("UserId")
                         .HasColumnType("int");
@@ -325,7 +325,7 @@ namespace FN.DataAccess.Migrations
                     b.Property<DateTime>("CreatedDate")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime(6)")
-                        .HasDefaultValue(new DateTime(2025, 4, 14, 0, 48, 9, 40, DateTimeKind.Local).AddTicks(4084));
+                        .HasDefaultValue(new DateTime(2025, 4, 16, 17, 31, 5, 786, DateTimeKind.Local).AddTicks(7342));
 
                     b.Property<string>("Description")
                         .IsRequired()
@@ -345,7 +345,7 @@ namespace FN.DataAccess.Migrations
                     b.Property<DateTime>("ModifiedDate")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime(6)")
-                        .HasDefaultValue(new DateTime(2025, 4, 14, 0, 48, 9, 40, DateTimeKind.Local).AddTicks(4736));
+                        .HasDefaultValue(new DateTime(2025, 4, 16, 17, 31, 5, 786, DateTimeKind.Local).AddTicks(7852));
 
                     b.Property<string>("NormalizedTitle")
                         .IsRequired()
@@ -404,7 +404,7 @@ namespace FN.DataAccess.Migrations
                     b.Property<DateTime>("PaymentDate")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime(6)")
-                        .HasDefaultValue(new DateTime(2025, 4, 14, 0, 48, 9, 41, DateTimeKind.Local).AddTicks(9299));
+                        .HasDefaultValue(new DateTime(2025, 4, 16, 17, 31, 5, 788, DateTimeKind.Local).AddTicks(2119));
 
                     b.Property<decimal>("PaymentFee")
                         .ValueGeneratedOnAdd()
@@ -576,7 +576,7 @@ namespace FN.DataAccess.Migrations
                     b.Property<DateTime>("CreatedDate")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime(6)")
-                        .HasDefaultValue(new DateTime(2025, 4, 13, 17, 48, 9, 45, DateTimeKind.Utc).AddTicks(147));
+                        .HasDefaultValue(new DateTime(2025, 4, 16, 10, 31, 5, 790, DateTimeKind.Utc).AddTicks(9464));
 
                     b.Property<DateTime>("EndDate")
                         .HasColumnType("datetime(6)");
@@ -593,6 +593,9 @@ namespace FN.DataAccess.Migrations
                     b.Property<int>("ProductDetailId")
                         .HasColumnType("int");
 
+                    b.Property<int?>("SaleEventId")
+                        .HasColumnType("int");
+
                     b.Property<DateTime>("StartDate")
                         .HasColumnType("datetime(6)");
 
@@ -600,7 +603,104 @@ namespace FN.DataAccess.Migrations
 
                     b.HasIndex("ProductDetailId");
 
+                    b.HasIndex("SaleEventId");
+
                     b.ToTable("product_prices", (string)null);
+                });
+
+            modelBuilder.Entity("FN.DataAccess.Entities.SaleEvent", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("BannerImage")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("varchar(1000)");
+
+                    b.Property<DateTime>("EndDate")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime(6)")
+                        .HasDefaultValue(new DateTime(2025, 4, 23, 10, 31, 5, 791, DateTimeKind.Utc).AddTicks(4846));
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("tinyint(1)")
+                        .HasDefaultValue(true);
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("varchar(255)");
+
+                    b.Property<int>("Season")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("StartDate")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime(6)")
+                        .HasDefaultValue(new DateTime(2025, 4, 16, 10, 31, 5, 791, DateTimeKind.Utc).AddTicks(4255));
+
+                    b.Property<int>("Year")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("sale_events", (string)null);
+                });
+
+            modelBuilder.Entity("FN.DataAccess.Entities.SaleEventProduct", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("CurrentPurchases")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0);
+
+                    b.Property<int>("DiscountPercentage")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("DiscountedPrice")
+                        .ValueGeneratedOnAdd()
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)")
+                        .HasDefaultValue(0m);
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("tinyint(1)")
+                        .HasDefaultValue(true);
+
+                    b.Property<int>("MaxPurchases")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0);
+
+                    b.Property<int>("ProductDetailId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("SaleEventId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProductDetailId");
+
+                    b.HasIndex("SaleEventId");
+
+                    b.ToTable("sale_event_products", (string)null);
                 });
 
             modelBuilder.Entity("FN.DataAccess.Entities.UserBlogInteraction", b =>
@@ -614,7 +714,7 @@ namespace FN.DataAccess.Migrations
                     b.Property<DateTime>("InteractionDate")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime(6)")
-                        .HasDefaultValue(new DateTime(2025, 4, 14, 0, 48, 9, 45, DateTimeKind.Local).AddTicks(4980));
+                        .HasDefaultValue(new DateTime(2025, 4, 16, 17, 31, 5, 792, DateTimeKind.Local).AddTicks(5719));
 
                     b.Property<int>("Type")
                         .HasColumnType("int");
@@ -637,7 +737,7 @@ namespace FN.DataAccess.Migrations
                     b.Property<DateTime>("OrderDate")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime(6)")
-                        .HasDefaultValue(new DateTime(2025, 4, 14, 0, 48, 9, 41, DateTimeKind.Local).AddTicks(744));
+                        .HasDefaultValue(new DateTime(2025, 4, 16, 17, 31, 5, 787, DateTimeKind.Local).AddTicks(3598));
 
                     b.Property<int>("OrderStatus")
                         .HasColumnType("int");
@@ -680,7 +780,7 @@ namespace FN.DataAccess.Migrations
                     b.Property<DateTime>("InteractionDate")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime(6)")
-                        .HasDefaultValue(new DateTime(2025, 4, 13, 17, 48, 9, 46, DateTimeKind.Utc).AddTicks(701));
+                        .HasDefaultValue(new DateTime(2025, 4, 16, 10, 31, 5, 793, DateTimeKind.Utc).AddTicks(1706));
 
                     b.Property<int>("Type")
                         .HasColumnType("int");
@@ -944,7 +1044,32 @@ namespace FN.DataAccess.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("FN.DataAccess.Entities.SaleEvent", "SaleEvent")
+                        .WithMany("ProductPrices")
+                        .HasForeignKey("SaleEventId");
+
                     b.Navigation("ProductDetail");
+
+                    b.Navigation("SaleEvent");
+                });
+
+            modelBuilder.Entity("FN.DataAccess.Entities.SaleEventProduct", b =>
+                {
+                    b.HasOne("FN.DataAccess.Entities.ProductDetail", "ProductDetail")
+                        .WithMany("SaleEventProducts")
+                        .HasForeignKey("ProductDetailId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("FN.DataAccess.Entities.SaleEvent", "SaleEvent")
+                        .WithMany("Products")
+                        .HasForeignKey("SaleEventId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ProductDetail");
+
+                    b.Navigation("SaleEvent");
                 });
 
             modelBuilder.Entity("FN.DataAccess.Entities.UserBlogInteraction", b =>
@@ -1056,7 +1181,16 @@ namespace FN.DataAccess.Migrations
 
                     b.Navigation("ProductPrices");
 
+                    b.Navigation("SaleEventProducts");
+
                     b.Navigation("UserProductInteractions");
+                });
+
+            modelBuilder.Entity("FN.DataAccess.Entities.SaleEvent", b =>
+                {
+                    b.Navigation("ProductPrices");
+
+                    b.Navigation("Products");
                 });
 
             modelBuilder.Entity("FN.DataAccess.Entities.UserOrder", b =>

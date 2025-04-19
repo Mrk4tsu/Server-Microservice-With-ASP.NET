@@ -4,6 +4,7 @@
     {
         BASE,
         DISCOUNT,
+        SALE_EVENT,
         SPECIAL
     }
 }

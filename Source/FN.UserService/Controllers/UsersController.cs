@@ -1,9 +1,9 @@
 ﻿using FN.Application.Catalog.Product.Notifications;
-using FN.Application.Systems.Redis;
 using FN.Application.Systems.User;
 using FN.ViewModel.Systems.User;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Net;
 
 namespace FN.UserService.Controllers
 {
@@ -45,7 +45,7 @@ namespace FN.UserService.Controllers
             return BadRequest(result);
         }
         [HttpPost("request-forgot"), AllowAnonymous]
-        public async Task<IActionResult> ForgotPassword(RequestForgot request)
+        public async Task<IActionResult> ForgotPassword(MailRequest request)
         {
             var result = await _userService.RequestForgotPassword(request);
             if (result.Success)
@@ -95,14 +95,13 @@ namespace FN.UserService.Controllers
             return BadRequest(result);
         }
         [HttpPut("change-name")]
-        public async Task<IActionResult> ChangeName([FromBody] string newName)
+        public async Task<IActionResult> ChangeName(string newName)
         {
             var userId = GetUserIdFromClaims();
             if (userId == null) return Unauthorized();
             var result = await _userService.ChangeName(userId.Value, newName);
-            if (result.Success)
-                return Ok(result);
-            return BadRequest(result);
+            return Ok(result);
+
         }
         [HttpGet("notify")]
         public async Task<IActionResult> GetNotify()
@@ -112,5 +111,25 @@ namespace FN.UserService.Controllers
             var result = await _notifyService.ListNotify(userId.Value);
             return Ok(result);
         }
+        [HttpPost("request-verify")]
+        public async Task<IActionResult> RequestVerifyEmail()
+        {
+            var userId = GetUserIdFromClaims();
+            if (userId == null) return Unauthorized();
+            var result = await _userService.RequestVerifyEmail(userId.Value);
+            if (result.Success)
+                return Ok(result);
+            return BadRequest(result);
+        }
+        [HttpPost("confirm-verify"), AllowAnonymous]
+        public async Task<IActionResult> ConfirmVerifyEmail(VerifyRequest response)
+        {
+            var result = await _userService.ConfirmVerifyEmail(response);
+            if (result.Success)
+                return Ok(result);
+            return BadRequest(result);
+        }
+
+
     }
 }

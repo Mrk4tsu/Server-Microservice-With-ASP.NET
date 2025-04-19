@@ -7,6 +7,7 @@ using FN.Utilities;
 using FN.ViewModel.Helper.API;
 using FN.ViewModel.Systems.Token;
 using FN.ViewModel.Systems.User;
+using Google.Apis.Http;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using MongoDB.Driver;
@@ -70,27 +71,6 @@ namespace FN.Application.Systems.User
                 return new ApiErrorResult<TokenResponse>(e.Message);
             }
         }
-        private async Task<(string AccessToken, string RefreshToken)> GenerateTokensAsync(AppUser user, string clientId, DateTime expires)
-        {
-            var accessTokenTask = _tokenService.GenerateAccessToken(user);
-            var refreshToken = _tokenService.GenerateRefreshToken();
-            var tokenReq = new TokenRequest { UserId = user.Id, ClientId = clientId };
-            var expiryDuration = expires - DateTime.Now;
-
-            await _tokenService.SaveRefreshToken(refreshToken, tokenReq, expiryDuration).ConfigureAwait(false);
-            return (await accessTokenTask.ConfigureAwait(false), refreshToken);
-        }
-        private async Task PublishLoginEventAsync(AppUser user, string ipAddress, string userAgent, string clientId)
-        {
-            await _redisService.Publish(SystemConstant.MESSAGE_LOGIN_EVENT, new LoginResponse
-            {
-                Email = user.Email!,
-                Username = user.UserName!,
-                Token = new TokenRequest { UserId = user.Id, ClientId = clientId },
-                IpAddress = ipAddress,
-                UserAgent = userAgent,
-            }).ConfigureAwait(false);
-        }
         public async Task<ApiResult<bool>> Register(RegisterDTO request)
         {
             try
@@ -122,10 +102,10 @@ namespace FN.Application.Systems.User
                 {
                     await _redisService.SetValue(cacheKey, user.UserName);
                     response.Status = true;
-                    await _redisService.Publish(SystemConstant.MESSAGE_REGISTER_EVENT, response);
+                    await _redisService.Publish(SystemConstant.MESSAGE_REGISTER_EVENT, response).ConfigureAwait(false);
                     return new ApiSuccessResult<bool>();
                 }
-                await _redisService.Publish(SystemConstant.MESSAGE_REGISTER_EVENT, response);
+                await _redisService.Publish(SystemConstant.MESSAGE_REGISTER_EVENT, response).ConfigureAwait(false);
                 return new ApiErrorResult<bool>("Tạo mới tài khoản không thành công");
             }
             catch (Exception ex)
@@ -179,21 +159,6 @@ namespace FN.Application.Systems.User
         }
         private string GetPublicIPAddress(HttpContext context)
         {
-            //try
-            //{
-            //    // Tạo client và yêu cầu
-            //    var client = new RestClient("https://api.ipify.org");
-            //    var request = new RestRequest("", Method.Get);
-
-            //    // Thực hiện yêu cầu và lấy kết quả
-            //    var response = client.Execute(request);
-            //    return response.Content ?? string.Empty;
-            //}
-            //catch (Exception ex)
-            //{
-            //    Console.WriteLine("Lỗi khi lấy địa chỉ IP public: " + ex.Message);
-            //    return string.Empty;
-            //}
             var ipHeaders = new[] { "X-Forwarded-For", "Forwarded", "X-Real-IP" };
             foreach (var header in ipHeaders)
             {
@@ -218,6 +183,87 @@ namespace FN.Application.Systems.User
             }
 
             return string.Empty;
+        }
+        public string GetUserIpAddress(HttpContext context, bool Lan = false)
+        {
+            string userIPAddress = context.Request.Headers["X-Forwarded-For"]!;
+
+            if (String.IsNullOrEmpty(userIPAddress))
+                userIPAddress = context.Connection.RemoteIpAddress?.ToString()!;
+
+            if (string.IsNullOrEmpty(userIPAddress) || userIPAddress.Trim() == "::1")
+            {
+                Lan = true;
+                userIPAddress = string.Empty;
+            }
+
+            if (Lan)
+            {
+                if (string.IsNullOrEmpty(userIPAddress))
+                {
+                    string stringHostName = Dns.GetHostName();
+                    IPHostEntry ipHostEntries = Dns.GetHostEntry(stringHostName);
+
+                    System.Net.IPAddress[] arrIpAddress = ipHostEntries.AddressList;
+
+                    try
+                    {
+                        foreach (IPAddress ipAddress in arrIpAddress)
+                        {
+                            if (ipAddress.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)
+                            {
+                                userIPAddress = ipAddress.ToString();
+                            }
+                        }
+
+                        if (string.IsNullOrEmpty(userIPAddress))
+                            userIPAddress = arrIpAddress[arrIpAddress.Length - 1].ToString();
+                    }
+                    catch
+                    {
+                        try
+                        {
+                            userIPAddress = arrIpAddress[0].ToString();
+                        }
+                        catch
+                        {
+                            try
+                            {
+                                arrIpAddress = Dns.GetHostAddresses(stringHostName);
+                                userIPAddress = arrIpAddress[0].ToString();
+                            }
+                            catch
+                            {
+                                userIPAddress = "127.0.0.1";
+                            }
+                        }
+                    }
+                }
+            }
+
+            return userIPAddress;
+        }
+
+        private async Task<(string AccessToken, string RefreshToken)> GenerateTokensAsync(AppUser user, string clientId, DateTime expires)
+        {
+            var accessTokenTask = _tokenService.GenerateAccessToken(user);
+            var refreshToken = _tokenService.GenerateRefreshToken();
+            var tokenReq = new TokenRequest { UserId = user.Id, ClientId = clientId };
+            var expiryDuration = expires - DateTime.Now;
+
+            await _tokenService.SaveRefreshToken(refreshToken, tokenReq, expiryDuration).ConfigureAwait(false);
+            return (await accessTokenTask.ConfigureAwait(false), refreshToken);
+        }
+        private async Task PublishLoginEventAsync(AppUser user, string ipAddress, string userAgent, string clientId)
+        {
+            await _redisService.Publish(SystemConstant.MESSAGE_LOGIN_EVENT, new LoginResponse
+            {
+                Email = user.Email!,
+                Username = user.UserName!,
+                Token = new TokenRequest { UserId = user.Id, ClientId = clientId },
+                IpAddress = ipAddress,
+                UserAgent = userAgent,
+            }).ConfigureAwait(false);
         }
     }
 }

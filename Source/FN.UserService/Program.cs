@@ -12,8 +12,8 @@ builder.WebHost.ConfigureKestrelServer();
 builder.Services.AddControllers();
 builder.Services.AddSwaggerExplorer()
     .InjectDbContextPool(builder.Configuration)
-    .InjectRedis(builder.Configuration)
-    .InjectMongoDb(builder.Configuration)
+    .ConfigureRedis(builder.Configuration)
+    .ConfigureMongoDb(builder.Configuration)
     .AddIdentityHandlersAndStores()
     .AddIdentityAuth(builder.Configuration)
     .ConfigureIdentityOptions()
@@ -29,11 +29,11 @@ builder.Services.AddScoped<IDeviceService, DeviceService>();
 
 var app = builder.Build();
 
-app.ConfigureSwaggerExplorer()
-    .ConfigureCORS(builder.Configuration)
-    .ConfigureAppForwarded()
-    .AddIdentityAuthMiddlewares()
-    .ConfigureAppPayLoad();
+app.ConfigureCORS(builder.Configuration)
+   .ConfigureAppForwarded()
+   .ConfigureSwaggerExplorer()
+   .AddIdentityAuthMiddlewares()
+   .ConfigureAppPayLoad();
 
 app.MapControllers();
 

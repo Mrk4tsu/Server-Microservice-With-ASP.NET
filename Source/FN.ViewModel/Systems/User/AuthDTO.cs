@@ -44,7 +44,7 @@ namespace FN.ViewModel.Systems.User
         public string NewEmail { get; set; } = string.Empty;
         public string Token { get; set; } = string.Empty;
     }
-    public class RequestForgot
+    public class MailRequest
     {
         public string Username { get; set; } = string.Empty;
 
@@ -57,17 +57,22 @@ namespace FN.ViewModel.Systems.User
         public string NewPassword { get; set; } = string.Empty;
         public string ConfirmNewPassword { get; set; } = string.Empty;
     }
-    public class ForgotPasswordResponse
-    {
-        public string Username { get; set; } = string.Empty;
-        public string Email { get; set; } = string.Empty;
-        public string Token { get; set; } = string.Empty;
-    }
     public class ChangePasswordRequest
     {
         public string CurrentPassword { get; set; } = string.Empty;
         public string NewPassword { get; set; } = string.Empty;
         public string ConfirmNewPassword { get; set; } = string.Empty;
         public bool LogoutEverywhere { get; set; } = false;
+    }
+    public class UserMailTokenResponse
+    {
+        public string Username { get; set; } = string.Empty;
+        public string Email { get; set; } = string.Empty;
+        public string Token { get; set; } = string.Empty;
+    }
+    public class VerifyRequest
+    {
+        public string Token { get; set; } = string.Empty;
+        public string Username { get; set; } = string.Empty;
     }
 }

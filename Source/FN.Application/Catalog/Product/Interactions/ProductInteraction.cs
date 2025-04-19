@@ -9,10 +9,13 @@ namespace FN.Application.Catalog.Product.Interactions
     {
         private IProductInteractionState _currentState;
         private AppDbContext _db;
+        private DateTime _now;
         public ProductInteraction(AppDbContext db)
         {
             _db = db;
             _currentState = new NoInteractionProductState(_db);
+            _now = new TimeHelper.Builder().SetTimestamp(DateTime.UtcNow)
+               .SetTimeZone("SE Asia Standard Time").Build();
         }
         public async Task SetState(IProductInteractionState state, int productId, int userId)
         {
@@ -36,7 +39,7 @@ namespace FN.Application.Catalog.Product.Interactions
                 {
                     ProductId = productId,
                     UserId = userId,
-                    InteractionDate = DateTime.Now,
+                    InteractionDate = _now,
                     Type = InteractionType.None
                 };
                 _db.UserProductInteractions.Add(interaction);
