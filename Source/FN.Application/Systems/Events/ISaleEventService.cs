@@ -13,6 +13,6 @@ namespace FN.Application.Systems.Events
         Task DeactivateEvent(int eventId);
         Task<ApiResult<List<EventProductResponse>>> GetActiveEventProducts();
         Task<ProductPrice?> GetCurrentEventPrice(int productId);
-        Task<ApiResult<int>> ProcessEventPurchase(int eventProductId, int userId);
+        Task<ApiResult<int>> ProcessEventPurchase(int eventProductId);
     }
 }

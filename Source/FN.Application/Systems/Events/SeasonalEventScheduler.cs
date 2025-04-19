@@ -37,26 +37,26 @@ namespace FN.Application.Systems.Events
             var springEvent = await CreateSeasonalEvent(
                 "Spring Sale",
                 SeasonType.Spring,
-                new DateTime(currentYear, 3, 20),
-                new DateTime(currentYear, 6, 20));
+                new DateTime(currentYear, 3, 1),
+                new DateTime(currentYear, 3, 20));
 
             var summerEvent = await CreateSeasonalEvent(
                 "Summer Sale",
                 SeasonType.Summer,
-                new DateTime(currentYear, 6, 21),
-                new DateTime(currentYear, 9, 22));
+                new DateTime(currentYear, 4, 19),
+                new DateTime(currentYear, 6, 22));
 
             var autumnEvent = await CreateSeasonalEvent(
                 "Autumn Sale",
                 SeasonType.Autumn,
-                new DateTime(currentYear, 9, 23),
-                new DateTime(currentYear, 12, 20));
+                new DateTime(currentYear, 11, 1),
+                new DateTime(currentYear, 11, 15));
 
             var winterEvent = await CreateSeasonalEvent(
                "Winter Sale",
                SeasonType.Winter,
                new DateTime(currentYear, 12, 21),
-               new DateTime(currentYear + 1, 3, 19));
+               new DateTime(currentYear + 1, 1, 9));
 
             //Spring
             _backgroundJob.Schedule<ISaleEventService>(

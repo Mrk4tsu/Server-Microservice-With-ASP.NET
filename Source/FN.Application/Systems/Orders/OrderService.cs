@@ -1,8 +1,11 @@
-﻿using FN.Application.Systems.Events;
+﻿using Confluent.Kafka;
+using FN.Application.Systems.Events;
+using FN.Application.Systems.Kafka;
 using FN.Application.Systems.Orders.Lib;
 using FN.DataAccess;
 using FN.DataAccess.Entities;
 using FN.DataAccess.Enums;
+using FN.Utilities;
 using FN.ViewModel.Helper.API;
 using FN.ViewModel.Helper.Paging;
 using FN.ViewModel.Systems.Order;
@@ -10,7 +13,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using System.Net;
+using System.Text.Json;
 
 namespace FN.Application.Systems.Orders
 {
@@ -20,13 +23,16 @@ namespace FN.Application.Systems.Orders
         private readonly AppDbContext _db;
         private readonly IServiceScopeFactory _scopeFactory;
         private readonly ISaleEventService _saleEvent;
+        private readonly IKafkaProducer _producer;
         public OrderService(IConfiguration configuration,
+            IKafkaProducer producer,
             ISaleEventService saleEvent,
             IServiceScopeFactory scopeFactory,
             AppDbContext db)
         {
             _configuration = configuration;
             _db = db;
+            _producer = producer;
             _scopeFactory = scopeFactory;
             _saleEvent = saleEvent;
         }
@@ -37,38 +43,13 @@ namespace FN.Application.Systems.Orders
             if (!user!.EmailConfirmed) return new ApiErrorResult<int>("Tài khoản chưa xác thực email");
 
             var eventPrice = await _saleEvent.GetCurrentEventPrice(request.ProductId);
-            decimal finalPrice = 0;
+            decimal finalPrice = await DetermineFinalPrice(request.ProductId, eventPrice);
             using var transaction = await _db.Database.BeginTransactionAsync();
             try
             {
-                if (eventPrice != null)
-                {
-                    finalPrice = eventPrice.Price;
-
-                    var eventProduct = await _db.SaleEventProducts
-                    .FirstOrDefaultAsync(ep => ep.ProductDetailId == request.ProductId
-                                           && ep.SaleEventId == eventPrice.SaleEventId);
-
-                    if (eventProduct != null) await _saleEvent.ProcessEventPurchase(eventProduct.Id, userId);
-                }
-                else
-                {
-                    var regularPrice = await _db.ProductPrices.Where(pp => pp.ProductDetailId == request.ProductId
-                           && pp.PriceType == PriceType.BASE).OrderByDescending(pp => pp.CreatedDate).FirstOrDefaultAsync();
-                    if (regularPrice != null) finalPrice = regularPrice.Price;
-                }
                 if (finalPrice == 0)
                 {
-                    var owner = new ProductOwner
-                    {
-                        ProductId = request.ProductId,
-                        UserId = userId,
-                    };
-                    await _db.ProductOwners.AddAsync(owner).ConfigureAwait(false);
-                    var product = await _db.ProductDetails.FindAsync(request.ProductId);
-                    product!.DownloadCount += 1;
-
-                    await _db.SaveChangesAsync();
+                    await HandleProductFree(userId, request.ProductId);
                     await transaction.CommitAsync();
 
                     return new ApiSuccessResult<int>();
@@ -78,10 +59,10 @@ namespace FN.Application.Systems.Orders
                 {
                     UserId = userId,
                     ProductId = request.ProductId,
-                    TotalAmount = request.Amount,
+                    TotalAmount = finalPrice,
                     OrderDate = DateTime.Now,
                     OrderStatus = OrderStatus.PENDING,
-                    UnitPrice = finalPrice,
+                    UnitPrice = request.Amount,
 
                 };
                 _db.Orders.Add(order);
@@ -96,7 +77,33 @@ namespace FN.Application.Systems.Orders
             }
 
         }
+        private async Task HandleProductFree(int userId, int productId)
+        {
+            var owner = new ProductOwner
+            {
+                ProductId = productId,
+                UserId = userId,
+            };
+            await _db.ProductOwners.AddAsync(owner).ConfigureAwait(false);
+            var product = await _db.ProductDetails.FindAsync(productId);
+            product!.DownloadCount += 1;
 
+            await _db.SaveChangesAsync();
+        }
+        private async Task<decimal> DetermineFinalPrice(int productId, ProductPrice? eventPrice)
+        {
+            if (eventPrice != null)
+            {
+                return eventPrice.Price;
+            }
+
+            var regularPrice = await _db.ProductPrices
+                .Where(pp => pp.ProductDetailId == productId && pp.PriceType == PriceType.BASE)
+                .OrderByDescending(pp => pp.CreatedDate)
+                .FirstOrDefaultAsync();
+
+            return regularPrice?.Price ?? 0;
+        }
         public async Task<ApiResult<string>> CreatePaymentUrl(PaymentInformationModel model, HttpContext context, int orderId)
         {
             var timeZoneById = TimeZoneInfo.FindSystemTimeZoneById(_configuration["TimeZoneId"]!);
@@ -104,11 +111,11 @@ namespace FN.Application.Systems.Orders
             var tick = DateTime.Now.Ticks.ToString();
             var pay = new PayLib();
 
-            string hostName = Dns.GetHostName();
-            string clientIpAddress = Dns.GetHostAddresses(hostName).GetValue(0)!.ToString()!;
+            string hostName = System.Net.Dns.GetHostName();
+            string clientIpAddress = System.Net.Dns.GetHostAddresses(hostName).GetValue(0)!.ToString()!;
 
-            //var urlCallBack = _configuration["PaymentCallBack:ReturnUrl"];
-            var urlCallBack = "https://mrkatsu.io.vn/payment-callback";
+            var urlCallBack = _configuration["PaymentCallBack:ReturnUrl"];
+            //var urlCallBack = "https://mrkatsu.io.vn/payment-callback";
             pay.AddRequestData("vnp_Version", _configuration["Vnpay:Version"]!);
             pay.AddRequestData("vnp_Command", _configuration["Vnpay:Command"]!);
             pay.AddRequestData("vnp_TmnCode", _configuration["Vnpay:TmnCode"]!);
@@ -156,6 +163,8 @@ namespace FN.Application.Systems.Orders
 
                     var order = await dbContext.Orders.FindAsync(orderId);
                     order!.OrderStatus = response.Success ? OrderStatus.COMPLETED : OrderStatus.PAYMENT_FAILED;
+                    var eventProduct = await _db.SaleEventProducts.Include(x =>x.SaleEvent)
+                           .FirstOrDefaultAsync(x => x.ProductDetailId == order.ProductId && x.SaleEvent.IsActive);
 
                     var payment = new Payment
                     {
@@ -169,7 +178,7 @@ namespace FN.Application.Systems.Orders
                         ProductId = productId,
                     };
 
-                    await dbContext.Payments.AddAsync(payment).ConfigureAwait(false);
+                    dbContext.Payments.Add(payment);
 
                     if (response.Success)
                     {
@@ -178,13 +187,28 @@ namespace FN.Application.Systems.Orders
                             ProductId = productId,
                             UserId = userId,
                         };
-                        await dbContext.ProductOwners.AddAsync(owner).ConfigureAwait(false);
+                         dbContext.ProductOwners.Add(owner);
                         var product = await dbContext.ProductDetails.FindAsync(productId);
                         product!.DownloadCount += 1;
+ 
+
+                        if (eventProduct != null)
+                        {
+                            var eventMessage = new EventMessage
+                            {
+                                ProductId = eventProduct.Id,
+                                UserId = userId,
+                            };
+                            await _producer.Produce(SystemConstant.EVENT_PAYMENT_TOPIC_KAFKA, new Message<string, string>
+                            {
+                                Key = payment.TransactionId.ToString(),
+                                Value = JsonSerializer.Serialize(eventMessage)
+                            }).ConfigureAwait(false);
+                        }
                     }
 
 
-                    await dbContext.SaveChangesAsync().ConfigureAwait(false);
+                    await dbContext.SaveChangesAsync();
                     return new ApiSuccessResult<PaymentResponseModel>(response, "Đang xử lý");
                 }
             }
@@ -273,4 +297,9 @@ namespace FN.Application.Systems.Orders
             return new ApiSuccessResult<PagedResult<PaymentViewModel>>(result);
         }
     }
+}
+public class EventMessage
+{
+    public int ProductId { get; set; }
+    public int UserId { get; set; }
 }

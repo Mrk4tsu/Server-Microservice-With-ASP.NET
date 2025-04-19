@@ -1,15 +1,11 @@
-﻿using DnsClient.Internal;
-using FN.Application.Systems.Redis;
+﻿using FN.Application.Systems.Redis;
 using FN.DataAccess;
 using FN.DataAccess.Entities;
 using FN.DataAccess.Enums;
 using FN.Utilities;
 using FN.ViewModel.Helper.API;
 using FN.ViewModel.Systems.Events;
-using Google.Api;
-using Hangfire;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
 
 namespace FN.Application.Systems.Events
 {
@@ -171,17 +167,20 @@ namespace FN.Application.Systems.Events
             return result;
         }
 
-        public async Task<ApiResult<int>> ProcessEventPurchase(int eventProductId, int userId)
+        public async Task<ApiResult<int>> ProcessEventPurchase(int eventProductId)
         {
             var eventProduct = await _db.SaleEventProducts
                 .Include(ep => ep.SaleEvent)
                 .Include(ep => ep.ProductDetail)
                 .FirstOrDefaultAsync(ep => ep.Id == eventProductId);
             if (eventProduct == null) return new ApiErrorResult<int>("Event product not found");
+
             if (_now < eventProduct.SaleEvent.StartDate || _now > eventProduct.SaleEvent.EndDate)
                 return new ApiErrorResult<int>("Event is not active");
+
             if (eventProduct.CurrentPurchases >= eventProduct.MaxPurchases)
                 return new ApiErrorResult<int>("Max purchases reached");
+
             eventProduct.CurrentPurchases++;
 
             if (eventProduct.CurrentPurchases >= eventProduct.MaxPurchases)
@@ -195,6 +194,11 @@ namespace FN.Application.Systems.Events
                     productPrice.EndDate = _now;
             }
             await _db.SaveChangesAsync();
+
+            // Cập nhật cache
+            await _redisService.RemoveValue($"seasonal_event_products:{eventProduct.SaleEventId}");
+            await _redisService.RemoveValue("current_seasonal_event_products");
+
             return new ApiSuccessResult<int>(eventProduct.CurrentPurchases);
         }
         private async Task UpdateEventProductPrices(int eventId)

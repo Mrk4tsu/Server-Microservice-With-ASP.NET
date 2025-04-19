@@ -12,8 +12,8 @@ builder.WebHost.ConfigureKestrelServer();
 builder.Services.AddControllers();
 builder.Services.AddSwaggerExplorer()
     .InjectDbContextPool(builder.Configuration)
-    .InjectRedis(builder.Configuration)
-    .InjectMongoDb(builder.Configuration)
+    .ConfigureRedis(builder.Configuration)
+    .ConfigureMongoDb(builder.Configuration)
     .AddIdentityHandlersAndStores()
     .AddIdentityAuth(builder.Configuration)
     .ConfigureIdentityOptions()

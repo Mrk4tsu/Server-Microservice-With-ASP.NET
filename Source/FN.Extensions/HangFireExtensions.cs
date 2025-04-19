@@ -17,7 +17,9 @@ namespace FN.Extensions
             services.AddHangfire(config => config.UseRedisStorage(ConnectionMultiplexer.Connect(connectionStringRedis!)));
 
             services.AddHangfireServer();
+
             services.AddScoped<ISeasonalEventScheduler, SeasonalEventScheduler>();
+
             return services;
         }
         public async static Task<IApplicationBuilder> ConfigureAppHangfire(this IApplicationBuilder app)
