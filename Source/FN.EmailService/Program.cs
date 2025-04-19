@@ -8,10 +8,10 @@ var builder = WebApplication.CreateBuilder(args);
 builder.WebHost.ConfigureKestrelServer(80);
 
 builder.Services
-    .InjectDbContext(builder.Configuration)
+    .ConfigureDbContext(builder.Configuration)
     .AddIdentityHandlersAndStores()
-    .InjectRedis(builder.Configuration)
-    .InjectMongoDb(builder.Configuration)
+    .ConfigureRedis(builder.Configuration)
+    .ConfigureMongoDb(builder.Configuration)
     .AddSmtpConfig(builder.Configuration);
 
 builder.Services.AddScoped<MailSubscriber>();

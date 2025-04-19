@@ -9,7 +9,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace FN.DataAccess.Migrations
 {
     /// <inheritdoc />
-    public partial class Update_Col : Migration
+    public partial class UpdateEvent : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -48,7 +48,7 @@ namespace FN.DataAccess.Migrations
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     Avatar = table.Column<string>(type: "varchar(255)", maxLength: 255, nullable: false, defaultValue: "https://res.cloudinary.com/dje3seaqj/image/upload/v1736989161/gatapchoi_biglrl.jpg")
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    TimeCreated = table.Column<DateTime>(type: "datetime(6)", nullable: false, defaultValue: new DateTime(2025, 3, 25, 8, 43, 57, 706, DateTimeKind.Local).AddTicks(6618)),
+                    TimeCreated = table.Column<DateTime>(type: "datetime(6)", nullable: false, defaultValue: new DateTime(2025, 4, 15, 21, 55, 4, 270, DateTimeKind.Local).AddTicks(197)),
                     UserName = table.Column<string>(type: "varchar(255)", nullable: true)
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     NormalizedUserName = table.Column<string>(type: "longtext", nullable: true)
@@ -121,6 +121,26 @@ namespace FN.DataAccess.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_role_claims", x => x.Id);
+                })
+                .Annotation("MySql:CharSet", "utf8mb4");
+
+            migrationBuilder.CreateTable(
+                name: "sale_events",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
+                    Name = table.Column<string>(type: "varchar(255)", maxLength: 255, nullable: false)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    Description = table.Column<string>(type: "varchar(1000)", maxLength: 1000, nullable: false)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    StartDate = table.Column<DateTime>(type: "datetime(6)", nullable: false, defaultValue: new DateTime(2025, 4, 15, 14, 55, 4, 276, DateTimeKind.Utc).AddTicks(4550)),
+                    EndDate = table.Column<DateTime>(type: "datetime(6)", nullable: false, defaultValue: new DateTime(2025, 4, 22, 14, 55, 4, 276, DateTimeKind.Utc).AddTicks(4964)),
+                    IsActive = table.Column<bool>(type: "tinyint(1)", nullable: false, defaultValue: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_sale_events", x => x.Id);
                 })
                 .Annotation("MySql:CharSet", "utf8mb4");
 
@@ -217,8 +237,8 @@ namespace FN.DataAccess.Migrations
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     SeoTitle = table.Column<string>(type: "varchar(256)", maxLength: 256, nullable: false)
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    CreatedDate = table.Column<DateTime>(type: "datetime(6)", nullable: false, defaultValue: new DateTime(2025, 3, 25, 8, 43, 57, 708, DateTimeKind.Local).AddTicks(5810)),
-                    ModifiedDate = table.Column<DateTime>(type: "datetime(6)", nullable: false, defaultValue: new DateTime(2025, 3, 25, 8, 43, 57, 708, DateTimeKind.Local).AddTicks(6395)),
+                    CreatedDate = table.Column<DateTime>(type: "datetime(6)", nullable: false, defaultValue: new DateTime(2025, 4, 15, 21, 55, 4, 272, DateTimeKind.Local).AddTicks(784)),
+                    ModifiedDate = table.Column<DateTime>(type: "datetime(6)", nullable: false, defaultValue: new DateTime(2025, 4, 15, 21, 55, 4, 272, DateTimeKind.Local).AddTicks(1437)),
                     IsDeleted = table.Column<bool>(type: "tinyint(1)", nullable: false, defaultValue: false)
                 },
                 constraints: table =>
@@ -258,71 +278,6 @@ namespace FN.DataAccess.Migrations
                 .Annotation("MySql:CharSet", "utf8mb4");
 
             migrationBuilder.CreateTable(
-                name: "orders",
-                columns: table => new
-                {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
-                    UserId = table.Column<int>(type: "int", nullable: false),
-                    ProductId = table.Column<int>(type: "int", nullable: false),
-                    OrderDate = table.Column<DateTime>(type: "datetime(6)", nullable: false, defaultValue: new DateTime(2025, 3, 25, 8, 43, 57, 709, DateTimeKind.Local).AddTicks(1988)),
-                    OrderStatus = table.Column<int>(type: "int", nullable: false),
-                    UnitPrice = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: false, defaultValue: 0m),
-                    TotalAmount = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: false, defaultValue: 0m)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_orders", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_orders_app_users_UserId",
-                        column: x => x.UserId,
-                        principalTable: "app_users",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_orders_items_ProductId",
-                        column: x => x.ProductId,
-                        principalTable: "items",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                })
-                .Annotation("MySql:CharSet", "utf8mb4");
-
-            migrationBuilder.CreateTable(
-                name: "payments",
-                columns: table => new
-                {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
-                    UserId = table.Column<int>(type: "int", nullable: false),
-                    ProductId = table.Column<int>(type: "int", nullable: false),
-                    PaymentDate = table.Column<DateTime>(type: "datetime(6)", nullable: false, defaultValue: new DateTime(2025, 3, 25, 8, 43, 57, 709, DateTimeKind.Local).AddTicks(8655)),
-                    PaymentStatus = table.Column<int>(type: "int", nullable: false, defaultValue: 0),
-                    TransactionId = table.Column<string>(type: "varchar(150)", maxLength: 150, nullable: false)
-                        .Annotation("MySql:CharSet", "utf8mb4"),
-                    Description = table.Column<string>(type: "longtext", nullable: false)
-                        .Annotation("MySql:CharSet", "utf8mb4"),
-                    PaymentFee = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: false, defaultValue: 0m)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_payments", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_payments_app_users_UserId",
-                        column: x => x.UserId,
-                        principalTable: "app_users",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_payments_items_ProductId",
-                        column: x => x.ProductId,
-                        principalTable: "items",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                })
-                .Annotation("MySql:CharSet", "utf8mb4");
-
-            migrationBuilder.CreateTable(
                 name: "product_details",
                 columns: table => new
                 {
@@ -339,8 +294,7 @@ namespace FN.DataAccess.Migrations
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     ItemId = table.Column<int>(type: "int", nullable: false),
                     CategoryId = table.Column<byte>(type: "tinyint unsigned", nullable: false),
-                    Status = table.Column<int>(type: "int", nullable: false, defaultValue: 0),
-                    IsDeleted = table.Column<bool>(type: "tinyint(1)", nullable: false)
+                    Status = table.Column<int>(type: "int", nullable: false, defaultValue: 0)
                 },
                 constraints: table =>
                 {
@@ -354,31 +308,6 @@ namespace FN.DataAccess.Migrations
                     table.ForeignKey(
                         name: "FK_product_details_items_ItemId",
                         column: x => x.ItemId,
-                        principalTable: "items",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                })
-                .Annotation("MySql:CharSet", "utf8mb4");
-
-            migrationBuilder.CreateTable(
-                name: "product_owners",
-                columns: table => new
-                {
-                    UserId = table.Column<int>(type: "int", nullable: false),
-                    ProductId = table.Column<int>(type: "int", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_product_owners", x => new { x.UserId, x.ProductId });
-                    table.ForeignKey(
-                        name: "FK_product_owners_app_users_UserId",
-                        column: x => x.UserId,
-                        principalTable: "app_users",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_product_owners_items_ProductId",
-                        column: x => x.ProductId,
                         principalTable: "items",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
@@ -418,7 +347,7 @@ namespace FN.DataAccess.Migrations
                     UserId = table.Column<int>(type: "int", nullable: false),
                     BlogId = table.Column<int>(type: "int", nullable: false),
                     Type = table.Column<int>(type: "int", nullable: false),
-                    InteractionDate = table.Column<DateTime>(type: "datetime(6)", nullable: false, defaultValue: new DateTime(2025, 3, 25, 8, 43, 57, 713, DateTimeKind.Local).AddTicks(372))
+                    InteractionDate = table.Column<DateTime>(type: "datetime(6)", nullable: false, defaultValue: new DateTime(2025, 4, 15, 21, 55, 4, 277, DateTimeKind.Local).AddTicks(5183))
                 },
                 constraints: table =>
                 {
@@ -433,6 +362,69 @@ namespace FN.DataAccess.Migrations
                         name: "FK_user_blog_interactions_blogs_BlogId",
                         column: x => x.BlogId,
                         principalTable: "blogs",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                })
+                .Annotation("MySql:CharSet", "utf8mb4");
+
+            migrationBuilder.CreateTable(
+                name: "feedbacks",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
+                    UserId = table.Column<int>(type: "int", nullable: false),
+                    ProductId = table.Column<int>(type: "int", nullable: false),
+                    Content = table.Column<string>(type: "varchar(1500)", maxLength: 1500, nullable: false)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    TimeCreated = table.Column<DateTime>(type: "datetime(6)", nullable: false, defaultValue: new DateTime(2025, 4, 15, 21, 55, 4, 271, DateTimeKind.Local).AddTicks(2862)),
+                    Rate = table.Column<byte>(type: "tinyint unsigned", nullable: false, defaultValue: (byte)5),
+                    Status = table.Column<bool>(type: "tinyint(1)", nullable: false, defaultValue: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_feedbacks", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_feedbacks_app_users_UserId",
+                        column: x => x.UserId,
+                        principalTable: "app_users",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_feedbacks_product_details_ProductId",
+                        column: x => x.ProductId,
+                        principalTable: "product_details",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                })
+                .Annotation("MySql:CharSet", "utf8mb4");
+
+            migrationBuilder.CreateTable(
+                name: "orders",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
+                    UserId = table.Column<int>(type: "int", nullable: false),
+                    ProductId = table.Column<int>(type: "int", nullable: false),
+                    OrderDate = table.Column<DateTime>(type: "datetime(6)", nullable: false, defaultValue: new DateTime(2025, 4, 15, 21, 55, 4, 272, DateTimeKind.Local).AddTicks(6983)),
+                    OrderStatus = table.Column<int>(type: "int", nullable: false),
+                    UnitPrice = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: false, defaultValue: 0m),
+                    TotalAmount = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: false, defaultValue: 0m)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_orders", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_orders_app_users_UserId",
+                        column: x => x.UserId,
+                        principalTable: "app_users",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_orders_product_details_ProductId",
+                        column: x => x.ProductId,
+                        principalTable: "product_details",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                 })
@@ -465,15 +457,63 @@ namespace FN.DataAccess.Migrations
                 .Annotation("MySql:CharSet", "utf8mb4");
 
             migrationBuilder.CreateTable(
+                name: "product_items",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
+                    Url = table.Column<string>(type: "varchar(500)", maxLength: 500, nullable: false)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    ProductId = table.Column<int>(type: "int", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_product_items", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_product_items_product_details_ProductId",
+                        column: x => x.ProductId,
+                        principalTable: "product_details",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                })
+                .Annotation("MySql:CharSet", "utf8mb4");
+
+            migrationBuilder.CreateTable(
+                name: "product_owners",
+                columns: table => new
+                {
+                    UserId = table.Column<int>(type: "int", nullable: false),
+                    ProductId = table.Column<int>(type: "int", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_product_owners", x => new { x.UserId, x.ProductId });
+                    table.ForeignKey(
+                        name: "FK_product_owners_app_users_UserId",
+                        column: x => x.UserId,
+                        principalTable: "app_users",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_product_owners_product_details_ProductId",
+                        column: x => x.ProductId,
+                        principalTable: "product_details",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                })
+                .Annotation("MySql:CharSet", "utf8mb4");
+
+            migrationBuilder.CreateTable(
                 name: "product_prices",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
                     ProductDetailId = table.Column<int>(type: "int", nullable: false),
+                    SaleEventId = table.Column<int>(type: "int", nullable: true),
                     Price = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: false),
                     PriceType = table.Column<int>(type: "int", nullable: false, defaultValue: 0),
-                    CreatedDate = table.Column<DateTime>(type: "datetime(6)", nullable: false, defaultValue: new DateTime(2025, 3, 25, 1, 43, 57, 712, DateTimeKind.Utc).AddTicks(5720)),
+                    CreatedDate = table.Column<DateTime>(type: "datetime(6)", nullable: false, defaultValue: new DateTime(2025, 4, 15, 14, 55, 4, 275, DateTimeKind.Utc).AddTicks(9074)),
                     StartDate = table.Column<DateTime>(type: "datetime(6)", nullable: false),
                     EndDate = table.Column<DateTime>(type: "datetime(6)", nullable: false)
                 },
@@ -483,6 +523,108 @@ namespace FN.DataAccess.Migrations
                     table.ForeignKey(
                         name: "FK_product_prices_product_details_ProductDetailId",
                         column: x => x.ProductDetailId,
+                        principalTable: "product_details",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_product_prices_sale_events_SaleEventId",
+                        column: x => x.SaleEventId,
+                        principalTable: "sale_events",
+                        principalColumn: "Id");
+                })
+                .Annotation("MySql:CharSet", "utf8mb4");
+
+            migrationBuilder.CreateTable(
+                name: "sale_event_products",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
+                    SaleEventId = table.Column<int>(type: "int", nullable: false),
+                    ProductDetailId = table.Column<int>(type: "int", nullable: false),
+                    DiscountedPrice = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: false, defaultValue: 0m),
+                    MaxPurchases = table.Column<int>(type: "int", nullable: false, defaultValue: 0),
+                    CurrentPurchases = table.Column<int>(type: "int", nullable: false, defaultValue: 0),
+                    IsActive = table.Column<bool>(type: "tinyint(1)", nullable: false, defaultValue: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_sale_event_products", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_sale_event_products_product_details_ProductDetailId",
+                        column: x => x.ProductDetailId,
+                        principalTable: "product_details",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_sale_event_products_sale_events_SaleEventId",
+                        column: x => x.SaleEventId,
+                        principalTable: "sale_events",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                })
+                .Annotation("MySql:CharSet", "utf8mb4");
+
+            migrationBuilder.CreateTable(
+                name: "user_product_interactions",
+                columns: table => new
+                {
+                    UserId = table.Column<int>(type: "int", nullable: false),
+                    ProductId = table.Column<int>(type: "int", nullable: false),
+                    Type = table.Column<int>(type: "int", nullable: false),
+                    InteractionDate = table.Column<DateTime>(type: "datetime(6)", nullable: false, defaultValue: new DateTime(2025, 4, 15, 14, 55, 4, 278, DateTimeKind.Utc).AddTicks(399))
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_user_product_interactions", x => new { x.UserId, x.ProductId });
+                    table.ForeignKey(
+                        name: "FK_user_product_interactions_app_users_UserId",
+                        column: x => x.UserId,
+                        principalTable: "app_users",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_user_product_interactions_product_details_ProductId",
+                        column: x => x.ProductId,
+                        principalTable: "product_details",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                })
+                .Annotation("MySql:CharSet", "utf8mb4");
+
+            migrationBuilder.CreateTable(
+                name: "payments",
+                columns: table => new
+                {
+                    OrderId = table.Column<int>(type: "int", nullable: false),
+                    UserId = table.Column<int>(type: "int", nullable: false),
+                    ProductId = table.Column<int>(type: "int", nullable: false),
+                    PaymentDate = table.Column<DateTime>(type: "datetime(6)", nullable: false, defaultValue: new DateTime(2025, 4, 15, 21, 55, 4, 273, DateTimeKind.Local).AddTicks(5158)),
+                    PaymentStatus = table.Column<int>(type: "int", nullable: false, defaultValue: 0),
+                    TransactionId = table.Column<string>(type: "varchar(150)", maxLength: 150, nullable: false)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    Description = table.Column<string>(type: "longtext", nullable: false)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    PaymentFee = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: false, defaultValue: 0m)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_payments", x => x.OrderId);
+                    table.ForeignKey(
+                        name: "FK_payments_app_users_UserId",
+                        column: x => x.UserId,
+                        principalTable: "app_users",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_payments_orders_OrderId",
+                        column: x => x.OrderId,
+                        principalTable: "orders",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_payments_product_details_ProductId",
+                        column: x => x.ProductId,
                         principalTable: "product_details",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
@@ -524,6 +666,16 @@ namespace FN.DataAccess.Migrations
                 table: "categories",
                 column: "SeoAlias",
                 unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_feedbacks_ProductId",
+                table: "feedbacks",
+                column: "ProductId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_feedbacks_UserId",
+                table: "feedbacks",
+                column: "UserId");
 
             migrationBuilder.CreateIndex(
                 name: "ix_item_code",
@@ -572,6 +724,11 @@ namespace FN.DataAccess.Migrations
                 column: "ProductDetailId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_product_items_ProductId",
+                table: "product_items",
+                column: "ProductId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_product_owners_ProductId",
                 table: "product_owners",
                 column: "ProductId");
@@ -582,9 +739,29 @@ namespace FN.DataAccess.Migrations
                 column: "ProductDetailId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_product_prices_SaleEventId",
+                table: "product_prices",
+                column: "SaleEventId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_sale_event_products_ProductDetailId",
+                table: "sale_event_products",
+                column: "ProductDetailId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_sale_event_products_SaleEventId",
+                table: "sale_event_products",
+                column: "SaleEventId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_user_blog_interactions_BlogId",
                 table: "user_blog_interactions",
                 column: "BlogId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_user_product_interactions_ProductId",
+                table: "user_product_interactions",
+                column: "ProductId");
         }
 
         /// <inheritdoc />
@@ -597,13 +774,16 @@ namespace FN.DataAccess.Migrations
                 name: "blog_images");
 
             migrationBuilder.DropTable(
-                name: "orders");
+                name: "feedbacks");
 
             migrationBuilder.DropTable(
                 name: "payments");
 
             migrationBuilder.DropTable(
                 name: "product_image");
+
+            migrationBuilder.DropTable(
+                name: "product_items");
 
             migrationBuilder.DropTable(
                 name: "product_owners");
@@ -615,6 +795,9 @@ namespace FN.DataAccess.Migrations
                 name: "role_claims");
 
             migrationBuilder.DropTable(
+                name: "sale_event_products");
+
+            migrationBuilder.DropTable(
                 name: "user_blog_interactions");
 
             migrationBuilder.DropTable(
@@ -624,16 +807,25 @@ namespace FN.DataAccess.Migrations
                 name: "user_logins");
 
             migrationBuilder.DropTable(
+                name: "user_product_interactions");
+
+            migrationBuilder.DropTable(
                 name: "user_roles");
 
             migrationBuilder.DropTable(
                 name: "user_tokens");
 
             migrationBuilder.DropTable(
-                name: "product_details");
+                name: "orders");
+
+            migrationBuilder.DropTable(
+                name: "sale_events");
 
             migrationBuilder.DropTable(
                 name: "blogs");
+
+            migrationBuilder.DropTable(
+                name: "product_details");
 
             migrationBuilder.DropTable(
                 name: "categories");

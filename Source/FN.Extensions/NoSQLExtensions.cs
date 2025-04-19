@@ -11,7 +11,7 @@ namespace FN.Extensions
 {
     public static class NoSQLExtensions
     {
-        public static IServiceCollection InjectMongoDb(this IServiceCollection services, IConfiguration config)
+        public static IServiceCollection ConfigureMongoDb(this IServiceCollection services, IConfiguration config)
         {
             services.Configure<MongoDBSettings>(config.GetSection(SystemConstant.MONGODB_SETTING));
 
@@ -29,7 +29,7 @@ namespace FN.Extensions
             });
             return services;
         }
-        public static IServiceCollection InjectRedis(this IServiceCollection services, IConfiguration config)
+        public static IServiceCollection ConfigureRedis(this IServiceCollection services, IConfiguration config)
         {
             var connectionStringRedis = config.GetConnectionString(SystemConstant.REDIS_CONNECTION_STRING);
             if (string.IsNullOrEmpty(connectionStringRedis))

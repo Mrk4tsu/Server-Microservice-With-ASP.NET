@@ -31,6 +31,9 @@
         public const string USER_KEY = "user";
         public static readonly string CACHE_USER_BY_USERNAME = "user-cache:";
 
+        public const string EVENT_PAYMENT_GROUP_KAFKA = "event-payment-group";
+        public const string EVENT_PAYMENT_TOPIC_KAFKA = "event-payment";
+
         public const string AVATAR_DEFAULT = "https://res.cloudinary.com/dje3seaqj/image/upload/v1736989161/gatapchoi_biglrl.jpg";
 
     }

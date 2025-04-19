@@ -17,6 +17,7 @@ namespace FN.DataAccess.Configurations
             builder.Property(x => x.CreatedDate).IsRequired().HasDefaultValue(DateTime.UtcNow);
 
             builder.HasOne(x => x.ProductDetail).WithMany(x => x.ProductPrices).HasForeignKey(x => x.ProductDetailId);
+            builder.HasOne(x =>x.SaleEvent).WithMany(x =>x.ProductPrices).HasForeignKey(x => x.SaleEventId);
         }
     }
 }

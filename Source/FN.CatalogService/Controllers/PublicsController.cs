@@ -84,5 +84,11 @@ namespace FN.ProductService.Controllers
             var result = await _service.GetProducts(type, take);
             return Ok(result);
         }
+        [HttpPut("update-view")]
+        public async Task<IActionResult> UpdateView(int productId)
+        {
+            var result = await _service.UpdateView(productId);
+            return Ok(result);
+        }
     }
 }

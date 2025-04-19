@@ -2,17 +2,23 @@
 {
     public class ApiErrorResult<T> : ApiResult<T>
     {
-        public string[] ValidationErrors { get; set; } = Array.Empty<string>();
+        public List<string> ValidationErrors { get; set; } = new List<string>();
         public ApiErrorResult()
         {
+        }
+        public ApiErrorResult(string message, List<string> validationErrors)
+        {
+            Success = false;
+            Message = message;
+            ValidationErrors = validationErrors;
         }
         public ApiErrorResult(string message)
         {
             Success = false;
             Message = message;
-            ValidationErrors = Array.Empty<string>();
+            ValidationErrors = new List<string>();
         }
-        public ApiErrorResult(string[] validationErrors)
+        public ApiErrorResult(List<string> validationErrors)
         {
             Success = false;
             ValidationErrors = validationErrors;

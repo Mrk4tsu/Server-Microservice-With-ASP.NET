@@ -1,7 +1,6 @@
 ﻿using FN.Application.Systems.Orders;
 using FN.ViewModel.Systems.Order;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
 namespace FN.OrderService.Controllers
@@ -11,8 +10,10 @@ namespace FN.OrderService.Controllers
     public class OrdersController : BasesController
     {
         private readonly IOrderService _service;
+       
         public OrdersController(IOrderService service)
         {
+
             _service = service;
         }
         [HttpGet("hello")]
@@ -35,7 +36,7 @@ namespace FN.OrderService.Controllers
             if (userId == null) return Unauthorized();
             var result = await _service.GetPayments(userId.Value, request);
             return Ok(result);
-        }
+        }       
         [HttpPost("request-order")]
         public async Task<IActionResult> CreateOrder([FromBody] OrderCreateRequest request)
         {
