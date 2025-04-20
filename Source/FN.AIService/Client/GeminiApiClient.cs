@@ -75,7 +75,7 @@ namespace GeminiAIDev.Client
         }
         private async Task<ContentResponse?> GetGeminiResponse()
         {
-            string url = $"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={_apiKey}";
+            string url = $"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro-exp-03-25:generateContent?key={_apiKey}";
 
             // Tạo prompt yêu cầu Gemini trả về HTML
             var prompt = "Hãy tạo bài viết về tin tức game với:\n" +

@@ -6,7 +6,6 @@ using FN.DataAccess.Entities;
 using FN.Utilities;
 using FN.ViewModel.Helper.API;
 using FN.ViewModel.Systems.User;
-using Mailjet.Client.Resources;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -103,6 +102,7 @@ namespace FN.Application.Systems.User
                 if (user == null)
                     return new ApiErrorResult<UserViewModel>("Tài khoản không tồn tại");
                 var userVm = _mapper.Map<UserViewModel>(user);
+                userVm.Role = (await _userManager.GetRolesAsync(user)).FirstOrDefault() ?? string.Empty;
                 await _redisService.SetValue(keyCache, userVm, TimeSpan.FromMinutes(5));
                 return new ApiSuccessResult<UserViewModel>(userVm);
             }

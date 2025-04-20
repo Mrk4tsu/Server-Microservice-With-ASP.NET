@@ -91,7 +91,7 @@ namespace FN.Application.Systems.User
                 };
 
                 var result = await _userManager.CreateAsync(user, request.Password);
-
+                
                 var response = new RegisterResponse
                 {
                     FullName = user.FullName,
@@ -102,6 +102,9 @@ namespace FN.Application.Systems.User
                 {
                     await _redisService.SetValue(cacheKey, user.UserName);
                     response.Status = true;
+
+                    await _userManager.AddToRoleAsync(user, "CUSTOMER");
+
                     await _redisService.Publish(SystemConstant.MESSAGE_REGISTER_EVENT, response).ConfigureAwait(false);
                     return new ApiSuccessResult<bool>();
                 }
