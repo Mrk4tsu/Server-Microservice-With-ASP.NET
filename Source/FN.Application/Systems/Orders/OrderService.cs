@@ -84,7 +84,7 @@ namespace FN.Application.Systems.Orders
                 ProductId = productId,
                 UserId = userId,
             };
-            await _db.ProductOwners.AddAsync(owner).ConfigureAwait(false);
+            _db.ProductOwners.Add(owner);
             var product = await _db.ProductDetails.FindAsync(productId);
             product!.DownloadCount += 1;
 
@@ -182,28 +182,31 @@ namespace FN.Application.Systems.Orders
 
                     if (response.Success)
                     {
-                        var owner = new ProductOwner
-                        {
-                            ProductId = productId,
-                            UserId = userId,
-                        };
-                         dbContext.ProductOwners.Add(owner);
-                        var product = await dbContext.ProductDetails.FindAsync(productId);
-                        product!.DownloadCount += 1;
- 
-
+                        
                         if (eventProduct != null)
                         {
                             var eventMessage = new EventMessage
                             {
-                                ProductId = eventProduct.Id,
+                                ProductId = productId,
                                 UserId = userId,
+                                ProductEventId = eventProduct.Id
                             };
                             await _producer.Produce(SystemConstant.EVENT_PAYMENT_TOPIC_KAFKA, new Message<string, string>
                             {
                                 Key = payment.TransactionId.ToString(),
                                 Value = JsonSerializer.Serialize(eventMessage)
                             }).ConfigureAwait(false);
+                        }
+                        else
+                        {
+                            var owner = new ProductOwner
+                            {
+                                ProductId = productId,
+                                UserId = userId,
+                            };
+                            dbContext.ProductOwners.Add(owner);
+                            var product = await dbContext.ProductDetails.FindAsync(productId);
+                            product!.DownloadCount += 1;
                         }
                     }
 
@@ -302,4 +305,5 @@ public class EventMessage
 {
     public int ProductId { get; set; }
     public int UserId { get; set; }
+    public int ProductEventId { get; set; }
 }

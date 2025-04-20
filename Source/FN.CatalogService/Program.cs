@@ -34,9 +34,9 @@ builder.Services
     .AddProductStrategyServices()
     .AddAdditionalProductServices();
 
-builder.Logging.AddConsole();
-
 builder.Services.AddHostedService<KafkaConsumer>();
+
+builder.Logging.AddConsole();
 
 var app = builder.Build();
 

@@ -36,6 +36,7 @@ namespace FN.Extensions
                         "https://katsudev.vercel.app", 
                         "https://katsudev.netlify.app"));
 
+            
             return app;
         }
         public static IApplicationBuilder ConfigureAppForwarded(this IApplicationBuilder app)
@@ -111,6 +112,7 @@ namespace FN.Extensions
             {
                 options.Level = CompressionLevel.Optimal;
             });
+
             return services;
         }
         public static IApplicationBuilder ConfigureAppPayLoad(this IApplicationBuilder app)

@@ -1,4 +1,6 @@
 ﻿using Confluent.Kafka;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 
 namespace FN.Application.Systems.Kafka
 {
@@ -9,15 +11,20 @@ namespace FN.Application.Systems.Kafka
     public class KafkaProducer : IKafkaProducer
     {
         private readonly IProducer<string, string> _producer;
-        public KafkaProducer(string groupName)
+        private readonly ILogger<KafkaProducer> _logger;
+        private readonly IConfiguration _config;
+        public KafkaProducer(string groupName,
+            ILogger<KafkaProducer> logger,
+            IConfiguration configuration)
         {
-            var config = new ConsumerConfig
+            _config = configuration;
+            _logger = logger;
+            var config = new ProducerConfig
             {
-                GroupId = groupName,
-                BootstrapServers = "localhost:9092",
-                AutoOffsetReset = AutoOffsetReset.Earliest
+                BootstrapServers = configuration["Kafka:BootstrapServers"],
             };
             _producer = new ProducerBuilder<string, string>(config).Build();
+            _logger.LogInformation("KafkaConsumer started. Connecting to: {Servers}", config.BootstrapServers);
         }
         public async Task Produce(string topic, Message<string, string> message)
         {

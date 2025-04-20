@@ -1,6 +1,7 @@
 using FN.Application.Helper.Devices;
 using FN.Application.Systems.Token;
 using FN.EmailService;
+using FN.EmailService.Extensions;
 using FN.Extensions;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -14,15 +15,9 @@ builder.Services
     .ConfigureMongoDb(builder.Configuration)
     .AddSmtpConfig(builder.Configuration);
 
-builder.Services.AddScoped<MailSubscriber>();
+builder.Services.AddNotificationServices();
 
-builder.Services.AddScoped<IDeviceService, DeviceService>();
-
-builder.Services.AddHostedService<MailSubscriber>();
-
-builder.Services.AddScoped<ITokenService, TokenService>();
-
-builder.Services.AddControllers();
+builder.Logging.AddConsole();
 
 var app = builder.Build();
 

@@ -1,9 +1,5 @@
-﻿using FN.Application.Catalog.Product.Notifications;
-using FN.Application.Helper.Devices;
-using FN.Application.Systems.Token;
-using FN.Application.Systems.User;
-using FN.Extensions;
-using System.Data;
+﻿using FN.Extensions;
+using FN.UserService.Extenisons;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -12,6 +8,7 @@ builder.WebHost.ConfigureKestrelServer();
 builder.Services.AddControllers();
 builder.Services.AddSwaggerExplorer()
     .InjectDbContextPool(builder.Configuration)
+    .ConfigureServiceForwarded()
     .ConfigureRedis(builder.Configuration)
     .ConfigureMongoDb(builder.Configuration)
     .AddIdentityHandlersAndStores()
@@ -20,12 +17,9 @@ builder.Services.AddSwaggerExplorer()
     .ConfigureServicePayload()
     .AddImageConfig(builder.Configuration);
 
-builder.Services.AddScoped<INotifyService, NotifyService>();
+builder.Services.AddUserService();
 
-builder.Services.AddScoped<IAuthService, AuthService>();
-builder.Services.AddScoped<IUserService, UserService>();
-builder.Services.AddScoped<ITokenService, TokenService>();
-builder.Services.AddScoped<IDeviceService, DeviceService>();
+builder.Logging.AddConsole();
 
 var app = builder.Build();
 

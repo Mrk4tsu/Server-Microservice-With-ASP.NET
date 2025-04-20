@@ -18,6 +18,8 @@ builder.Services.ConfigureServicePayload()
 
 builder.Services.AddSignalR();
 
+builder.Logging.AddConsole();
+
 var app = builder.Build();
 
 app.ConfigureCORS(builder.Configuration)

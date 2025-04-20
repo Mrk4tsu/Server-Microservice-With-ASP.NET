@@ -19,9 +19,17 @@ builder.Services.AddSwaggerExplorer()
 
 builder.Services.AddScoped<IOrderService, OrderService>();
 builder.Services.AddScoped<ISaleEventService, SaleEventService>();
-builder.Services.AddScoped<IKafkaProducer>(provider =>new KafkaProducer(SystemConstant.EVENT_PAYMENT_GROUP_KAFKA));
+builder.Services.AddScoped<IKafkaProducer>(provider =>
+{
+    var logger = provider.GetRequiredService<ILogger<KafkaProducer>>();
+    var configuration = provider.GetRequiredService<IConfiguration>();
+    return new KafkaProducer(SystemConstant.EVENT_PAYMENT_GROUP_KAFKA, logger, configuration);
+});
+
 
 builder.Services.AddControllers();
+
+builder.Logging.AddConsole();
 
 var app = builder.Build();
 

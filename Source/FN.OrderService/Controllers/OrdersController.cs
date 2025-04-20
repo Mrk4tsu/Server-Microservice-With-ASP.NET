@@ -2,6 +2,7 @@
 using FN.ViewModel.Systems.Order;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Threading.Tasks;
 
 namespace FN.OrderService.Controllers
 {
@@ -52,11 +53,11 @@ namespace FN.OrderService.Controllers
             return Ok(result);
         }
         [HttpGet("payment-callback")]
-        public IActionResult PaymentCallback()
+        public async Task<IActionResult> PaymentCallback()
         {
             var userId = GetUserIdFromClaims();
             if (userId == null) return Unauthorized();
-            var response = _service.PaymentExecute(Request.Query, userId.Value);
+            var response = await _service.PaymentExecute(Request.Query, userId.Value);
             return Accepted(response);
         }
     }
