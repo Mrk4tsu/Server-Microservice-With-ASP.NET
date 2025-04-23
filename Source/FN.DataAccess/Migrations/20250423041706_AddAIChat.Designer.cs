@@ -4,6 +4,7 @@ using FN.DataAccess;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace FN.DataAccess.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250423041706_AddAIChat")]
+    partial class AddAIChat
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -133,7 +136,7 @@ namespace FN.DataAccess.Migrations
                     b.Property<DateTime>("TimeCreated")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime(6)")
-                        .HasDefaultValue(new DateTime(2025, 4, 23, 13, 59, 48, 800, DateTimeKind.Local).AddTicks(5734));
+                        .HasDefaultValue(new DateTime(2025, 4, 23, 11, 17, 5, 665, DateTimeKind.Local).AddTicks(8349));
 
                     b.Property<bool>("TwoFactorEnabled")
                         .HasColumnType("tinyint(1)");
@@ -271,6 +274,66 @@ namespace FN.DataAccess.Migrations
                     b.ToTable("categories", (string)null);
                 });
 
+            modelBuilder.Entity("FN.DataAccess.Entities.ChatMessage", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("ChatSessionId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Content")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("Role")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<DateTime>("SentAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ChatSessionId");
+
+                    b.ToTable("chat_messages", (string)null);
+                });
+
+            modelBuilder.Entity("FN.DataAccess.Entities.ChatSession", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<DateTime>("LastModifiedDate")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("chat_sessions", (string)null);
+                });
+
             modelBuilder.Entity("FN.DataAccess.Entities.FeedBack", b =>
                 {
                     b.Property<int>("Id")
@@ -300,7 +363,7 @@ namespace FN.DataAccess.Migrations
                     b.Property<DateTime>("TimeCreated")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime(6)")
-                        .HasDefaultValue(new DateTime(2025, 4, 23, 13, 59, 48, 801, DateTimeKind.Local).AddTicks(8672));
+                        .HasDefaultValue(new DateTime(2025, 4, 23, 11, 17, 5, 668, DateTimeKind.Local).AddTicks(2954));
 
                     b.Property<int>("UserId")
                         .HasColumnType("int");
@@ -333,7 +396,7 @@ namespace FN.DataAccess.Migrations
                     b.Property<DateTime>("CreatedDate")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime(6)")
-                        .HasDefaultValue(new DateTime(2025, 4, 23, 13, 59, 48, 802, DateTimeKind.Local).AddTicks(5973));
+                        .HasDefaultValue(new DateTime(2025, 4, 23, 11, 17, 5, 669, DateTimeKind.Local).AddTicks(3590));
 
                     b.Property<string>("Description")
                         .IsRequired()
@@ -353,7 +416,7 @@ namespace FN.DataAccess.Migrations
                     b.Property<DateTime>("ModifiedDate")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime(6)")
-                        .HasDefaultValue(new DateTime(2025, 4, 23, 13, 59, 48, 802, DateTimeKind.Local).AddTicks(6403));
+                        .HasDefaultValue(new DateTime(2025, 4, 23, 11, 17, 5, 669, DateTimeKind.Local).AddTicks(4209));
 
                     b.Property<string>("NormalizedTitle")
                         .IsRequired()
@@ -412,7 +475,7 @@ namespace FN.DataAccess.Migrations
                     b.Property<DateTime>("PaymentDate")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime(6)")
-                        .HasDefaultValue(new DateTime(2025, 4, 23, 13, 59, 48, 804, DateTimeKind.Local).AddTicks(630));
+                        .HasDefaultValue(new DateTime(2025, 4, 23, 11, 17, 5, 671, DateTimeKind.Local).AddTicks(1773));
 
                     b.Property<decimal>("PaymentFee")
                         .ValueGeneratedOnAdd()
@@ -584,7 +647,7 @@ namespace FN.DataAccess.Migrations
                     b.Property<DateTime>("CreatedDate")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime(6)")
-                        .HasDefaultValue(new DateTime(2025, 4, 23, 6, 59, 48, 806, DateTimeKind.Utc).AddTicks(4008));
+                        .HasDefaultValue(new DateTime(2025, 4, 23, 4, 17, 5, 674, DateTimeKind.Utc).AddTicks(4966));
 
                     b.Property<DateTime>("EndDate")
                         .HasColumnType("datetime(6)");
@@ -636,7 +699,7 @@ namespace FN.DataAccess.Migrations
                     b.Property<DateTime>("EndDate")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime(6)")
-                        .HasDefaultValue(new DateTime(2025, 4, 30, 6, 59, 48, 806, DateTimeKind.Utc).AddTicks(8830));
+                        .HasDefaultValue(new DateTime(2025, 4, 30, 4, 17, 5, 675, DateTimeKind.Utc).AddTicks(850));
 
                     b.Property<bool>("IsActive")
                         .ValueGeneratedOnAdd()
@@ -654,7 +717,7 @@ namespace FN.DataAccess.Migrations
                     b.Property<DateTime>("StartDate")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime(6)")
-                        .HasDefaultValue(new DateTime(2025, 4, 23, 6, 59, 48, 806, DateTimeKind.Utc).AddTicks(8399));
+                        .HasDefaultValue(new DateTime(2025, 4, 23, 4, 17, 5, 675, DateTimeKind.Utc).AddTicks(287));
 
                     b.Property<int>("Year")
                         .HasColumnType("int");
@@ -722,7 +785,7 @@ namespace FN.DataAccess.Migrations
                     b.Property<DateTime>("InteractionDate")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime(6)")
-                        .HasDefaultValue(new DateTime(2025, 4, 23, 13, 59, 48, 807, DateTimeKind.Local).AddTicks(7919));
+                        .HasDefaultValue(new DateTime(2025, 4, 23, 11, 17, 5, 676, DateTimeKind.Local).AddTicks(7161));
 
                     b.Property<int>("Type")
                         .HasColumnType("int");
@@ -745,7 +808,7 @@ namespace FN.DataAccess.Migrations
                     b.Property<DateTime>("OrderDate")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime(6)")
-                        .HasDefaultValue(new DateTime(2025, 4, 23, 13, 59, 48, 803, DateTimeKind.Local).AddTicks(2486));
+                        .HasDefaultValue(new DateTime(2025, 4, 23, 11, 17, 5, 670, DateTimeKind.Local).AddTicks(1026));
 
                     b.Property<int>("OrderStatus")
                         .HasColumnType("int");
@@ -788,7 +851,7 @@ namespace FN.DataAccess.Migrations
                     b.Property<DateTime>("InteractionDate")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime(6)")
-                        .HasDefaultValue(new DateTime(2025, 4, 23, 6, 59, 48, 810, DateTimeKind.Utc).AddTicks(1620));
+                        .HasDefaultValue(new DateTime(2025, 4, 23, 4, 17, 5, 677, DateTimeKind.Utc).AddTicks(8063));
 
                     b.Property<int>("Type")
                         .HasColumnType("int");
@@ -925,6 +988,28 @@ namespace FN.DataAccess.Migrations
                         .IsRequired();
 
                     b.Navigation("Blog");
+                });
+
+            modelBuilder.Entity("FN.DataAccess.Entities.ChatMessage", b =>
+                {
+                    b.HasOne("FN.DataAccess.Entities.ChatSession", "ChatSession")
+                        .WithMany("Messages")
+                        .HasForeignKey("ChatSessionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ChatSession");
+                });
+
+            modelBuilder.Entity("FN.DataAccess.Entities.ChatSession", b =>
+                {
+                    b.HasOne("FN.DataAccess.Entities.AppUser", "User")
+                        .WithMany("ChatSessions")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("FN.DataAccess.Entities.FeedBack", b =>
@@ -1139,6 +1224,8 @@ namespace FN.DataAccess.Migrations
 
             modelBuilder.Entity("FN.DataAccess.Entities.AppUser", b =>
                 {
+                    b.Navigation("ChatSessions");
+
                     b.Navigation("FeedBacks");
 
                     b.Navigation("Interactions");
@@ -1164,6 +1251,11 @@ namespace FN.DataAccess.Migrations
             modelBuilder.Entity("FN.DataAccess.Entities.Category", b =>
                 {
                     b.Navigation("ProductDetails");
+                });
+
+            modelBuilder.Entity("FN.DataAccess.Entities.ChatSession", b =>
+                {
+                    b.Navigation("Messages");
                 });
 
             modelBuilder.Entity("FN.DataAccess.Entities.Item", b =>

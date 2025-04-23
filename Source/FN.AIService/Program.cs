@@ -1,19 +1,22 @@
-using FN.Application.Catalog.Blogs;
+using FN.AIService.Services;
+using FN.AIService.Services.Chats;
 using FN.Extensions;
-using GeminiAIDev.Client;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddHttpClient();
-builder.Services.AddScoped<IImageSearchService, ImageSearchService>();
 string _apiKey = builder.Configuration["GeminiAPIKey"]!;
-//builder.Services.AddSingleton(new GeminiApiClient(apiKey));
-builder.Services.AddSingleton<GameTitleExtractor>();
-builder.Services.AddScoped<GeminiApiClient>(provide => new GeminiApiClient(
-    provide.GetRequiredService<GameTitleExtractor>(),
-    provide.GetRequiredService<IImageSearchService>(),
-    _apiKey
-    ));
+
+builder.Services.ConfigureDbContext(builder.Configuration)
+                .AddIdentityAuth(builder.Configuration)
+                .ConfigureMongoDb(builder.Configuration)
+                .ConfigureIdentityOptions();
+
+builder.Services.AddScoped<IProductService, ProductService>();
+builder.Services.AddScoped<GeminiService>();
+builder.Services.AddScoped<IGeminiProductAnalysisService, GeminiProductAnalysisService>();
+builder.Services.AddScoped<IChatSessionRepository, ChatSessionRepository>();
+
 builder.Services.AddControllers();
 
 builder.Services.AddEndpointsApiExplorer();
@@ -28,7 +31,8 @@ app.UseCors(option => option
             .AllowAnyHeader()
             .WithExposedHeaders("Content-Dispostion"));
 
-app.ConfigureSwaggerExplorer();
+app.ConfigureSwaggerExplorer()
+   .AddIdentityAuthMiddlewares();
 
 app.UseHttpsRedirection();
 

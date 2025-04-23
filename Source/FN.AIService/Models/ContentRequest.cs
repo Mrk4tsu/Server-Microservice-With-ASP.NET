@@ -6,6 +6,7 @@
     }
     public class Content
     {
+        public string role { get; set; } = string.Empty; // Thêm role: "user" hoặc "model"
         public Part[] parts { get; set; } = Array.Empty<Part>();
     }
     public class Part
