@@ -4,12 +4,13 @@ using FN.Extensions;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddHttpClient();
 string _apiKey = builder.Configuration["GeminiAPIKey"]!;
 
 builder.Services.ConfigureDbContext(builder.Configuration)
                 .AddIdentityAuth(builder.Configuration)
                 .ConfigureMongoDb(builder.Configuration)
+                .ConfigureServicePayload()
+                .AddSwaggerExplorer()
                 .ConfigureIdentityOptions();
 
 builder.Services.AddScoped<IProductService, ProductService>();
@@ -21,17 +22,18 @@ builder.Services.AddControllers();
 
 builder.Services.AddEndpointsApiExplorer();
 
-builder.Services.AddSwaggerExplorer();
+builder.Services.AddHttpClient();
 
 var app = builder.Build();
 
-app.UseCors(option => option
-            .AllowAnyOrigin()
-            .AllowAnyMethod()
-            .AllowAnyHeader()
-            .WithExposedHeaders("Content-Dispostion"));
+//app.UseCors(option => option
+//            .AllowAnyOrigin()
+//            .AllowAnyMethod()
+//            .AllowAnyHeader()
+//            .WithExposedHeaders("Content-Dispostion"));
 
-app.ConfigureSwaggerExplorer()
+app.ConfigureCORS(builder.Configuration)
+    .ConfigureSwaggerExplorer()
    .AddIdentityAuthMiddlewares();
 
 app.UseHttpsRedirection();

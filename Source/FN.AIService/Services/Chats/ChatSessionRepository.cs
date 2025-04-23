@@ -1,4 +1,6 @@
 ﻿using FN.AIService.Models;
+using FN.AIService.ViewModels;
+using FN.ViewModel.Helper.API;
 using MongoDB.Driver;
 
 namespace FN.AIService.Services.Chats
@@ -66,15 +68,30 @@ namespace FN.AIService.Services.Chats
             if (result.DeletedCount == 0)
                 throw new Exception("Chat session not found or unauthorized.");
         }
-        public async Task<List<ChatSession>> GetUserChatSessionsAsync(int userId, int page = 1, int pageSize = 10)
+        public async Task<ApiResult<List<ChatSessionViewModel>>> GetUserChatSessionsAsync(int userId, int page = 1, int pageSize = 10)
         {
-            var sessions = await _chatSessions
-                .Find(s => s.UserId == userId && s.IsActive)
-                .SortByDescending(s => s.LastModifiedDate)
-                .Skip((page - 1) * pageSize)
-                .Limit(pageSize)
-                .ToListAsync();
-            return sessions;
+            try
+            {
+                var sessions = await _chatSessions
+               .Find(s => s.UserId == userId && s.IsActive)
+               .SortByDescending(s => s.LastModifiedDate)
+               .Skip((page - 1) * pageSize)
+               .Limit(pageSize)
+               .ToListAsync();
+                var sessionDtos = sessions.Select(s => new ChatSessionViewModel
+                {
+                    Id = s.Id,
+                    Title = s.Title,
+                    CreatedDate = s.CreatedDate,
+                    LastModifiedDate = s.LastModifiedDate,
+                    MessageCount = s.Messages.Count
+                }).ToList();
+                return new ApiSuccessResult<List<ChatSessionViewModel>>(sessionDtos);
+            }
+            catch (Exception ex)
+            {
+                return new ApiErrorResult<List<ChatSessionViewModel>>(ex.Message);
+            }
         }
         private void CreateIndexes()
         {

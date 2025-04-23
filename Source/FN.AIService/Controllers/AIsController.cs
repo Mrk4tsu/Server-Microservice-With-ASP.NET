@@ -2,6 +2,7 @@
 using FN.AIService.Services;
 using FN.AIService.Services.Chats;
 using GeminiAIDev.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
 using System.Security.Claims;
@@ -9,8 +10,8 @@ using System.Security.Claims;
 namespace FN.AIService.Controllers
 {
     [Route("api/ai")]
-    [ApiController]
-    public class AIsController : ControllerBase
+    [ApiController, Authorize]
+    public class AIsController : BasesController
     {
         private readonly IGeminiProductAnalysisService _analysisService;
         private readonly IChatSessionRepository _chatSessionRepository;
@@ -27,10 +28,12 @@ namespace FN.AIService.Controllers
         [HttpPost("create-session")]
         public async Task<IActionResult> CreateChatSession()
         {
-            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value!);
+            //var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value!);
+            var userId = GetUserIdFromClaims();
+            if (userId == null) return Unauthorized();
             var session = new ChatSession
             {
-                UserId = userId,
+                UserId = userId.Value,
                 Title = $"Chat {DateTime.Now:yyyy-MM-dd HH:mm:ss}",
                 CreatedDate = DateTime.Now,
                 LastModifiedDate = DateTime.Now,
@@ -43,13 +46,15 @@ namespace FN.AIService.Controllers
         [HttpPost("send-message")]
         public async Task<IActionResult> SendMessage([FromBody] SendMessageRequest request)
         {
-            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value!);
-            var session = await _chatSessionRepository.GetChatSessionAsync(request.ChatSessionId, userId);
+            //var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value!);
+            var userId = GetUserIdFromClaims();
+            if (userId == null) return Unauthorized();
+            var session = await _chatSessionRepository.GetChatSessionAsync(request.ChatSessionId, userId.Value);
 
             if (session == null)
                 return NotFound("Chat session not found or unauthorized.");
 
-            var response = await _geminiService.GenerateContentAsync(userId, request.ChatSessionId, request.Message);
+            var response = await _geminiService.GenerateContentAsync(userId.Value, request.ChatSessionId, request.Message);
 
             return Ok(new { Response = response });
         }
@@ -57,10 +62,11 @@ namespace FN.AIService.Controllers
         [HttpGet("session/{chatSessionId}/history")]
         public async Task<IActionResult> GetChatHistory(string chatSessionId, int page = 1, int pageSize = 20)
         {
-            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value!);
-
+            //var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value!);
+            var userId = GetUserIdFromClaims();
+            if (userId == null) return Unauthorized();
             // Lấy tin nhắn từ MongoDB
-            var messages = await _chatSessionRepository.GetMessagesAsLinkedListAsync(chatSessionId, userId);
+            var messages = await _chatSessionRepository.GetMessagesAsLinkedListAsync(chatSessionId, userId.Value);
 
             // Phân trang
             var pagedMessages = messages
@@ -68,9 +74,6 @@ namespace FN.AIService.Controllers
                 .Take(pageSize)
                 .Select(m => new { m.Role, m.Content, m.SentAt })
                 .ToList();
-
-            if (!pagedMessages.Any())
-                return NotFound("No messages found.");
 
             return Ok(pagedMessages);
         }
@@ -95,22 +98,13 @@ namespace FN.AIService.Controllers
         [HttpGet("sessions")]
         public async Task<IActionResult> GetUserChatSessions(int page = 1, int pageSize = 10)
         {
-            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value!);
-            var cacheKey = $"UserSessions_{userId}";
 
-            // Lấy danh sách session từ MongoDB
-            var sessions = await _chatSessionRepository.GetUserChatSessionsAsync(userId, page, pageSize);
+                var userId = GetUserIdFromClaims();
+                if (userId == null) return Unauthorized();
 
-            // Chuyển đổi sang DTO để trả về
-            var sessionDtos = sessions.Select(s => new
-            {
-                s.Id,
-                s.Title,
-                s.CreatedDate,
-                s.LastModifiedDate,
-                MessageCount = s.Messages.Count
-            }).ToList();
-            return Ok(sessionDtos);
+                var sessions = await _chatSessionRepository.GetUserChatSessionsAsync(userId.Value, page, pageSize);
+
+                return Ok(sessions);
         }
         [HttpGet("recommendations/{userId}")]
         public async Task<IActionResult> GetRecommendations(int userId)
