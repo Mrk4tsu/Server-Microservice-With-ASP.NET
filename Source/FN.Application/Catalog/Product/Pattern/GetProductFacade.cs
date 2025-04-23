@@ -16,8 +16,9 @@ namespace FN.Application.Catalog.Product.Pattern
     public class GetProductFacade : BaseService
     {
         private readonly IMapper _mapper;
-        public GetProductFacade(AppDbContext db, IRedisService dbRedis, IImageService image, IMapper mapper) 
-            : base(db, dbRedis, image, SystemConstant.PRODUCT_KEY)
+
+        public GetProductFacade(AppDbContext db, IMapper mapper, IHttpClientFactory httpClientFactory, IRedisService dbRedis, IImageService image, string root)
+            : base(db, httpClientFactory, dbRedis, image, SystemConstant.PRODUCT_KEY)
         {
             _mapper = mapper;
         }

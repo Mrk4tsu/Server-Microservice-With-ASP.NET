@@ -54,4 +54,14 @@ namespace FN.ViewModel.Catalog.Products
         public int Id { get; set; }
         public string Url { get; set; } = string.Empty;
     }
+    public class ProductSeoViewModel
+    {
+        public int Id { get; set; }
+        public string Title { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
+        public string Keyword { get; set; } = string.Empty;
+        public string Cover { get; set; } = string.Empty;
+        public string Thumbnail { get; set; } = string.Empty;
+        public string SeoAlias { get; set; } = string.Empty;
+    }
 }

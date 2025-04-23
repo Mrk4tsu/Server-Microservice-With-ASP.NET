@@ -10,6 +10,7 @@
         public string Description { get; set; } = string.Empty;
         public string Keywords { get; set; } = string.Empty;
         public string Thumbnail { get; set; } = string.Empty;
+        public string Cover { get; set; } = string.Empty;
         public int ViewCount { get; set; }
         public string SeoAlias { get; set; } = string.Empty;
         public string SeoTitle { get; set; } = string.Empty;    

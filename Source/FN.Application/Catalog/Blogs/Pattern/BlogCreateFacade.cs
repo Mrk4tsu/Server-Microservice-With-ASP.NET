@@ -14,8 +14,8 @@ namespace FN.Application.Catalog.Blogs.Pattern
 {
     public class BlogCreateFacade : BaseService
     {
-        public BlogCreateFacade(AppDbContext db, IRedisService dbRedis, IImageService image)
-            : base(db, dbRedis, image, SystemConstant.BLOG_KEY)
+        public BlogCreateFacade(AppDbContext db, IHttpClientFactory httpClientFactory, IRedisService dbRedis, IImageService image, string root) 
+            : base(db, httpClientFactory, dbRedis, image, SystemConstant.BLOG_KEY)
         {
         }
         public async Task<ApiResult<int>> CreateCombine(BlogCombineCreateOrUpdateRequest request, int userId)

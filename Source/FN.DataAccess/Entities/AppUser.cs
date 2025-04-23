@@ -6,6 +6,7 @@ namespace FN.DataAccess.Entities
     {
         public string FullName { get; set; } = string.Empty;
         public string Avatar { get; set; } = string.Empty;
+        public string Cover { get; set; } = string.Empty;
         public DateTime TimeCreated { get; set; } = DateTime.Now;
         public List<Item> Items { get; set; }
         public List<ProductOwner> ProductOwners { get; set; }

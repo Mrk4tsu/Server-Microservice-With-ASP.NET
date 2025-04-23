@@ -5,6 +5,8 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.WebHost.ConfigureKestrelServer();
 
+builder.Services.AddHttpClient();
+
 builder.Services.AddControllers();
 builder.Services.AddSwaggerExplorer()
     .InjectDbContextPool(builder.Configuration)

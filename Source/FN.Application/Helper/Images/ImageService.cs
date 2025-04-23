@@ -126,6 +126,20 @@ namespace FN.Application.Helper.Images
             return uploadResults;
         }
 
+        public async Task<string> UploadStream(MemoryStream stream, string folderName, string publicId)
+        {
+            var folder = $"{Root}/{folderName}";
+            var uploadParams = new ImageUploadParams
+            {
+                File = new FileDescription(Guid.NewGuid().ToString(), stream),
+                Folder = folder,
+                UseFilename = true,
+                UniqueFilename = false,
+                PublicId = publicId,
+            };
+            var uploadResult = await _cloudinary.UploadAsync(uploadParams);
+            return uploadResult.SecureUrl.ToString();
+        }
         public async Task<string> UploadStream(MemoryStream stream, string folderName)
         {
             var folder = $"{Root}/{folderName}";
@@ -135,6 +149,7 @@ namespace FN.Application.Helper.Images
                 Folder = folder,
                 UseFilename = true,
                 UniqueFilename = false,
+                Overwrite = true
             };
             var uploadResult = await _cloudinary.UploadAsync(uploadParams);
             return uploadResult.SecureUrl.ToString();

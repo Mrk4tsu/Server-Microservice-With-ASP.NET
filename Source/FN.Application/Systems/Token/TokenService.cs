@@ -48,10 +48,12 @@ namespace FN.Application.Systems.Token
                 new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
                 new Claim(JwtRegisteredClaimNames.UniqueName, user.UserName!),
                 new Claim(JwtRegisteredClaimNames.Name, user.FullName),
-                new Claim("Avatar", user.Avatar),
-                new Claim("Role", string.Join(';', roles))
+                new Claim("Avatar", user.Avatar)    
             };
-
+            foreach (var role in roles)
+            {
+                claims.Add(new Claim(ClaimTypes.Role, role));
+            }
             var token = new JwtSecurityToken(
               issuer: _issuer,
               audience: _audience,

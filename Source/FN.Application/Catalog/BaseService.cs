@@ -1,13 +1,14 @@
-﻿using CloudinaryDotNet.Actions;
-using CloudinaryDotNet;
-using FN.Application.Helper.Images;
+﻿using FN.Application.Helper.Images;
 using FN.Application.Systems.Redis;
 using FN.DataAccess;
-using FN.Utilities;
-using Microsoft.AspNetCore.Http;
-using System.Text.RegularExpressions;
 using FN.DataAccess.Entities;
+using FN.Utilities;
 using Ganss.Xss;
+using Microsoft.AspNetCore.Http;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing;
+using System.Text.RegularExpressions;
 
 namespace FN.Application.Catalog
 {
@@ -17,11 +18,15 @@ namespace FN.Application.Catalog
         protected readonly IRedisService _dbRedis;
         protected readonly IImageService _image;
         protected readonly AppDbContext _db;
-        public BaseService(AppDbContext db, IRedisService dbRedis, IImageService image, string root)
+        protected readonly IHttpClientFactory _httpClientFactory;
+        public BaseService(AppDbContext db,
+            IHttpClientFactory httpClientFactory,
+            IRedisService dbRedis, IImageService image, string root)
         {
             _db = db;
             _dbRedis = dbRedis;
             _image = image;
+            _httpClientFactory = httpClientFactory;
             ROOT = root;
         }
 
@@ -36,6 +41,38 @@ namespace FN.Application.Catalog
             sanitizer.AllowedCssProperties.Add("line-height");
 
             return sanitizer.Sanitize(content);
+        }
+        protected async Task<string> HandleCoverImage(IFormFile image, string itemId, string publicId)
+        {
+            var backgroundUrl = "https://res.cloudinary.com/dje3seaqj/image/upload/v1745248537/cover_bp5msi.png";
+            using var avatarStream = image.OpenReadStream();
+            using Image<Rgba32> avatarImage = await Image.LoadAsync<Rgba32>(avatarStream);
+
+            // Load background từ URL
+            var client = _httpClientFactory.CreateClient();
+            var response = await client.GetAsync(backgroundUrl);
+            if (!response.IsSuccessStatusCode)
+                return string.Empty;
+
+            await using var bgStream = await response.Content.ReadAsStreamAsync();
+            using Image<Rgba32> backgroundImage = await Image.LoadAsync<Rgba32>(bgStream);
+            avatarImage.Mutate(x => x.Resize(new ResizeOptions
+            {
+                Size = new SixLabors.ImageSharp.Size(350, 350), // chỉnh tùy vị trí và kích cỡ bạn muốn
+                Mode = ResizeMode.Stretch,
+            }));
+            // Ghép avatar vào background (vị trí x=680, y=115 là ví dụ)
+            backgroundImage.Mutate(x => x.DrawImage(avatarImage, new Point(700, 140), 1f));
+
+            // Xuất ảnh kết quả
+            var resultStream = new MemoryStream();
+            await backgroundImage.SaveAsPngAsync(resultStream);
+            resultStream.Seek(0, SeekOrigin.Begin);
+
+            //public/user
+            var seoImage = await _image.UploadStream(resultStream, Folder(itemId.ToString()), publicId);
+            
+            return seoImage;
         }
         protected async Task<string> ProcessContentImages(string content, int itemId)
         {

@@ -21,33 +21,36 @@ namespace FN.Application.Catalog.Product
         private readonly IMapper _mapper;
         private readonly IImageService _image;
         private readonly IRedisService _dbRedis;
+        private readonly IHttpClientFactory _httpClientFactory;
         public ProductManageService(AppDbContext db,
+            IHttpClientFactory httpClientFactory,
             IRedisService redisService, IMapper mapper, IImageService image)
         {
             _dbRedis = redisService;
             _db = db;
+            _httpClientFactory = httpClientFactory;
             _mapper = mapper;
             _image = image;
         }
 
         public async Task<ApiResult<int>> Create(CombinedCreateOrUpdateRequest request, int userId)
         {
-            var facade = new CreateProductFacade(_db, _dbRedis, _image);
+            var facade = new CreateProductFacade(_db, _httpClientFactory, _dbRedis, _image, SystemConstant.PRODUCT_KEY);
             return await facade.CreateCombine(request, userId);
         }
         public async Task<ApiResult<bool>> Update(CombinedCreateOrUpdateRequest request, int itemId, int productId, int userId)
         {
-            var facade = new UpdateProductFacade(_db, _dbRedis, _image);
+            var facade = new UpdateProductFacade(_db, _httpClientFactory, _dbRedis, _image, SystemConstant.PRODUCT_KEY);
             return await facade.UpdateCombined(request, itemId, productId, userId);
         }
         public async Task<ApiResult<PagedResult<ProductViewModel>>> GetProducts(ProductPagingRequest request, int userId)
         {
-            var facade = new GetProductFacade(_db, _dbRedis, _image, _mapper);
+            var facade = new GetProductFacade(_db, _mapper, null, _dbRedis, _image, SystemConstant.PRODUCT_KEY);
             return await facade.GetProducts(request, true, false, userId);
         }
         public async Task<ApiResult<PagedResult<ProductViewModel>>> TrashProducts(ProductPagingRequest request, int userId)
         {
-            var facade = new GetProductFacade(_db, _dbRedis, _image, _mapper);
+            var facade = new GetProductFacade(_db, _mapper, null, _dbRedis, _image, SystemConstant.PRODUCT_KEY);
             return await facade.GetProducts(request, true, true, userId);
         }
         public async Task RemoveCacheData()

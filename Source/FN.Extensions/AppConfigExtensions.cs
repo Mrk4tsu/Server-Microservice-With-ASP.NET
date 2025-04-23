@@ -31,10 +31,11 @@ namespace FN.Extensions
                     .AllowAnyHeader()
                     .AllowCredentials()
                     .WithOrigins(
-                        "http://localhost:4200", 
-                        "https://mrkatsu.io.vn", 
-                        "https://katsudev.vercel.app", 
-                        "https://katsudev.netlify.app"));
+                        "https://mrkatsu.io.vn",
+                        "https://www.mrkatsu.io.vn",
+                        "http://localhost:4200",
+                        "https://katsudev.onrender.com",
+                        "https://katsudev.vercel.app"));
 
             
             return app;

@@ -2,6 +2,7 @@
 using FN.Application.Helper.Devices;
 using FN.Application.Systems.Token;
 using FN.Application.Systems.User;
+using Microsoft.AspNetCore.Identity;
 
 namespace FN.UserService.Extenisons
 {
@@ -15,6 +16,21 @@ namespace FN.UserService.Extenisons
             services.AddScoped<IUserService, FN.Application.Systems.User.UserService>();
             services.AddScoped<ITokenService, TokenService>();
             services.AddScoped<IDeviceService, DeviceService>();
+            return services;
+        }
+        public static IServiceCollection AddOAuth(this IServiceCollection services, IConfiguration config)
+        {
+            services.AddAuthentication()
+                    .AddGoogle(options =>
+                    {
+                        options.ClientId = config["Authentication:Google:ClientId"]!;
+                        options.ClientSecret = config["Authentication:Google:ClientSecret"]!;
+                        options.SignInScheme = IdentityConstants.ExternalScheme;
+                        options.CallbackPath = "/signin-google";
+                        // Lấy thêm thông tin từ Google
+                        options.Scope.Add("profile");
+                        options.Scope.Add("email");
+                    });
             return services;
         }
     }

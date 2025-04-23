@@ -4,6 +4,7 @@ using FN.Application.Catalog.Product.Pattern;
 using FN.Application.Systems.Redis;
 using FN.DataAccess;
 using FN.DataAccess.Entities;
+using FN.Utilities;
 using FN.ViewModel.Catalog.Products;
 using FN.ViewModel.Catalog.Products.FeedbackProduct;
 using FN.ViewModel.Catalog.Products.Manage;
@@ -99,7 +100,7 @@ namespace FN.Application.Catalog.Product
         }
         public async Task<ApiResult<PagedResult<ProductViewModel>>> GetProducts(ProductPagingRequest request)
         {
-            var facade = new GetProductFacade(_db, _dbRedis!, null!, _mapper);
+            var facade = new GetProductFacade(_db, _mapper, null, _dbRedis, null, SystemConstant.PRODUCT_KEY);
             return await facade.GetProducts(request, false, false, null);
         }
 
@@ -214,6 +215,29 @@ namespace FN.Application.Catalog.Product
             _db.Items.Update(product);
             await _db.SaveChangesAsync();
             return new ApiSuccessResult<int>(product.ViewCount);
+        }
+
+        public async Task<ApiResult<ProductSeoViewModel>> GetOpenGraph(int productId)
+        {
+            var product = await _db.ProductDetails
+                .Include(x => x.Item)
+                .Where(x => x.Id == productId && !x.Item.IsDeleted)
+                .Select(x => new ProductSeoViewModel
+                {
+                    Id = x.Id,
+                    SeoAlias = x.Item.SeoAlias,
+                    Description = x.Item.Description,
+                    Keyword = x.Item.Keywords,
+                    Cover = x.Item.Cover,
+                    Thumbnail = x.Item.Thumbnail,
+                    Title = x.Item.Title,
+                })
+                .FirstOrDefaultAsync();
+
+            if (product == null)
+                return new ApiErrorResult<ProductSeoViewModel>("Không tìm thấy sản phẩm");
+
+            return new ApiSuccessResult<ProductSeoViewModel>(product);
         }
     }
 }

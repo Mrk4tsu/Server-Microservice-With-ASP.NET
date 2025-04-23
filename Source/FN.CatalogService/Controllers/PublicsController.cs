@@ -90,5 +90,11 @@ namespace FN.ProductService.Controllers
             var result = await _service.UpdateView(productId);
             return Ok(result);
         }
+        [HttpGet("get-metadata")]
+        public async Task<IActionResult> GetOpenGraph(int productId)
+        {
+            var result = await _service.GetOpenGraph(productId);
+            return Ok(result);
+        }
     }
 }

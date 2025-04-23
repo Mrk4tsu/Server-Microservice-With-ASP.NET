@@ -1,13 +1,9 @@
 ﻿
 using Confluent.Kafka;
-using FN.Application.Catalog.Product.Pattern;
-using FN.Application.Systems.Events;
 using FN.DataAccess;
 using FN.DataAccess.Entities;
 using FN.DataAccess.Enums;
 using FN.Utilities;
-using FN.ViewModel.Helper.API;
-using Mailjet.Client.Resources;
 using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
 
@@ -67,38 +63,49 @@ namespace FN.CatalogService.Kafka
 
                     using var scope = _scopeFactory.CreateScope();
                     var _db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+                    using var transaction = await _db.Database.BeginTransactionAsync();
 
-                    var eventProduct = await _db.SaleEventProducts
+                    try
+                    {
+                        var eventProduct = await _db.SaleEventProducts
                     .Include(ep => ep.SaleEvent)
                     .Include(ep => ep.ProductDetail)
                     .FirstOrDefaultAsync(ep => ep.Id == epMessage.ProductEventId);
-                    if (eventProduct == null) continue;
+                        if (eventProduct == null) continue;
 
-                    if (_now < eventProduct.SaleEvent.StartDate || _now > eventProduct.SaleEvent.EndDate)
-                        continue;
+                        if (_now < eventProduct.SaleEvent.StartDate || _now > eventProduct.SaleEvent.EndDate)
+                            continue;
 
-                    if (eventProduct.CurrentPurchases >= eventProduct.MaxPurchases)
-                        continue;
+                        if (eventProduct.CurrentPurchases >= eventProduct.MaxPurchases)
+                            continue;
 
-                    eventProduct.CurrentPurchases++;
-                    var owner = new ProductOwner
-                    {
-                        ProductId = epMessage.ProductId,
-                        UserId = epMessage.UserId,
-                    };
-                    await _db.ProductOwners.AddAsync(owner).ConfigureAwait(false);
-                    if (eventProduct.CurrentPurchases >= eventProduct.MaxPurchases)
-                    {
-                        eventProduct.IsActive = false;
-                        var productPrice = await _db.ProductPrices
-                        .FirstOrDefaultAsync(pp => pp.ProductDetailId == eventProduct.ProductDetailId
-                                                && pp.PriceType == PriceType.SALE_EVENT
-                                                && pp.SaleEventId == eventProduct.SaleEventId);
-                        if (productPrice != null)
-                            productPrice.EndDate = _now;
+                        eventProduct.CurrentPurchases++;
+                        var owner = new ProductOwner
+                        {
+                            ProductId = epMessage.ProductId,
+                            UserId = epMessage.UserId,
+                        };
+                        await _db.ProductOwners.AddAsync(owner).ConfigureAwait(false);
+                        if (eventProduct.CurrentPurchases >= eventProduct.MaxPurchases)
+                        {
+                            eventProduct.IsActive = false;
+                            var productPrice = await _db.ProductPrices
+                            .FirstOrDefaultAsync(pp => pp.ProductDetailId == eventProduct.ProductDetailId
+                                                    && pp.PriceType == PriceType.SALE_EVENT
+                                                    && pp.SaleEventId == eventProduct.SaleEventId);
+                            if (productPrice != null)
+                                productPrice.EndDate = _now;
+                        }
+                        await _db.SaveChangesAsync();
+                        await transaction.CommitAsync();
+                        consumer.Commit(consumeResult);
                     }
-                    await _db.SaveChangesAsync();
-                    consumer.Commit(consumeResult);
+                    catch (Exception ex)
+                    {
+                        _logger.BeginScope("Error processing message: {Message}", ex.Message);
+                        await transaction.RollbackAsync();
+                        consumer.Commit(consumeResult);
+                    }
                 }
                 catch(Exception ex)
                 {

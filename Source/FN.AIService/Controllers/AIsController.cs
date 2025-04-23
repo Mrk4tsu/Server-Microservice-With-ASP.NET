@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace FN.AIService.Controllers
 {
-    [Route("api/[controller]")]
+    [Route("api/ai")]
     [ApiController]
     public class AIsController : ControllerBase
     {

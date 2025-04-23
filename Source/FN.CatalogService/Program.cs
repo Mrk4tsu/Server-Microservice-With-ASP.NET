@@ -8,6 +8,8 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.WebHost.ConfigureKestrelServer(80);
 
+builder.Services.AddHttpClient();
+
 builder.Services.AddControllers();
 
 builder.Services.AddSwaggerExplorer()

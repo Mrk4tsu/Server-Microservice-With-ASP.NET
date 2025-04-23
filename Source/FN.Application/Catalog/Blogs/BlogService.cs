@@ -34,12 +34,12 @@ namespace FN.Application.Catalog.Blogs
         }
         public async Task<ApiResult<int>> CreateCombine(BlogCombineCreateOrUpdateRequest request, int userId)
         {
-            var facade = new BlogCreateFacade(_db, _redis, _image);
+            var facade = new BlogCreateFacade(_db, null, _redis, _image, SystemConstant.BLOG_KEY);
             return await facade.CreateCombine(request, userId);
         }
         public async Task<ApiResult<int>> UpdateCombine(BlogCombineCreateOrUpdateRequest request, int itemId, int blogId, int userId)
         {
-            var facade = new BlogUpdateFacade(_db, _redis, _image, SystemConstant.BLOG_KEY);
+            var facade = new BlogUpdateFacade(_db, null, _redis, _image, SystemConstant.BLOG_KEY);
             return await facade.Update(request, itemId, blogId, userId);
         }
         public async Task<ApiResult<List<BlogViewModel>>> GetLatestBlogs()
@@ -135,7 +135,7 @@ namespace FN.Application.Catalog.Blogs
                 .ThenInclude(x => x.User)
                 .AsQueryable();
             if (!string.IsNullOrEmpty(request.KeyWord))
-                query = query.Where(x => x.Item.Title.Contains(request.KeyWord) 
+                query = query.Where(x => x.Item.Title.Contains(request.KeyWord)
                 || x.Item.NormalizedTitle.Contains(request.KeyWord)
                 || x.Item.User.FullName.Contains(request.KeyWord));
 

@@ -13,9 +13,10 @@ namespace FN.Application.Catalog.Product.Pattern
 {
     public class UpdateProductFacade : BaseService
     {
-        public UpdateProductFacade(AppDbContext db, IRedisService dbRedis, IImageService image) : base(db, dbRedis, image, SystemConstant.PRODUCT_KEY)
+        public UpdateProductFacade(AppDbContext db, IHttpClientFactory httpClientFactory, IRedisService dbRedis, IImageService image, string root) : base(db, httpClientFactory, dbRedis, image, SystemConstant.PRODUCT_KEY)
         {
         }
+
         public async Task<ApiResult<bool>> UpdateCombined(CombinedCreateOrUpdateRequest request, int itemId, int productId, int userId)
         {
             var executionStrategy = _db.Database.CreateExecutionStrategy();
@@ -84,7 +85,12 @@ namespace FN.Application.Catalog.Product.Pattern
             if (request.Thumbnail != null)
             {
                 string? newThumbnail = await UploadImage(request.Thumbnail, item.Id.ToString(), item.Id.ToString());
-                if (!string.IsNullOrEmpty(newThumbnail)) item.Thumbnail = newThumbnail;
+                string? newCover = await HandleCoverImage(request.Thumbnail, item.Id.ToString(), $"cover{item.Id.ToString()}");
+                if (!string.IsNullOrEmpty(newThumbnail))
+                {
+                    item.Thumbnail = newThumbnail;
+                    item.Cover = newCover;
+                }
             }
             item.ModifiedDate = Now();
             _db.Items.Update(item);

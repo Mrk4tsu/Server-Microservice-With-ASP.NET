@@ -11,6 +11,9 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using MongoDB.Driver;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing;
 using System.Net;
 
 namespace FN.Application.Systems.User
@@ -24,15 +27,18 @@ namespace FN.Application.Systems.User
         private readonly IDeviceService _deviceService;
         private readonly IImageService _imageService;
         private readonly ILogger<UserService> _logger;
+        private readonly IHttpClientFactory _httpClientFactory;
         public UserService(
          IRedisService redisService,
          UserManager<AppUser> userManager,
+         IHttpClientFactory httpClientFactory,
          IMapper mapper,
          IImageService imageService,
          IDeviceService deviceService,
          ILogger<UserService> logger)
         {
             _redisService = redisService;
+            _httpClientFactory = httpClientFactory;
             _userManager = userManager;
             _mapper = mapper;
             _imageService = imageService;
@@ -102,6 +108,7 @@ namespace FN.Application.Systems.User
                 if (user == null)
                     return new ApiErrorResult<UserViewModel>("Tài khoản không tồn tại");
                 var userVm = _mapper.Map<UserViewModel>(user);
+
                 userVm.Role = (await _userManager.GetRolesAsync(user)).FirstOrDefault() ?? string.Empty;
                 await _redisService.SetValue(keyCache, userVm, TimeSpan.FromMinutes(5));
                 return new ApiSuccessResult<UserViewModel>(userVm);
@@ -158,11 +165,41 @@ namespace FN.Application.Systems.User
                 if (user == null)
                     return new ApiErrorResult<bool>("Tài khoản không tồn tại");
 
+                var backgroundUrl = "https://res.cloudinary.com/dje3seaqj/image/upload/v1745243864/nh2_e3wjpl.png";
+                using var avatarStream = file.OpenReadStream();
+                using Image<Rgba32> avatarImage = await Image.LoadAsync<Rgba32>(avatarStream);
+
+                // Load background từ URL
+                var client = _httpClientFactory.CreateClient();
+                var response = await client.GetAsync(backgroundUrl);
+                if (!response.IsSuccessStatusCode)
+                    return new ApiErrorResult<bool>("Không thể tải background từ URL");
+
+                await using var bgStream = await response.Content.ReadAsStreamAsync();
+                using Image<Rgba32> backgroundImage = await Image.LoadAsync<Rgba32>(bgStream);
+                avatarImage.Mutate(x => x.Resize(new ResizeOptions
+                {
+                    Size = new Size(350, 350), // chỉnh tùy vị trí và kích cỡ bạn muốn
+                    Mode = ResizeMode.Stretch,
+                }));
+                // Ghép avatar vào background (vị trí x=680, y=115 là ví dụ)
+                backgroundImage.Mutate(x => x.DrawImage(avatarImage, new Point(700, 140), 1f));
+
+                // Xuất ảnh kết quả
+                var resultStream = new MemoryStream();
+                await backgroundImage.SaveAsPngAsync(resultStream);
+                resultStream.Seek(0, SeekOrigin.Begin);
+
+                //public/user
+                var seoImage = await _imageService.UploadStream(resultStream, $"{ROOT}/{user.UserName!}", $"cover-{user.UserName}");
+
                 var newAvatar = await _imageService.UploadImage(file, user.UserName!, user.UserName!, ROOT);
                 if (string.IsNullOrEmpty(newAvatar))
                     return new ApiErrorResult<bool>("Không thể lấy dữ liệu ảnh tải lên");
 
                 user.Avatar = newAvatar;
+                user.Cover = seoImage;
+
                 var result = await _userManager.UpdateAsync(user);
 
                 if (result.Succeeded)
@@ -224,10 +261,10 @@ namespace FN.Application.Systems.User
             return new ApiErrorResult<bool>(result.Errors.First().Description);
         }
         public async Task<ApiResult<bool>> ChangeName(int userId, string newName)
-        {           
+        {
             var user = await _userManager.FindByIdAsync(userId.ToString());
             var cacheKeyTimestamp = "user-rename: " + user.UserName;
-            if(await _redisService.KeyExist(cacheKeyTimestamp)) return new ApiErrorResult<bool>("Chỉ có thể đổi tên mới sau lần đổi cuối là 7 ngày");
+            if (await _redisService.KeyExist(cacheKeyTimestamp)) return new ApiErrorResult<bool>("Chỉ có thể đổi tên mới sau lần đổi cuối là 7 ngày");
             if (user == null) return new ApiErrorResult<bool>("User không tồn tại");
             user.FullName = newName;
             var result = await _userManager.UpdateAsync(user);

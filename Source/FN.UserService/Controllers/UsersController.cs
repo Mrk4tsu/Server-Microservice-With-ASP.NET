@@ -18,7 +18,7 @@ namespace FN.UserService.Controllers
             _userService = userService;
             _notifyService = notifyService;
         }
-        [HttpGet("{userId}"), AllowAnonymous]
+        [HttpGet("{userId}"), Authorize(Roles = "Admin")]
         public async Task<IActionResult> Get(int userId)
         {
             var result = await _userService.GetById(userId);

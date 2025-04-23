@@ -15,5 +15,6 @@ namespace FN.Application.Catalog.Product
         Task<ApiResult<int>> AddProductFeedback(FeedbackRequest request, int userId);
         Task<ApiSuccessResult<PagedResult<FeedbackViewModel>>> GetFeedbackProduct(PagedList request, int productId);
         Task<ApiResult<int>> UpdateView(int productId);
+        Task<ApiResult<ProductSeoViewModel>> GetOpenGraph(int productId);
     }
 }

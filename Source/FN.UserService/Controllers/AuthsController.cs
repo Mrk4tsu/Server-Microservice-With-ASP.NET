@@ -1,9 +1,12 @@
 ﻿using FN.Application.Helper.Devices;
 using FN.Application.Systems.User;
+using FN.DataAccess.Entities;
 using FN.ViewModel.Systems.Token;
 using FN.ViewModel.Systems.User;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace FN.UserService.Controllers
 {
@@ -14,12 +17,16 @@ namespace FN.UserService.Controllers
         private readonly IUserService _userService;
         private readonly IAuthService _authService;
         private readonly IDeviceService _deviceService;
-        public AuthsController(IUserService userService, IAuthService authService, IDeviceService deviceService)
+        public AuthsController(
+            IUserService userService,
+            IAuthService authService,
+            IDeviceService deviceService)
         {
             _authService = authService;
             _userService = userService;
             _deviceService = deviceService;
         }
+
         [HttpPost("register"), AllowAnonymous]
         public async Task<IActionResult> Register(RegisterDTO register)
         {

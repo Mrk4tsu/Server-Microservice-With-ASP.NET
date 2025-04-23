@@ -14,7 +14,8 @@ namespace FN.Application.Catalog.Product.Pattern
 {
     public class CreateProductFacade : BaseService
     {
-        public CreateProductFacade(AppDbContext db, IRedisService dbRedis, IImageService image) : base(db, dbRedis, image, SystemConstant.PRODUCT_KEY)
+        public CreateProductFacade(AppDbContext db, IHttpClientFactory httpClientFactory, IRedisService dbRedis, IImageService image, string root) 
+            : base(db, httpClientFactory, dbRedis, image, SystemConstant.PRODUCT_KEY)
         {
         }
         public async Task<ApiResult<int>> CreateCombine(CombinedCreateOrUpdateRequest request, int userId)
@@ -151,7 +152,8 @@ namespace FN.Application.Catalog.Product.Pattern
             await _db.Items.AddAsync(newItem);
             await _db.SaveChangesAsync();
 
-            newItem.Thumbnail = await UploadImage(request.Thumbnail!, newItem.Id.ToString(), newItem.Id.ToString()) ?? "";
+            newItem.Cover = await HandleCoverImage(request.Thumbnail!, SystemConstant.PRODUCT_KEY, newItem.Id.ToString()) ?? "";
+            newItem.Thumbnail = await HandleCoverImage(request.Thumbnail!, newItem.Id.ToString(), $"cover{newItem.Id.ToString()}");
             _db.Items.Update(newItem);
             await _db.SaveChangesAsync();
             return new ApiSuccessResult<int>(newItem.Id);
