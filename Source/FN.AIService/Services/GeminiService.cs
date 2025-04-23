@@ -21,13 +21,19 @@ namespace FN.AIService.Services
         public async Task<string> GenerateContentAsync(int userId, string chatSessionId, string userMessage)
         {
             // Lấy lịch sử tin nhắn dưới dạng LinkedList
-            var chatMessages = await _chatSessionRepository.GetMessagesAsLinkedListAsync(chatSessionId, userId);
+            var chatMessages = await _chatSessionRepository.GetMessagesAsLinkedListAsync(chatSessionId, userId, 40);
 
-            // Tạo yêu cầu với lịch sử trò chuyện
+            // Chuyển LinkedList thành danh sách contents cho Gemini API
             var contents = chatMessages.Select(m => new GeminiAIDev.Models.Content
             {
                 role = m.Role,
-                parts = new[] { new GeminiAIDev.Models.Part { text = m.Content } }
+                parts = new[]
+                {
+                    new GeminiAIDev.Models.Part
+                    {
+                        text = m.Content
+                    }
+                }
             }).ToList();
 
             // Thêm tin nhắn mới của người dùng
@@ -36,6 +42,14 @@ namespace FN.AIService.Services
                 role = "user",
                 parts = new[] { new GeminiAIDev.Models.Part { text = userMessage } }
             });
+
+            // Kiểm tra tổng độ dài (ước tính token)
+            int estimatedTokenCount = contents.Sum(c => c.parts.Sum(p => p.text.Length / 4)); // Ước tính: 1 token ~ 4 ký tự
+            if (estimatedTokenCount > 8000) // Giới hạn an toàn
+            {
+                // Cắt bớt tin nhắn cũ nếu vượt quá
+                contents = contents.TakeLast(40).ToList();
+            }
 
             // Gọi API Gemini
             string url = $"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro-exp-03-25:generateContent?key={_apiKey}";

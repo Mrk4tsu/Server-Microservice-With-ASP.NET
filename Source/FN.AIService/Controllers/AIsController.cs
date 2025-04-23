@@ -3,6 +3,7 @@ using FN.AIService.Services;
 using FN.AIService.Services.Chats;
 using GeminiAIDev.Models;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Caching.Memory;
 using System.Security.Claims;
 
 namespace FN.AIService.Controllers
@@ -26,7 +27,7 @@ namespace FN.AIService.Controllers
         [HttpPost("create-session")]
         public async Task<IActionResult> CreateChatSession()
         {
-            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
+            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value!);
             var session = new ChatSession
             {
                 UserId = userId,
@@ -42,7 +43,7 @@ namespace FN.AIService.Controllers
         [HttpPost("send-message")]
         public async Task<IActionResult> SendMessage([FromBody] SendMessageRequest request)
         {
-            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
+            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value!);
             var session = await _chatSessionRepository.GetChatSessionAsync(request.ChatSessionId, userId);
 
             if (session == null)
@@ -54,17 +55,62 @@ namespace FN.AIService.Controllers
         }
         // Lấy lịch sử trò chuyện với caching
         [HttpGet("session/{chatSessionId}/history")]
-        public async Task<IActionResult> GetChatHistory(string chatSessionId)
+        public async Task<IActionResult> GetChatHistory(string chatSessionId, int page = 1, int pageSize = 20)
         {
-            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
-            var cacheKey = $"ChatHistory_{chatSessionId}";
-            // Lấy tin nhắn từ MongoDB dưới dạng LinkedList
+            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value!);
+
+            // Lấy tin nhắn từ MongoDB
             var messages = await _chatSessionRepository.GetMessagesAsLinkedListAsync(chatSessionId, userId);
 
-            if (!messages.Any())
+            // Phân trang
+            var pagedMessages = messages
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .Select(m => new { m.Role, m.Content, m.SentAt })
+                .ToList();
+
+            if (!pagedMessages.Any())
                 return NotFound("No messages found.");
 
-            return Ok(messages.Select(m => new { m.Role, m.Content, m.SentAt }));
+            return Ok(pagedMessages);
+        }
+        // Xóa phiên chat
+        [HttpDelete("session/{chatSessionId}")]
+        public async Task<IActionResult> DeleteChatSession(string chatSessionId)
+        {
+            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value!);
+
+            try
+            {
+                await _chatSessionRepository.DeleteChatSessionAsync(chatSessionId, userId);
+
+                return Ok(new { Message = "Chat session deleted successfully." });
+            }
+            catch (Exception ex)
+            {
+                return NotFound(ex.Message);
+            }
+        }
+        // Lấy danh sách phiên chat của người dùng
+        [HttpGet("sessions")]
+        public async Task<IActionResult> GetUserChatSessions(int page = 1, int pageSize = 10)
+        {
+            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value!);
+            var cacheKey = $"UserSessions_{userId}";
+
+            // Lấy danh sách session từ MongoDB
+            var sessions = await _chatSessionRepository.GetUserChatSessionsAsync(userId, page, pageSize);
+
+            // Chuyển đổi sang DTO để trả về
+            var sessionDtos = sessions.Select(s => new
+            {
+                s.Id,
+                s.Title,
+                s.CreatedDate,
+                s.LastModifiedDate,
+                MessageCount = s.Messages.Count
+            }).ToList();
+            return Ok(sessionDtos);
         }
         [HttpGet("recommendations/{userId}")]
         public async Task<IActionResult> GetRecommendations(int userId)
