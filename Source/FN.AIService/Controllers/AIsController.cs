@@ -5,6 +5,7 @@ using GeminiAIDev.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
+using Newtonsoft.Json;
 using System.Security.Claims;
 
 namespace FN.AIService.Controllers
@@ -41,6 +42,37 @@ namespace FN.AIService.Controllers
             };
             await _chatSessionRepository.CreateChatSessionAsync(session);
             return Ok(new { SessionId = session.Id });
+        }
+        [HttpPost("stream-message")]
+        public async Task StreamMessage([FromBody] SendMessageRequest request)
+        {
+            var userId = GetUserIdFromClaims();
+            if (userId == null)
+            {
+                Response.StatusCode = 401;
+                return;
+            }
+
+            var session = await _chatSessionRepository.GetChatSessionAsync(request.ChatSessionId, userId.Value);
+            if (session == null)
+            {
+                Response.StatusCode = 404;
+                return;
+            }
+
+            Response.Headers.Append("Content-Type", "text/event-stream");
+            Response.Headers.Append("Cache-Control", "no-cache");
+            Response.Headers.Append("Connection", "keep-alive");
+
+            await foreach (var chunk in _geminiService.StreamGenerateContentAsync(userId.Value, request.ChatSessionId, request.Message))
+            {
+                // Chỉ gửi nội dung text, không gửi cả object JSON
+                await Response.WriteAsync($"data: {JsonConvert.SerializeObject(chunk)}\n\n");
+                await Response.Body.FlushAsync();
+            }
+
+            await Response.WriteAsync("data: [DONE]\n\n");
+            await Response.Body.FlushAsync();
         }
         // Gửi tin nhắn và nhận phản hồi
         [HttpPost("send-message")]
@@ -99,12 +131,12 @@ namespace FN.AIService.Controllers
         public async Task<IActionResult> GetUserChatSessions(int page = 1, int pageSize = 10)
         {
 
-                var userId = GetUserIdFromClaims();
-                if (userId == null) return Unauthorized();
+            var userId = GetUserIdFromClaims();
+            if (userId == null) return Unauthorized();
 
-                var sessions = await _chatSessionRepository.GetUserChatSessionsAsync(userId.Value, page, pageSize);
+            var sessions = await _chatSessionRepository.GetUserChatSessionsAsync(userId.Value, page, pageSize);
 
-                return Ok(sessions);
+            return Ok(sessions);
         }
         [HttpGet("recommendations/{userId}")]
         public async Task<IActionResult> GetRecommendations(int userId)
