@@ -1,12 +1,24 @@
+using FN.Forum.Extensions;
+
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
+builder.Services.ConfigureDbContext(builder.Configuration)
+                .ConfigureRedis(builder.Configuration)
+                .AddIdentityHandlersAndStores()
+                .ConfigureIdentityOptions()
+                .AddIdentityAuth(builder.Configuration)
+                .AddSwaggerExplorer()
+                .AddServices();
 
 builder.Services.AddControllers();
 
+
+
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
+app.ConfigureCORS(builder.Configuration)
+   .ConfigureSwaggerExplorer()
+   .AddIdentityAuthMiddlewares();
 
 app.UseHttpsRedirection();
 

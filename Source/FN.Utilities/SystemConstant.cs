@@ -36,5 +36,6 @@
 
         public const string AVATAR_DEFAULT = "https://res.cloudinary.com/dje3seaqj/image/upload/v1736989161/gatapchoi_biglrl.jpg";
 
+        public const string CACHE_POST = "topic";
     }
 }

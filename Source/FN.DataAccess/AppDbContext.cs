@@ -39,5 +39,7 @@ namespace FN.DataAccess
         public DbSet<FeedBack> FeedBacks { get; set; }
         public DbSet<SaleEvent> SaleEvents { get; set; }
         public DbSet<SaleEventProduct> SaleEventProducts { get; set; }
+        public DbSet<Topic> Topics { get; set; }
+        public DbSet<Reply> Replies { get; set; }
     }
 }

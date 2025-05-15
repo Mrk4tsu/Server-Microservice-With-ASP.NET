@@ -20,6 +20,7 @@
     <ProjectReference Include="..\FN.APIGateway\FN.APIGateway.csproj" />
     <ProjectReference Include="..\FN.CatalogService\FN.CatalogService.csproj" />
     <ProjectReference Include="..\FN.EmailService\FN.EmailService.csproj" />
+    <ProjectReference Include="..\FN.Forum\FN.Forum.csproj" />
     <ProjectReference Include="..\FN.OrderService\FN.OrderService.csproj" />
     <ProjectReference Include="..\FN.UserService\FN.UserService.csproj" />
   </ItemGroup>

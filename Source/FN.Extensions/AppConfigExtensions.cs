@@ -32,10 +32,9 @@ namespace FN.Extensions
                     .AllowCredentials()
                     .WithOrigins(
                         "https://mrkatsu.io.vn",
-                        "https://www.mrkatsu.io.vn",
                         "http://localhost:4200",
                         "https://katsudev.onrender.com",
-                        "https://mrkatsu.azurewebsites.net",
+                        "https://mrk4tsu.azurewebsites.net",
                         "https://katsudev.vercel.app"));
 
             

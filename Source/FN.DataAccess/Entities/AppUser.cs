@@ -15,5 +15,7 @@ namespace FN.DataAccess.Entities
         public List<Payment> Payments { get; set; }
         public List<FeedBack> FeedBacks { get; set; }
         public List<UserProductInteraction> UserProductInteractions { get; set; }
+        public List<Reply> Replies { get; set; }
+        public List<Topic> Topics { get; set; }
     }
 }
