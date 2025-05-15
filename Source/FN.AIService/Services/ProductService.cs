@@ -14,14 +14,15 @@ namespace FN.AIService.Services
         public async Task<List<Item>> GetItemsByUserAsync(int userId)
         {
             return await _db.Items
-            .Where(i => !i.IsDeleted && i.UserId == userId)
-            .Include(i => i.ProductDetails)
-            .ToListAsync();
+                .AsNoTracking()
+                .Where(i => !i.IsDeleted && i.UserId == userId)
+                .Include(i => i.ProductDetails)
+                .ToListAsync();
         }
 
         public async Task<List<Item>> GetLatestItemsAsync(int count)
         {
-            return await _db.Items
+            return await _db.Items.AsNoTracking()
             .Where(i => !i.IsDeleted)
             .OrderByDescending(i => i.CreatedDate)
             .Take(count)

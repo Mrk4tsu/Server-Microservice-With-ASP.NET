@@ -152,8 +152,10 @@ namespace FN.Application.Catalog.Product.Pattern
             await _db.Items.AddAsync(newItem);
             await _db.SaveChangesAsync();
 
-            newItem.Cover = await HandleCoverImage(request.Thumbnail!, SystemConstant.PRODUCT_KEY, newItem.Id.ToString()) ?? "";
-            newItem.Thumbnail = await HandleCoverImage(request.Thumbnail!, newItem.Id.ToString(), $"cover{newItem.Id.ToString()}");
+            string newCover = await HandleCoverImage(request.Thumbnail!, newItem.Id.ToString(), $"cover{newItem.Id.ToString()}");
+            string newThumbnail = await UploadImage(request.Thumbnail!, newItem.Id.ToString(), newItem.Id.ToString());
+            newItem.Cover = newCover;
+            newItem.Thumbnail = newThumbnail;
             _db.Items.Update(newItem);
             await _db.SaveChangesAsync();
             return new ApiSuccessResult<int>(newItem.Id);

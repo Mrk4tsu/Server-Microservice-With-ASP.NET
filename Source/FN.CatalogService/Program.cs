@@ -1,4 +1,5 @@
 ﻿using FN.Application.Catalog.Product.Notifications;
+using FN.Application.Catalog.Statisticals;
 using FN.Application.Systems.Events;
 using FN.CatalogService.Extensions;
 using FN.CatalogService.Kafka;
@@ -27,6 +28,7 @@ builder.Services.AddSwaggerExplorer()
 builder.Services.AddSignalR();
 
 builder.Services.AddScoped<ISaleEventService, SaleEventService>();
+builder.Services.AddScoped<IProductStatsRepository, ProductStatsRepository>();
 
 
 builder.Services

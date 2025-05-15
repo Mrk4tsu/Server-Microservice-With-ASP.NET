@@ -1,12 +1,9 @@
 ﻿using FN.Application.Helper.Devices;
 using FN.Application.Systems.User;
-using FN.DataAccess.Entities;
 using FN.ViewModel.Systems.Token;
 using FN.ViewModel.Systems.User;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using System.Security.Claims;
 
 namespace FN.UserService.Controllers
 {

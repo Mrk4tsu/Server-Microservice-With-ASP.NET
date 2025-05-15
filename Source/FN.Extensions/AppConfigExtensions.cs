@@ -35,6 +35,7 @@ namespace FN.Extensions
                         "https://www.mrkatsu.io.vn",
                         "http://localhost:4200",
                         "https://katsudev.onrender.com",
+                        "https://mrkatsu.azurewebsites.net",
                         "https://katsudev.vercel.app"));
 
             

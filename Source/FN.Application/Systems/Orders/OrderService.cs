@@ -42,6 +42,7 @@ namespace FN.Application.Systems.Orders
             var user = await _db.Users.FindAsync(userId);
             if (!user!.EmailConfirmed) return new ApiErrorResult<int>("Tài khoản chưa xác thực email");
 
+            var productPrice = await _db.ProductPrices.Where(x => x.ProductDetailId == request.ProductId && x.PriceType == PriceType.BASE).FirstOrDefaultAsync();
             var eventPrice = await _saleEvent.GetCurrentEventPrice(request.ProductId);
             decimal finalPrice = await DetermineFinalPrice(request.ProductId, eventPrice);
             using var transaction = await _db.Database.BeginTransactionAsync();
@@ -62,7 +63,7 @@ namespace FN.Application.Systems.Orders
                     TotalAmount = finalPrice,
                     OrderDate = DateTime.Now,
                     OrderStatus = OrderStatus.PENDING,
-                    UnitPrice = request.Amount,
+                    UnitPrice = productPrice!.Price,
 
                 };
                 _db.Orders.Add(order);

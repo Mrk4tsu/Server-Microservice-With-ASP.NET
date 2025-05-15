@@ -23,7 +23,7 @@ namespace FN.Application.Catalog.Product.Pattern
             _mapper = mapper;
         }
 
-        public async Task<ApiResult<PagedResult<ProductViewModel>>> GetProducts(ProductPagingRequest request, bool isMe, bool isDeleted, int? currentUserId)
+        public async Task<ApiResult<PagedResult<ProductViewModel>>> GetProducts(ProductPagingRequest request, bool isMe, int? currentUserId)
         {
             const string cacheKey = SystemConstant.PRODUCT_KEY;
             List<ProductViewModel>? cachedData = null;
@@ -43,7 +43,7 @@ namespace FN.Application.Catalog.Product.Pattern
             }
             else
             {
-                var query = BuildBaseQuery(isDeleted);
+                var query = BuildBaseQuery();
                 var filteredQuery = ApplyDatabaseFilters(query, request, isMe, currentUserId);
                 result = await ExecuteDatabasePaging(filteredQuery, request);
 
@@ -52,47 +52,14 @@ namespace FN.Application.Catalog.Product.Pattern
 
             return new ApiSuccessResult<PagedResult<ProductViewModel>>(result);
         }
-        private IQueryable<ProductViewModel> BuildBaseQuery(bool isDeleted)
+        private IQueryable<ProductViewModel> BuildBaseQuery()
         {
-            return _db.ProductDetails
+            var result = _db.ProductDetails
                 .AsNoTracking()
-                .Where(pd => pd.Item.IsDeleted == isDeleted && pd.Item.IsDeleted == isDeleted)
                 .ProjectTo<ProductViewModel>(_mapper.ConfigurationProvider);
+            
+            return result;
         }
-        //private IQueryable<ProductViewModel> BuildBaseQuery(bool isDeleted)
-        //{
-        //    return _db.ProductDetails
-        //        .AsNoTracking()
-        //        .Where(pd => pd.Item.IsDeleted == isDeleted && pd.IsDeleted == isDeleted)
-        //        .Select(pd => new ProductViewModel
-        //        {
-        //            Id = pd.Item.Id,
-        //            ProductId = pd.Id,
-        //            UserId = pd.Item.UserId,
-        //            Title = pd.Item.Title,
-        //            NormalizeTitle = pd.Item.NormalizedTitle,
-        //            CategorySeoAlias = pd.Category.SeoAlias,
-        //            SeoAlias = pd.Item.SeoAlias,
-        //            CategoryIcon = pd.Category.SeoImage,
-        //            DownloadCount = pd.DownloadCount,
-        //            TimeCreates = pd.Item.CreatedDate,
-        //            TimeUpdates = pd.Item.ModifiedDate,
-        //            Thumbnail = pd.Item.Thumbnail,
-        //            Username = pd.Item.User.FullName,
-        //            Version = pd.Version,
-        //            Prices = pd.ProductPrices
-        //                .Where(pp => !pp.ProductDetail.IsDeleted && pp.EndDate > Now()) 
-        //                .Select(pp => new PriceViewModel
-        //                {
-        //                    Id = pp.Id,
-        //                    Price = pp.Price,
-        //                    PriceType = pp.PriceType,
-        //                    StartDate = pp.StartDate,
-        //                    EndDate = pp.EndDate
-        //                })
-        //                .ToList(),
-        //        });
-        //}
         private List<ProductViewModel> ApplyMemoryFilters(List<ProductViewModel> data, ProductPagingRequest request, bool isMe, int? currentUserId)
         {
             var query = data.AsQueryable();

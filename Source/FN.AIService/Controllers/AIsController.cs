@@ -25,11 +25,38 @@ namespace FN.AIService.Controllers
             _analysisService = analysisService;
             _geminiService = service;
         }
+        [HttpPost("stream-assistant")]
+        public async Task StreamAssistant([FromBody] AssistantRequest request)
+        {
+            var userId = GetUserIdFromClaims();
+            if (userId == null)
+            {
+                Response.StatusCode = 401;
+                return;
+            }
+            await _analysisService.AssistantsChatStream(request, userId.Value, HttpContext);
+        }
+        [HttpPost("assistant")]
+        public async Task<IActionResult> GetAssistant(AssistantRequest request)
+        {
+            try
+            {
+                var userId = GetUserIdFromClaims();
+                if (userId == null) return Unauthorized();
+                var result = await _analysisService.AssistantsChat(request, userId.Value);
+                //return CreateAction về Id của session chat
+                return CreatedAtAction(nameof(CreateChatSession), new { SessionId = result });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
+            }
+        }
+
         // Tạo phiên chat mới
         [HttpPost("create-session")]
         public async Task<IActionResult> CreateChatSession()
         {
-            //var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value!);
             var userId = GetUserIdFromClaims();
             if (userId == null) return Unauthorized();
             var session = new ChatSession
@@ -74,11 +101,9 @@ namespace FN.AIService.Controllers
             await Response.WriteAsync("data: [DONE]\n\n");
             await Response.Body.FlushAsync();
         }
-        // Gửi tin nhắn và nhận phản hồi
         [HttpPost("send-message")]
         public async Task<IActionResult> SendMessage([FromBody] SendMessageRequest request)
         {
-            //var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value!);
             var userId = GetUserIdFromClaims();
             if (userId == null) return Unauthorized();
             var session = await _chatSessionRepository.GetChatSessionAsync(request.ChatSessionId, userId.Value);
@@ -90,18 +115,15 @@ namespace FN.AIService.Controllers
 
             return Ok(new { Response = response });
         }
-        // Lấy lịch sử trò chuyện với caching
         [HttpGet("session/{chatSessionId}/history")]
         public async Task<IActionResult> GetChatHistory(string chatSessionId, int page = 1, int pageSize = 20)
         {
-            //var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value!);
             var userId = GetUserIdFromClaims();
             if (userId == null) return Unauthorized();
-            // Lấy tin nhắn từ MongoDB
             var messages = await _chatSessionRepository.GetMessagesAsLinkedListAsync(chatSessionId, userId.Value);
 
-            // Phân trang
             var pagedMessages = messages
+                .Where(x => x.IsDeleted == false)
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
                 .Select(m => new { m.Role, m.Content, m.SentAt })
@@ -109,7 +131,6 @@ namespace FN.AIService.Controllers
 
             return Ok(pagedMessages);
         }
-        // Xóa phiên chat
         [HttpDelete("session/{chatSessionId}")]
         public async Task<IActionResult> DeleteChatSession(string chatSessionId)
         {
@@ -126,7 +147,6 @@ namespace FN.AIService.Controllers
                 return NotFound(ex.Message);
             }
         }
-        // Lấy danh sách phiên chat của người dùng
         [HttpGet("sessions")]
         public async Task<IActionResult> GetUserChatSessions(int page = 1, int pageSize = 10)
         {

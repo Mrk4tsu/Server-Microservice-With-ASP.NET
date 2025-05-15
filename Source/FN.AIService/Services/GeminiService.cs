@@ -18,78 +18,11 @@ namespace FN.AIService.Services
             _httpClient = httpClient;
             _apiKey = configuration["GeminiAPIKey"]!;
             _chatSessionRepository = chatSessionRepository;
-        }
-        //public async IAsyncEnumerable<string> GenerateContentStreamAsync(int userId, string chatSessionId, string userMessage)
-        //{
-        //    // Lấy lịch sử tin nhắn
-        //    var chatMessages = await _chatSessionRepository.GetMessagesAsLinkedListAsync(chatSessionId, userId, 40);
-
-        //    // Chuyển lịch sử tin nhắn thành danh sách contents cho Gemini API
-        //    var contents = chatMessages.Select(m => new GeminiAIDev.Models.Content
-        //    {
-        //        role = m.Role,
-        //        parts = new[] { new GeminiAIDev.Models.Part { text = m.Content } }
-        //    }).ToList();
-
-        //    // Thêm tin nhắn mới của người dùng
-        //    contents.Add(new GeminiAIDev.Models.Content
-        //    {
-        //        role = "user",
-        //        parts = new[] { new GeminiAIDev.Models.Part { text = userMessage } }
-        //    });
-
-        //    // Gọi API Gemini với streaming
-        //    string url = $"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:streamGenerateContent?alt=sse&key={_apiKey}";
-        //    var request = new ContentRequest { contents = contents.ToArray() };
-        //    string jsonRequest = JsonConvert.SerializeObject(request);
-        //    var content = new StringContent(jsonRequest, Encoding.UTF8, "application/json");
-
-        //    // Sử dụng SendAsync với HttpCompletionOption.ResponseHeadersRead
-        //    using var requestMessage = new HttpRequestMessage(HttpMethod.Post, url)
-        //    {
-        //        Content = content
-        //    };
-        //    using var response = await _httpClient.SendAsync(requestMessage, HttpCompletionOption.ResponseHeadersRead);
-        //    response.EnsureSuccessStatusCode();
-
-        //    using var stream = await response.Content.ReadAsStreamAsync();
-        //    using var reader = new StreamReader(stream);
-
-        //    string aiResponse = "";
-        //    while (!reader.EndOfStream)
-        //    {
-        //        var line = await reader.ReadLineAsync();
-        //        if (!string.IsNullOrEmpty(line) && line.StartsWith("data: "))
-        //        {
-        //            var data = line.Substring(6); // Bỏ phần "data: "
-        //            aiResponse += data;
-        //            yield return data; // Trả về từng phần dữ liệu
-        //        }
-        //    }
-
-        //    // Lưu tin nhắn vào MongoDB sau khi hoàn tất
-        //    var userMessageEntity = new ChatMessage
-        //    {
-        //        Role = "user",
-        //        Content = userMessage,
-        //        SentAt = DateTime.Now
-        //    };
-        //    var aiMessageEntity = new ChatMessage
-        //    {
-        //        Role = "model",
-        //        Content = aiResponse,
-        //        SentAt = DateTime.Now
-        //    };
-
-        //    await _chatSessionRepository.AddMessageAsync(chatSessionId, userId, userMessageEntity);
-        //    await _chatSessionRepository.AddMessageAsync(chatSessionId, userId, aiMessageEntity);
-        //}
+        }   
+        
         public async IAsyncEnumerable<string> StreamGenerateContentAsync(int userId, string chatSessionId, string userMessage)
         {
-            // Lấy lịch sử tin nhắn
             var chatMessages = await _chatSessionRepository.GetMessagesAsLinkedListAsync(chatSessionId, userId, 40);
-
-            // Chuyển LinkedList thành danh sách contents cho Gemini API
             var contents = chatMessages.Select(m => new GeminiAIDev.Models.Content
             {
                 role = m.Role,
@@ -99,32 +32,28 @@ namespace FN.AIService.Services
             }
             }).ToList();
 
-            // Thêm tin nhắn mới của người dùng
             contents.Add(new GeminiAIDev.Models.Content
             {
                 role = "user",
                 parts = new[] { new GeminiAIDev.Models.Part { text = userMessage } }
             });
-
-            // Kiểm tra tổng độ dài (ước tính token)
             int estimatedTokenCount = contents.Sum(c => c.parts.Sum(p => p.text.Length / 4));
             if (estimatedTokenCount > 8000)
             {
                 contents = contents.TakeLast(40).ToList();
             }
 
-            // Gọi API Gemini với SSE
-            string url = $"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:streamGenerateContent?alt=sse&key={_apiKey}";
+            string url = $"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-04-17:streamGenerateContent?alt=sse&key={_apiKey}";
             var request = new ContentRequest { contents = contents.ToArray() };
             string jsonRequest = JsonConvert.SerializeObject(request);
             var content = new StringContent(jsonRequest, Encoding.UTF8, "application/json");
 
-            // Lưu tin nhắn của người dùng vào MongoDB
             var userMessageEntity = new ChatMessage
             {
                 Role = "user",
                 Content = userMessage,
-                SentAt = DateTime.Now
+                SentAt = DateTime.Now,
+                IsDeleted = false
             };
             await _chatSessionRepository.AddMessageAsync(chatSessionId, userId, userMessageEntity);
 
@@ -160,20 +89,19 @@ namespace FN.AIService.Services
                     }
                 }
             }
-
-            // Lưu toàn bộ phản hồi của AI vào MongoDB sau khi stream kết thúc
             var aiMessageEntity = new ChatMessage
             {
                 Role = "model",
                 Content = fullResponse.ToString(),
-                SentAt = DateTime.Now
+                SentAt = DateTime.Now,
+                IsDeleted = false
             };
             await _chatSessionRepository.AddMessageAsync(chatSessionId, userId, aiMessageEntity);
         }
         public async Task<string> GenerateContentAsync(int userId, string chatSessionId, string userMessage)
         {
             // Lấy lịch sử tin nhắn dưới dạng LinkedList
-            var chatMessages = await _chatSessionRepository.GetMessagesAsLinkedListAsync(chatSessionId, userId, 40);
+            var chatMessages = await _chatSessionRepository.GetMessagesAsLinkedListAsync(chatSessionId, userId,40);
 
             // Chuyển LinkedList thành danh sách contents cho Gemini API
             var contents = chatMessages.Select(m => new GeminiAIDev.Models.Content
@@ -204,7 +132,7 @@ namespace FN.AIService.Services
             }
 
             // Gọi API Gemini
-            string url = $"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro-exp-03-25:generateContent?key={_apiKey}";
+            string url = $"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-04-17:generateContent?key={_apiKey}";
             var request = new ContentRequest
             {
                 contents = contents.ToArray()
@@ -247,7 +175,7 @@ namespace FN.AIService.Services
         }
         public async Task<string> GenerateContentAsync(string prompt)
         {
-            string url = $"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro-exp-03-25:generateContent?key={_apiKey}";
+            string url = $"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={_apiKey}";
             var request = new ContentRequest
             {
                 contents = new[]

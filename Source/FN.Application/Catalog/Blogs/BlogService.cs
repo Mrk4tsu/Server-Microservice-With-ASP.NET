@@ -1,11 +1,14 @@
 ﻿using AutoMapper;
 using FN.Application.Catalog.Blogs.Pattern;
+using FN.Application.Catalog.Statisticals;
 using FN.Application.Helper.Images;
 using FN.Application.Systems.Redis;
 using FN.DataAccess;
+using FN.DataAccess.Entities;
 using FN.DataAccess.Enums;
 using FN.Utilities;
 using FN.ViewModel.Catalog.Blogs;
+using FN.ViewModel.Catalog.Products.Statistical;
 using FN.ViewModel.Helper.API;
 using FN.ViewModel.Helper.Paging;
 using Microsoft.EntityFrameworkCore;
@@ -17,13 +20,16 @@ namespace FN.Application.Catalog.Blogs
         private readonly AppDbContext _db;
         private readonly IImageService _image;
         private readonly IRedisService _redis;
+        private readonly IProductStatsRepository _productStatsRepository;
         private readonly IMapper _mapper;
         public BlogService(AppDbContext db,
-            IImageService image,
+        IProductStatsRepository productStatsRepository,
+        IImageService image,
             IMapper mapper,
             IRedisService redis)
         {
             _db = db;
+            _productStatsRepository = productStatsRepository;
             _image = image;
             _redis = redis;
             _mapper = mapper;
@@ -288,6 +294,7 @@ namespace FN.Application.Catalog.Blogs
             item.ViewCount++;
             _db.Items.Update(item);
             await _db.SaveChangesAsync();
+            await _productStatsRepository.IncrementBLogViewAsync(blogId);
             return new ApiSuccessResult<bool>();
         }
 
@@ -306,6 +313,38 @@ namespace FN.Application.Catalog.Blogs
                 Thumbnail = blog.Item.Thumbnail,
             };
             return new ApiSuccessResult<BlogCombineCreateOrUpdateViewModel>(data);
+        }
+
+        private async Task<List<Item>> GetItemsByUser(int userId, int page, int pageSize)
+        {
+            return await _db.Items
+                .Where(x => x.UserId == userId && !x.IsDeleted)
+                .Take(pageSize)
+                .Skip((page - 1) * pageSize).ToListAsync();
+        }
+
+        public async Task<ApiSuccessResult<PagedResult<ProductStatsViewModel>>> GetUserBlogsWithStats(int userId, PagedList paged)
+        {
+            var items = await GetItemsByUser(userId, paged.PageIndex, paged.PageSize);
+            var productIds = items.Select(x => x.Id);
+            var totalRecords = items.Count;
+            var statsDict = await _productStatsRepository.GetBlogsViewStats(productIds);
+            var resultItems = items.Select(item => new ProductStatsViewModel
+            {
+                Id = item.Id,
+                Title = item.Title,
+                Thumbnail = item.Thumbnail,
+                Stats = statsDict.TryGetValue(item.Id, out var stats) ? stats : new ProductStatsSummary()
+            }).ToList();
+
+            var result = new PagedResult<ProductStatsViewModel>
+            {
+                TotalRecords = totalRecords,
+                PageIndex = paged.PageIndex,
+                PageSize = paged.PageSize,
+                Items = resultItems
+            };
+            return new ApiSuccessResult<PagedResult<ProductStatsViewModel>>(result);
         }
     }
 }

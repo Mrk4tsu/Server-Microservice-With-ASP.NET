@@ -1,9 +1,11 @@
 ﻿using AutoMapper;
 using FN.Application.Catalog.Product.Notifications;
 using FN.Application.Catalog.Product.Pattern;
+using FN.Application.Catalog.Statisticals;
 using FN.Application.Systems.Redis;
 using FN.DataAccess;
 using FN.DataAccess.Entities;
+using FN.DataAccess.Enums;
 using FN.Utilities;
 using FN.ViewModel.Catalog.Products;
 using FN.ViewModel.Catalog.Products.FeedbackProduct;
@@ -24,9 +26,11 @@ namespace FN.Application.Catalog.Product
         private readonly IProductStrategyFactory _strategyFactory;
         private IHubContext<NotifyHub, ITypedHubClient> _hubContext;
         private readonly INotifyService _notifyService;
+        private readonly IProductStatsRepository _productStatsRepository;
         private DateTime _now;
         public ProductPublicService(
             INotifyService notifyService,
+            IProductStatsRepository productStatsRepository,
             AppDbContext db,
             IMapper mapper,
             ProductContext context,
@@ -41,6 +45,7 @@ namespace FN.Application.Catalog.Product
             _strategyFactory = strategyFactory;
             _hubContext = hubContext;
             _notifyService = notifyService;
+            _productStatsRepository = productStatsRepository;
             _now = new TimeHelper.Builder()
                .SetTimestamp(DateTime.UtcNow)
                .SetTimeZone("SE Asia Standard Time").Build();
@@ -71,7 +76,7 @@ namespace FN.Application.Catalog.Product
 
             var detailVM = _mapper.Map<ProductDetailViewModel>(result.Product);
             detailVM.IsOwned = result.IsOwner;
-            detailVM.IsInteractive = result.Interaction?.Type ?? DataAccess.Enums.InteractionType.None;
+            detailVM.IsInteractive = result.Interaction?.Type ?? InteractionType.None;
 
             return new ApiSuccessResult<ProductDetailViewModel>(detailVM);
         }
@@ -101,9 +106,8 @@ namespace FN.Application.Catalog.Product
         public async Task<ApiResult<PagedResult<ProductViewModel>>> GetProducts(ProductPagingRequest request)
         {
             var facade = new GetProductFacade(_db, _mapper, null, _dbRedis, null, SystemConstant.PRODUCT_KEY);
-            return await facade.GetProducts(request, false, false, null);
+            return await facade.GetProducts(request, false, null);
         }
-
         public async Task<ApiResult<int>> AddProductFeedback(FeedbackRequest request, int userId)
         {
             var check = await _db.FeedBacks
@@ -155,7 +159,6 @@ namespace FN.Application.Catalog.Product
             await _notifyService.SaveNotify(ownerUserId, info);
             return new ApiSuccessResult<int>(feedback.Id);
         }
-
         public async Task<ApiSuccessResult<PagedResult<FeedbackViewModel>>> GetFeedbackProduct(PagedList request, int productId)
         {
             var query = _db.FeedBacks
@@ -197,7 +200,6 @@ namespace FN.Application.Catalog.Product
 
             return new ApiSuccessResult<PagedResult<FeedbackViewModel>>(pagedResult);
         }
-
         public async Task<ApiResult<List<ProductViewModel>>> GetProducts(string type, int take)
         {
             var strategy = _strategyFactory.GetStrategy(type);
@@ -205,18 +207,18 @@ namespace FN.Application.Catalog.Product
             var result = await _context.GetProductsSelection(take);
             return new ApiSuccessResult<List<ProductViewModel>>(result);
         }
-
         public async Task<ApiResult<int>> UpdateView(int productId)
         {
             var product = await _db.Items.FirstOrDefaultAsync(x => x.Id == productId && !x.IsDeleted);
             if (product == null)
                 return new ApiErrorResult<int>("Không tìm thấy sản phẩm");
             product.ViewCount += 1;
+            await _productStatsRepository.IncrementProductViewAsync(productId);
             _db.Items.Update(product);
             await _db.SaveChangesAsync();
+
             return new ApiSuccessResult<int>(product.ViewCount);
         }
-
         public async Task<ApiResult<ProductSeoViewModel>> GetOpenGraph(int productId)
         {
             var product = await _db.ProductDetails

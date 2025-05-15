@@ -107,6 +107,7 @@ namespace FN.Application.Systems.Events
                 _db.ProductPrices.Add(productPrice);
             }
             await _db.SaveChangesAsync().ConfigureAwait(false);
+            _ = RemoveOldCache($"seasonal_event_products:{eventObj.Id}");
             return new ApiSuccessResult<bool>(true);
         }
 
@@ -122,6 +123,8 @@ namespace FN.Application.Systems.Events
             };
             _db.SaleEvents.Add(newEvent);
             await _db.SaveChangesAsync();
+            // Xóa cache current event
+            _ = _redisService.RemoveValue("current_seasonal_event");
             return new ApiSuccessResult<int>(newEvent.Id);
         }
 
@@ -196,9 +199,8 @@ namespace FN.Application.Systems.Events
             await _db.SaveChangesAsync();
 
             // Cập nhật cache
-            await _redisService.RemoveValue($"seasonal_event_products:{eventProduct.SaleEventId}");
-            await _redisService.RemoveValue("current_seasonal_event_products");
-
+            _ = _redisService.RemoveValue($"seasonal_event_products:{eventProduct.SaleEventId}");
+            _ = RemoveOldCache("current_seasonal_event_products");
             return new ApiSuccessResult<int>(eventProduct.CurrentPurchases);
         }
         private async Task UpdateEventProductPrices(int eventId)
@@ -265,10 +267,15 @@ namespace FN.Application.Systems.Events
         }
         private async Task RemoveOldCache(string? param = null)
         {
+            if (!string.IsNullOrEmpty(param))
+            {
+                await _redisService.RemoveValue(param).ConfigureAwait(false);
+            }
             await _redisService.RemoveValue(SystemConstant.PRODUCT_KEY).ConfigureAwait(false);
             await _redisService.RemoveCache(SystemConstant.PRODUCT_KEY + "_recommend").ConfigureAwait(false);
             await _redisService.RemoveCache(SystemConstant.PRODUCT_KEY + "_new").ConfigureAwait(false);
             await _redisService.RemoveCache(SystemConstant.PRODUCT_KEY + "_feature").ConfigureAwait(false);
+            await _redisService.RemoveCache(SystemConstant.PRODUCT_KEY).ConfigureAwait(false);
         }
 
         public async Task<ApiResult<bool>> AddProductToEvent(AddProductsToEventRequest request, int eventId)

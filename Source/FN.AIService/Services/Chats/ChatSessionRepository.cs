@@ -54,10 +54,8 @@ namespace FN.AIService.Services.Chats
             var messages = session.Messages
                 .OrderByDescending(m => m.SentAt)
                 .Take(maxMessages)
-                .OrderBy(m => m.SentAt) // Đảm bảo thứ tự thời gian
-                .ToList();
-
-            return new LinkedList<ChatMessage>(messages);
+                .OrderBy(m => m.SentAt);
+            return new LinkedList<ChatMessage>(messages.ToList());
         }
         public async Task DeleteChatSessionAsync(string sessionId, int userId)
         {
@@ -93,6 +91,7 @@ namespace FN.AIService.Services.Chats
                 return new ApiErrorResult<List<ChatSessionViewModel>>(ex.Message);
             }
         }
+        
         private void CreateIndexes()
         {
             var indexKeys = Builders<ChatSession>.IndexKeys

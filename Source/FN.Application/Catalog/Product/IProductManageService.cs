@@ -1,8 +1,10 @@
 ﻿using FN.ViewModel.Catalog.ProductItems;
 using FN.ViewModel.Catalog.Products;
 using FN.ViewModel.Catalog.Products.Manage;
+using FN.ViewModel.Catalog.Products.Statistical;
 using FN.ViewModel.Helper.API;
 using FN.ViewModel.Helper.Paging;
+using Microsoft.AspNetCore.Mvc;
 
 namespace FN.Application.Catalog.Product
 {
@@ -19,6 +21,7 @@ namespace FN.Application.Catalog.Product
         Task<ApiResult<bool>> DeleteImage(DeleteProductImagesRequest request);
         Task<ApiResult<int>> AddItemProduct(ProductItemRequest request, int productId);
         Task<ApiResult<int>> EditItemProduct(ProductItemSingleRequest request, int itemProductId);
+        Task<ApiSuccessResult<List<ProductStatsViewModel>>> GetUserProductsWithStats(int userId);
         Task RemoveCacheData();
     }
 }

@@ -4,6 +4,7 @@ using FN.Application.Helper.Images;
 using FN.ViewModel.Catalog.ProductItems;
 using FN.ViewModel.Catalog.Products.Manage;
 using FN.ViewModel.Catalog.Products.Prices;
+using FN.ViewModel.Catalog.Products.Statistical;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Ocelot.Values;
@@ -33,6 +34,14 @@ namespace FN.ProductService.Controllers
             if (userId == null) return Unauthorized();
             var result = await _service.GetProductById(id);
             if (result == null) return NotFound();
+            return Ok(result);
+        }
+        [HttpGet("product-stats")]
+        public async Task<IActionResult> GetUserProductsWithStats()
+        {
+            var userId = GetUserIdFromClaims();
+            if (userId == null) return Unauthorized();
+            var result = await _service.GetUserProductsWithStats(userId.Value);
             return Ok(result);
         }
         [HttpGet("paging")]
@@ -126,6 +135,32 @@ namespace FN.ProductService.Controllers
             var userId = GetUserIdFromClaims();
             if (userId == null) return Unauthorized();
             var result = await _service.GetProductsOwner(request, userId.Value);
+            return Ok(result);
+        }
+        [HttpDelete("delete/{itemId}")]
+        public async Task<IActionResult> DeleteOrRoleback(int itemId)
+        {
+            var userId = GetUserIdFromClaims();
+            if (userId == null) return Unauthorized();
+            var result = await _service.DeleteOrRoleback(itemId, userId.Value);
+            if (result.Success) return Ok(result);
+            return BadRequest(result.Message);
+        }
+        [HttpDelete("delete-permanently/{itemId}")]
+        public async Task<IActionResult> DeletePermanently(int itemId)
+        {
+            var userId = GetUserIdFromClaims();
+            if (userId == null) return Unauthorized();
+            var result = await _service.DeletePermanently(itemId, userId.Value);
+            if (result.Success) return Ok(result);
+            return BadRequest(result.Message);
+        }
+        [HttpGet("trash")]
+        public async Task<IActionResult> TrashProducts([FromQuery] ProductPagingRequest request)
+        {
+            var userId = GetUserIdFromClaims();
+            if (userId == null) return Unauthorized();
+            var result = await _service.TrashProducts(request, userId.Value);
             return Ok(result);
         }
     }

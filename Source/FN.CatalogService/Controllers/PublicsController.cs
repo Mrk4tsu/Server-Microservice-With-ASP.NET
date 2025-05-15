@@ -1,8 +1,10 @@
 ﻿using FN.Application.Catalog.Blogs.Interactions;
 using FN.Application.Catalog.Product;
 using FN.Application.Catalog.Product.Interactions;
+using FN.Application.Catalog.Statisticals;
 using FN.ViewModel.Catalog.Products.FeedbackProduct;
 using FN.ViewModel.Catalog.Products.Manage;
+using FN.ViewModel.Catalog.Products.Statistical;
 using FN.ViewModel.Helper.Paging;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -16,11 +18,16 @@ namespace FN.ProductService.Controllers
     {
         private readonly IProductPublicService _service;
         private readonly ProductInteraction _productInteraction;
-        public PublicsController(IProductPublicService service, ProductInteraction interaction)
+        private readonly IProductStatsRepository _productStatsRepository;
+        public PublicsController(IProductPublicService service,
+            IProductStatsRepository productStatsRepository,
+            ProductInteraction interaction)
         {
+            _productStatsRepository = productStatsRepository;
             _service = service;
             _productInteraction = interaction;
         }
+       
         [HttpGet("list")]
         public async Task<IActionResult> GetProducts([FromQuery] ProductPagingRequest request)
         {
@@ -84,7 +91,7 @@ namespace FN.ProductService.Controllers
             var result = await _service.GetProducts(type, take);
             return Ok(result);
         }
-        [HttpPut("update-view")]
+        [HttpPut("update-view/{productId}")]
         public async Task<IActionResult> UpdateView(int productId)
         {
             var result = await _service.UpdateView(productId);

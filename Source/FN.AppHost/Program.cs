@@ -4,6 +4,7 @@ var catalogAPI = builder.AddProject<Projects.FN_CatalogService>("apiservice-cata
 var orderAPI = builder.AddProject<Projects.FN_OrderService>("apiservice-order");
 var userAPI = builder.AddProject<Projects.FN_UserService>("apiservice-user");
 var emailAPI = builder.AddProject<Projects.FN_EmailService>("apiservice-email");
+var aiAPI = builder.AddProject<Projects.FN_AIService>("apiservice-ai");
 var gateway = builder.AddProject<Projects.FN_APIGateway>("gateway");
 
 builder.Build().Run();

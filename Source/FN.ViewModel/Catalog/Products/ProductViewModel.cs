@@ -1,5 +1,4 @@
 ﻿using FN.DataAccess.Enums;
-using System.Text.Json.Serialization;
 
 namespace FN.ViewModel.Catalog.Products
 {
@@ -19,6 +18,7 @@ namespace FN.ViewModel.Catalog.Products
         public string CategoryIcon { get; set; } = string.Empty;
         public string CategorySeoAlias { get; set; } = string.Empty;
         public bool IsOwned { get; set; }
+        public bool IsDeleted { get; set; }
         public DateTime TimeCreates { get; set; }
         public DateTime TimeUpdates { get; set; }
         public List<PriceViewModel> Prices { get; set; } = new();

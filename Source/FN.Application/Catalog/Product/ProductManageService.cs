@@ -1,5 +1,7 @@
 ﻿using AutoMapper;
+using AutoMapper.QueryableExtensions;
 using FN.Application.Catalog.Product.Pattern;
+using FN.Application.Catalog.Statisticals;
 using FN.Application.Helper.Images;
 using FN.Application.Systems.Redis;
 using FN.DataAccess;
@@ -8,10 +10,10 @@ using FN.Utilities;
 using FN.ViewModel.Catalog.ProductItems;
 using FN.ViewModel.Catalog.Products;
 using FN.ViewModel.Catalog.Products.Manage;
+using FN.ViewModel.Catalog.Products.Statistical;
 using FN.ViewModel.Helper.API;
 using FN.ViewModel.Helper.Paging;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
 
 namespace FN.Application.Catalog.Product
 {
@@ -22,10 +24,13 @@ namespace FN.Application.Catalog.Product
         private readonly IImageService _image;
         private readonly IRedisService _dbRedis;
         private readonly IHttpClientFactory _httpClientFactory;
+        private readonly IProductStatsRepository _productStatsRepository;
         public ProductManageService(AppDbContext db,
             IHttpClientFactory httpClientFactory,
+            IProductStatsRepository productStatsRepository,
             IRedisService redisService, IMapper mapper, IImageService image)
         {
+            _productStatsRepository = productStatsRepository;
             _dbRedis = redisService;
             _db = db;
             _httpClientFactory = httpClientFactory;
@@ -46,15 +51,34 @@ namespace FN.Application.Catalog.Product
         public async Task<ApiResult<PagedResult<ProductViewModel>>> GetProducts(ProductPagingRequest request, int userId)
         {
             var facade = new GetProductFacade(_db, _mapper, null, _dbRedis, _image, SystemConstant.PRODUCT_KEY);
-            return await facade.GetProducts(request, true, false, userId);
+            return await facade.GetProducts(request, true, userId);
         }
         public async Task<ApiResult<PagedResult<ProductViewModel>>> TrashProducts(ProductPagingRequest request, int userId)
         {
-            var facade = new GetProductFacade(_db, _mapper, null, _dbRedis, _image, SystemConstant.PRODUCT_KEY);
-            return await facade.GetProducts(request, true, true, userId);
+            //var facade = new GetProductFacade(_db, _mapper, null, _dbRedis, _image, SystemConstant.PRODUCT_KEY);
+            var query = _db.ProductDetails
+                .AsNoTracking()
+                .Where(x => x.Item.IsDeleted == true && x.Item.UserId == userId)
+                .ProjectTo<ProductViewModel>(_mapper.ConfigurationProvider)
+                .AsQueryable();
+            var totalRow = query.Count();
+            var data = await query.OrderByDescending(x => x.TimeCreates)
+                .Skip((request.PageIndex - 1) * request.PageSize)
+                .Take(request.PageSize).ToListAsync();
+            var result = new PagedResult<ProductViewModel>
+            {
+                Items = data,
+                TotalRecords = totalRow,
+                PageIndex = request.PageIndex,
+                PageSize = request.PageSize,
+            };
+            return new ApiSuccessResult<PagedResult<ProductViewModel>>(result);
         }
         public async Task RemoveCacheData()
         {
+            await _dbRedis.RemoveCache(SystemConstant.PRODUCT_KEY + "_recommend");
+            await _dbRedis.RemoveCache(SystemConstant.PRODUCT_KEY + "_new");
+            await _dbRedis.RemoveCache(SystemConstant.PRODUCT_KEY + "_feature");
             await _dbRedis.RemoveValue(SystemConstant.PRODUCT_KEY);
         }
         public async Task<ApiResult<bool>> DeletePermanently(int itemId, int userId)
@@ -275,6 +299,28 @@ namespace FN.Application.Catalog.Product
                 }).ToList()
             };
             return new ApiSuccessResult<ManageProductViewModel>(productViewModel);
+        }
+
+        public async Task<ApiSuccessResult<List<ProductStatsViewModel>>> GetUserProductsWithStats(int userId)
+        {
+            var items = await GetItemsByUser(userId);
+            var productIds = items.Select(x => x.Id);
+            var statsDict = await _productStatsRepository.GetProductsViewStats(productIds);
+            var result =  items.Select(item => new ProductStatsViewModel
+            {
+                Id = item.Id,
+                Title = item.Title,
+                Thumbnail = item.Thumbnail,
+                Stats = statsDict.TryGetValue(item.Id, out var stats) ? stats : new ProductStatsSummary()
+            }).ToList();
+
+            return new ApiSuccessResult<List<ProductStatsViewModel>>(result);
+        }
+        private async Task<List<Item>> GetItemsByUser(int userId)
+        {
+            return await _db.Items
+                .Where(x => x.UserId == userId && !x.IsDeleted)
+                .ToListAsync();
         }
     }
 }
