@@ -1,4 +1,5 @@
-using FN.Forum.Extensions;
+using FN.Extensions;
+using FN.Forum.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -7,12 +8,11 @@ builder.Services.ConfigureDbContext(builder.Configuration)
                 .AddIdentityHandlersAndStores()
                 .ConfigureIdentityOptions()
                 .AddIdentityAuth(builder.Configuration)
-                .AddSwaggerExplorer()
-                .AddServices();
+                .AddSwaggerExplorer();
+builder.Services.AddScoped<ITopicService, TopicServices>();
+builder.Services.AddScoped<IReplyService, ReplyServices>();
 
 builder.Services.AddControllers();
-
-
 
 var app = builder.Build();
 

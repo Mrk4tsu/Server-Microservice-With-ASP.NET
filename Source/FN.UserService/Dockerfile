@@ -1,28 +1,260 @@
-# Sử dụng hình ảnh ASP.NET Core Runtime để chạy ứng dụng
-FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS base
-WORKDIR /app
-EXPOSE 80
-EXPOSE 443
+    public class AuthService : IAuthService
+    {
+        private readonly IRedisService _redisService;
+        private readonly UserManager<AppUser> _userManager;
+        private readonly SignInManager<AppUser> _signInManager;
+        private readonly ITokenService _tokenService;
+        public AuthService(IRedisService redisService,
+                        IMongoDatabase database,
+                        ITokenService tokenService,
+                        IMapper mapper,
+                        IImageService imageService,
+                        UserManager<AppUser> userManager,
+            SignInManager<AppUser> signInManager)
+        {
+            _signInManager = signInManager;
+            _redisService = redisService;
+            _userManager = userManager;
+            _tokenService = tokenService;
+        }
+        public async Task<ApiResult<TokenResponse>> Authenticate(LoginDTO request, HttpContext context)
+        {
+            try
+            {
+                var ipAddress = GetPublicIPAddress(context);
+                if (string.IsNullOrEmpty(ipAddress)) return new ApiErrorResult<TokenResponse>("Đăng nhập bất thường");
+                var user = await _userManager.FindByNameAsync(request.UserName).ConfigureAwait(false);
+                if (user == null) return new ApiErrorResult<TokenResponse>("Tài khoản không chính xác");
 
-# Sử dụng hình ảnh .NET SDK để build ứng dụng
-FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
-WORKDIR /src
+                var result = await _signInManager.PasswordSignInAsync(user, request.Password, request.RememberMe, true).ConfigureAwait(false);
+                if (!result.Succeeded) return new ApiErrorResult<TokenResponse>("Tài khoản mật khẩu không chính xác");
 
-# Sao chép tệp cấu hình dự án và thực hiện restore dependency
-COPY ["FN.UserService/FN.UserService.csproj", "FN.UserService/"]
-RUN dotnet restore "FN.UserService/FN.UserService.csproj"
+                // Tạo token và refresh token
+                var clientId = string.IsNullOrEmpty(request.ClientId) ? Guid.NewGuid().ToString() : request.ClientId;
 
-# Sao chép toàn bộ mã nguồn và build ứng dụng
-COPY . .
-WORKDIR "/src/FN.UserService"
-RUN dotnet build -c Release -o /app/build
+                var expires = request.RememberMe ? DateTime.Now.AddDays(14) : DateTime.Now.AddDays(3);
+                var (accessToken, refreshToken) = await GenerateTokensAsync(user, clientId, expires).ConfigureAwait(false);
 
-# Publish ứng dụng
-FROM build AS publish
-RUN dotnet publish -c Release -o /app/publish
+                // Publish message async (fire-and-forget)
+                _ = PublishLoginEventAsync(user, ipAddress, request.UserAgent, clientId);
 
-# Tạo container cuối cùng để chạy ứng dụng
-FROM base AS final
-WORKDIR /app
-COPY --from=publish /app/publish .
-ENTRYPOINT ["dotnet", "FN.UserService.dll"]
+                var response = new TokenResponse
+                {
+                    AccessToken = accessToken,
+                    RefreshToken = refreshToken,
+                    RefreshTokenExpiry = expires,
+                    ClientId = clientId
+                };
+
+                return new ApiSuccessResult<TokenResponse>(response);
+            }
+            catch (Exception e)
+            {
+                return new ApiErrorResult<TokenResponse>(e.Message);
+            }
+        }
+        public async Task<ApiResult<bool>> Register(RegisterDTO request)
+        {
+            try
+            {
+                var cacheKey = $"user:{request.UserName}";
+                var existed = await _redisService.KeyExist(cacheKey);
+                if (existed) return new ApiErrorResult<bool>("Tài khoản đã tồn tại");
+                if (await _userManager.FindByNameAsync(request.UserName) != null)
+                    return new ApiErrorResult<bool>("Tài khoản đã tồn tại");
+
+                var user = new AppUser
+                {
+                    UserName = request.UserName,
+                    FullName = request.FullName,
+                    Email = request.Email,
+                    Avatar = SystemConstant.AVATAR_DEFAULT,
+                    TimeCreated = DateTime.Now
+                };
+
+                var result = await _userManager.CreateAsync(user, request.Password);
+                
+                var response = new RegisterResponse
+                {
+                    FullName = user.FullName,
+                    Email = user.Email,
+                    Status = false
+                };
+                if (result.Succeeded)
+                {
+                    await _redisService.SetValue(cacheKey, user.UserName);
+                    response.Status = true;
+
+                    await _userManager.AddToRoleAsync(user, "CUSTOMER");
+
+                    await _redisService.Publish(SystemConstant.MESSAGE_REGISTER_EVENT, response).ConfigureAwait(false);
+                    return new ApiSuccessResult<bool>();
+                }
+                await _redisService.Publish(SystemConstant.MESSAGE_REGISTER_EVENT, response).ConfigureAwait(false);
+                return new ApiErrorResult<bool>("Tạo mới tài khoản không thành công");
+            }
+            catch (Exception ex)
+            {
+                return new ApiErrorResult<bool>(ex.Message);
+            }
+        }
+        public async Task<ApiResult<TokenResponse>> RefreshToken(RefreshTokenRequest request)
+        {
+            try
+            {
+                // Kiểm tra refresh token hiện tại
+                var currentToken = await _tokenService.GetRefreshToken(request);
+                if (currentToken == null || currentToken != request.RefreshToken)
+                    return new ApiErrorResult<TokenResponse>("Refresh token không hợp lệ");
+
+                // Lấy thông tin user
+                var user = await _userManager.FindByIdAsync(request.UserId.ToString());
+                if (user == null)
+                    return new ApiErrorResult<TokenResponse>("Tài khoản không tồn tại");
+
+                // Tạo token mới và refresh token mới
+                var tokenTask = _tokenService.GenerateAccessToken(user);
+                var newRefreshToken = _tokenService.GenerateRefreshToken();
+                await tokenTask; // Chờ task hoàn thành
+
+                // Xóa refresh token cũ trước khi lưu mới
+                await _tokenService.RemoveRefreshToken(request);
+
+                var expiryDate = DateTime.Now.AddDays(3);
+                var response = new TokenResponse
+                {
+                    AccessToken = await tokenTask,
+                    RefreshToken = newRefreshToken,
+                    RefreshTokenExpiry = expiryDate,
+                    ClientId = request.ClientId
+                };
+
+                // Lưu refresh token mới
+                await _tokenService.SaveRefreshToken(
+                    newRefreshToken,
+                    request,
+                    expiryDate - DateTime.Now);
+
+                return new ApiSuccessResult<TokenResponse>(response);
+            }
+            catch (Exception ex)
+            {
+                return new ApiErrorResult<TokenResponse>("Lỗi: " + ex.Message);
+            }
+        }
+        private string GetPublicIPAddress(HttpContext context)
+        {
+            var ipHeaders = new[] { "X-Forwarded-For", "Forwarded", "X-Real-IP" };
+            foreach (var header in ipHeaders)
+            {
+                if (context.Request.Headers.TryGetValue(header, out var headerValue))
+                {
+                    var ip = headerValue.ToString().Split(',')[0].Trim();
+                    if (!string.IsNullOrEmpty(ip))
+                        return ip;
+                }
+            }
+
+            var remoteIp = context.Connection.RemoteIpAddress;
+            if (remoteIp != null)
+            {
+                if (remoteIp.Equals(IPAddress.IPv6Loopback))
+                    return "127.0.0.1";
+
+                if (remoteIp.IsIPv4MappedToIPv6)
+                    return remoteIp.MapToIPv4().ToString();
+
+                return remoteIp.ToString();
+            }
+
+            return string.Empty;
+        }
+        public string GetUserIpAddress(HttpContext context, bool Lan = false)
+        {
+            string userIPAddress = context.Request.Headers["X-Forwarded-For"]!;
+
+            if (String.IsNullOrEmpty(userIPAddress))
+                userIPAddress = context.Connection.RemoteIpAddress?.ToString()!;
+
+            if (string.IsNullOrEmpty(userIPAddress) || userIPAddress.Trim() == "::1")
+            {
+                Lan = true;
+                userIPAddress = string.Empty;
+            }
+
+            if (Lan)
+            {
+                if (string.IsNullOrEmpty(userIPAddress))
+                {
+                    string stringHostName = Dns.GetHostName();
+                    IPHostEntry ipHostEntries = Dns.GetHostEntry(stringHostName);
+
+                    System.Net.IPAddress[] arrIpAddress = ipHostEntries.AddressList;
+
+                    try
+                    {
+                        foreach (IPAddress ipAddress in arrIpAddress)
+                        {
+                            if (ipAddress.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)
+                            {
+                                userIPAddress = ipAddress.ToString();
+                            }
+                        }
+
+                        if (string.IsNullOrEmpty(userIPAddress))
+                            userIPAddress = arrIpAddress[arrIpAddress.Length - 1].ToString();
+                    }
+                    catch
+                    {
+                        try
+                        {
+                            userIPAddress = arrIpAddress[0].ToString();
+                        }
+                        catch
+                        {
+                            try
+                            {
+                                arrIpAddress = Dns.GetHostAddresses(stringHostName);
+                                userIPAddress = arrIpAddress[0].ToString();
+                            }
+                            catch
+                            {
+                                userIPAddress = "127.0.0.1";
+                            }
+                        }
+                    }
+                }
+            }
+
+            return userIPAddress;
+        }
+
+        private async Task<(string AccessToken, string RefreshToken)> GenerateTokensAsync(AppUser user, string clientId, DateTime expires)
+        {
+            var accessTokenTask = _tokenService.GenerateAccessToken(user);
+            var refreshToken = _tokenService.GenerateRefreshToken();
+            var tokenReq = new TokenRequest { UserId = user.Id, ClientId = clientId };
+            var expiryDuration = expires - DateTime.Now;
+
+            await _tokenService.SaveRefreshToken(refreshToken, tokenReq, expiryDuration).ConfigureAwait(false);
+            return (await accessTokenTask.ConfigureAwait(false), refreshToken);
+        }
+        private async Task PublishLoginEventAsync(AppUser user, string ipAddress, string userAgent, string clientId)
+        {
+            await _redisService.Publish(SystemConstant.MESSAGE_LOGIN_EVENT, new LoginResponse
+            {
+                Email = user.Email!,
+                Username = user.UserName!,
+                Token = new TokenRequest { UserId = user.Id, ClientId = clientId },
+                IpAddress = ipAddress,
+                UserAgent = userAgent,
+            }).ConfigureAwait(false);
+        }
+    }
+
+        public interface IAuthService
+    {
+        Task<ApiResult<TokenResponse>> RefreshToken(RefreshTokenRequest request);
+        Task<ApiResult<bool>> Register(RegisterDTO request);
+        Task<ApiResult<TokenResponse>> Authenticate(LoginDTO request, HttpContext context);
+    }

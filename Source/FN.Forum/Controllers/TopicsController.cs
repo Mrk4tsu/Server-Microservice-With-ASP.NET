@@ -10,6 +10,11 @@ namespace FN.Forum.Controllers
     [ApiController]
     public class TopicsController(ITopicService _postService, IReplyService _replyService) : BasesController
     {
+        [HttpGet("hello")]
+        public IActionResult Hello()
+        {
+            return Ok("Hello from TopicsController");
+        }
         [HttpGet("list")]
         public async Task<IActionResult> GetPosts([FromQuery] PagedList request)
         {

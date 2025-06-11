@@ -7,16 +7,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.12" />
-    <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="8.0.16" />
-    <PackageReference Include="StackExchange.Redis" Version="2.8.31" />
-    <PackageReference Include="Swashbuckle.AspNetCore.SwaggerGen" Version="8.1.1" />
-    <PackageReference Include="Swashbuckle.AspNetCore.SwaggerUI" Version="8.1.1" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <ProjectReference Include="..\FN.Application\FN.Application.csproj" />
-    <ProjectReference Include="..\FN.ViewModel\FN.ViewModel.csproj" />
+    <ProjectReference Include="..\FN.Extensions\FN.Extensions.csproj" />
   </ItemGroup>
 
 </Project>
